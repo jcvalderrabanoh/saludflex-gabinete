@@ -1,0 +1,48 @@
+{
+  "projectTitle": "Operación en regla — SaludFlex",
+  "promptPrefix": "Diseña una pantalla para \"Operación en regla\" de SaludFlex: SaaS para que clínicas y gabinetes de imagen en México tengan su cumplimiento sanitario al día (licencias COFEPRIS, dosimetría, control de calidad de rayos X, RPBI, protección civil) y saquen la carpeta de inspección en un clic. Usuarios: coordinador de recepción y responsable sanitario de un gabinete pequeño (1 a 3 personas), con poco tiempo. Estilo: Material 3, limpio y profesional, color primario azul SaludFlex (#2563C9), verde (#166534) para «Vigente», ámbar (#92400E) para «Por vencer», rojo (#991B1B) para «Vencido» y «Falta». Tipografía Inter. Textos en español de México. Accesible (contraste AA, objetivos táctiles de 48 px o más). El sistema organiza evidencia; nunca dice «certificado» ni «garantiza cumplimiento».",
+  "screens": [
+    {
+      "id": "F1",
+      "route": "/login",
+      "name": "Entrar",
+      "deviceType": "DESKTOP",
+      "prompt": "Pantalla de acceso centrada: marca «Operación en regla · de SaludFlex» con un punto azul, subtítulo «vigencias, bitácoras y carpeta de inspección», campos correo y contraseña, botón «Entrar». Segundo estado en la misma tarjeta: «¿Con qué cuenta entras?» con una lista de cuentas (UDIX, Clínica San Pablo)."
+    },
+    {
+      "id": "F2",
+      "route": "/operacion/hoy",
+      "name": "Hoy",
+      "deviceType": "DESKTOP",
+      "prompt": "Consola con menú lateral (Hoy, Obligaciones, Carpeta de inspección, Establecimientos) y barra superior con selector de establecimiento («UDIX Matriz») y usuario. Encabezado «Hoy · UDIX Matriz · 31 de octubre de 2026». A la derecha, tarjeta grande «45 % listo para inspección» con barra de progreso y conteo «1 vencida · 2 faltan · 1 por vencer · 1 vigente». Frase «4 cosas necesitan atención». Lista de tarjetas, cada una con chip de estado, título, sujeto, fecha y botón «Registrar» y enlace «Historial»: «Vencido · Lectura de dosimetría personal del POE · Téc. Ana López · venció hace 16 días»; «Falta · Contrato con el recolector de RPBI»; «Falta · Simulacro de protección civil»; «Por vencer · Licencia sanitaria de rayos X · faltan 20 días»."
+    },
+    {
+      "id": "F3",
+      "route": "/operacion/hoy (diálogo)",
+      "name": "Registrar evidencia",
+      "deviceType": "MOBILE",
+      "prompt": "Vista móvil a pantalla completa para registrar evidencia desde el celular: título «Registrar evidencia», obligación «Lectura de dosimetría personal del POE · Téc. Ana López», texto «Se adjunta: reporte del laboratorio de dosimetría». Campos fecha en que se hizo (hoy por defecto), vigente hasta (opcional) y notas. Botón grande «Tomar foto o subir PDF» con vista previa de la foto. Botón principal «Guardar». Nota pequeña: «Los registros no se borran; corregir crea uno nuevo con motivo»."
+    },
+    {
+      "id": "F4",
+      "route": "/operacion/obligaciones",
+      "name": "Obligaciones",
+      "deviceType": "DESKTOP",
+      "prompt": "Semáforo completo agrupado por secciones en el orden de la visita de verificación: «Aviso o licencia sanitaria y responsables», «Personal ocupacionalmente expuesto», «Equipos: control de calidad y mantenimiento», «RPBI», «Protección civil». Cada fila: chip de estado, título, sujeto (persona o equipo con número de serie), fecha de vencimiento, normas (NOM-229-SSA1-2002, COFEPRIS-05-024-A) en gris, botón «Registrar» y menú con Historial y Desactivar. Marca «†» en las de periodicidad pendiente de verificar, con leyenda. Botón «Activar obligación» arriba a la derecha."
+    },
+    {
+      "id": "F5",
+      "route": "/operacion/carpeta",
+      "name": "Carpeta de inspección",
+      "deviceType": "DESKTOP",
+      "prompt": "Pantalla «Carpeta de inspección»: texto «Si llega una verificación hoy, esta es la carpeta que entregas». Tarjeta con «45 % listo para inspección», aviso ámbar «La carpeta sale igual, pero marca lo vencido y lo faltante», botón principal «Descargar carpeta (PDF)» y una miniatura de la portada del PDF. Segunda tarjeta «Integridad de la evidencia»: «Cadena íntegra: 12 registros encadenados. Ninguno se ha modificado ni borrado» con el hash en tipografía monoespaciada. Pie: «Este documento organiza la evidencia; no constituye certificación ni asesoría legal»."
+    },
+    {
+      "id": "F6",
+      "route": "/operacion/establecimientos",
+      "name": "Establecimientos",
+      "deviceType": "DESKTOP",
+      "prompt": "Lista de establecimientos en tarjetas (UDIX Matriz · Gabinete de imagen · Rayos X, Ultrasonido · Responsable sanitario Dr. Moreno) con botones «Ver Hoy» y «Editar». Formulario de alta en panel lateral: nombre, tipo, servicios (multiselección de chips: Rayos X, Mastografía, Tomografía, Ultrasonido, Laboratorio), razón social, RFC, CLUES opcional, domicilio, responsable sanitario y cédula. Mensaje: «Al darlo de alta se activan solas las obligaciones que le aplican por sus servicios»."
+    }
+  ]
+}

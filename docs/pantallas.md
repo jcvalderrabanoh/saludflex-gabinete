@@ -17,3 +17,21 @@ Diálogos:
 - `features/establishments/establishment-form.dialog.ts`: alta y edición del establecimiento.
 
 Al añadir o cambiar una ruta, actualiza esta tabla y `app.routes.ts` (la prueba de `app.spec.ts` fija las rutas hijas de `/operacion`).
+
+## Propuestas en Google Stitch
+
+Mismo flujo que el Checador: cada pantalla tiene su prompt en `scripts/stitch/screens.json` (prefijo común con la paleta de SaludFlex). Se generan en Stitch y se guardan aquí en `docs/stitch/` (HTML y PNG), con el id del proyecto en `docs/stitch/manifest.json`. Stitch no genera Angular: el código final se escribe en Angular Material.
+
+```bash
+STITCH_API_KEY=… node scripts/stitch/generate-screens.mjs        # todas las pendientes
+STITCH_API_KEY=… node scripts/stitch/generate-screens.mjs F2 F3  # solo esas
+```
+
+| # | Ruta | Pantalla | Stitch |
+|---|---|---|---|
+| F1 | `/login` | Entrar | pendiente |
+| F2 | `/operacion/hoy` | Hoy | pendiente |
+| F3 | diálogo en `/operacion/hoy` | Registrar evidencia (móvil) | pendiente |
+| F4 | `/operacion/obligaciones` | Obligaciones | pendiente |
+| F5 | `/operacion/carpeta` | Carpeta de inspección | pendiente |
+| F6 | `/operacion/establecimientos` | Establecimientos | pendiente |
