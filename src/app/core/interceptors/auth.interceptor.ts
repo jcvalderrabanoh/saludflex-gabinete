@@ -1,72 +1,66 @@
-import { Injectable } from '@angular/core';
-import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, filter, take, switchMap } from 'rxjs/operators';
-import { AuthService } from '../services/auth.service';
+import {
+  HttpErrorResponse,
+  HttpEvent,
+  HttpHandler,
+  HttpInterceptor,
+  HttpRequest,
+} from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { catchError, filter, switchMap, take } from 'rxjs/operators';
+import { AuthService } from '../services/auth.service';
 
+const AUTH_PATHS = ['/auth/login', '/auth/refresh', '/auth/select-account'];
+
+/** Adjunta el token y, ante un 401, renueva la sesión una vez. */
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  private isRefreshing = false;
-  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private refreshing = false;
+  private readonly refreshed = new BehaviorSubject<string | null>(null);
 
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
-
-  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+  intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
+    if (AUTH_PATHS.some((path) => request.url.endsWith(path))) return next.handle(request);
     const token = this.authService.getToken();
-    
-    if (token) {
-      request = this.addToken(request, token);
-    }
+    const authorized = token ? withToken(request, token) : request;
 
-    return next.handle(request).pipe(
-      catchError(error => {
-        if (error instanceof HttpErrorResponse && error.status === 401) {
-          return this.handle401Error(request, next);
-        } else {
-          return throwError(error);
-        }
-      })
+    return next.handle(authorized).pipe(
+      catchError((error) =>
+        error instanceof HttpErrorResponse && error.status === 401 && this.authService.getRefreshToken()
+          ? this.refreshAndRetry(request, next)
+          : throwError(() => error),
+      ),
     );
   }
 
-  private addToken(request: HttpRequest<any>, token: string): HttpRequest<any> {
-    return request.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-  }
-
-  private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    if (!this.isRefreshing) {
-      this.isRefreshing = true;
-      this.refreshTokenSubject.next(null);
-
-      return this.authService.refreshToken().pipe(
-        switchMap((response: any) => {
-          this.isRefreshing = false;
-          this.refreshTokenSubject.next(response.data.accessToken);
-          return next.handle(this.addToken(request, response.data.accessToken));
-        }),
-        catchError((error) => {
-          this.isRefreshing = false;
-          this.authService.logout().subscribe();
-          this.router.navigate(['/login']);
-          return throwError(error);
-        })
-      );
-    } else {
-      return this.refreshTokenSubject.pipe(
-        filter(token => token != null),
+  private refreshAndRetry(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
+    if (this.refreshing) {
+      return this.refreshed.pipe(
+        filter((token): token is string => token !== null),
         take(1),
-        switchMap(jwt => {
-          return next.handle(this.addToken(request, jwt));
-        })
+        switchMap((token) => next.handle(withToken(request, token))),
       );
     }
+    this.refreshing = true;
+    this.refreshed.next(null);
+    return this.authService.refreshToken().pipe(
+      switchMap((token) => {
+        this.refreshing = false;
+        this.refreshed.next(token);
+        return next.handle(withToken(request, token));
+      }),
+      catchError((error) => {
+        this.refreshing = false;
+        this.authService.clearSession();
+        this.router.navigate(['/login']);
+        return throwError(() => error);
+      }),
+    );
   }
+}
+
+function withToken(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
+  return request.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
 }

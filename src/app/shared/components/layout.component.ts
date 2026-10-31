@@ -1,159 +1,88 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterModule, Router } from '@angular/router';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatListModule } from '@angular/material/list';
-import { MatIconModule } from '@angular/material/icon';
+import { Component, OnInit, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import { AuthService } from '../../core/services/auth.service';
-import { User } from '../interfaces/user.interface';
+import { EstablishmentContextService } from '../../core/services/establishment-context.service';
+import { FacilityApiService } from '../../core/services/facility-api.service';
+
+export const NAV_ITEMS = [
+  { path: '/operacion/hoy', label: 'Hoy', icon: 'today' },
+  { path: '/operacion/obligaciones', label: 'Obligaciones', icon: 'fact_check' },
+  { path: '/operacion/carpeta', label: 'Carpeta de inspección', icon: 'folder_shared' },
+  { path: '/operacion/establecimientos', label: 'Establecimientos', icon: 'apartment' },
+] as const;
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterOutlet,
-    RouterModule,
-    MatToolbarModule,
-    MatSidenavModule,
-    MatListModule,
-    MatIconModule,
-    MatButtonModule
-  ],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule, MatSidenavModule, MatListModule, MatIconModule, MatButtonModule, MatSelectModule],
   template: `
-    <div class="layout-container">
-      <mat-toolbar color="primary" class="toolbar">
-        <button mat-icon-button (click)="sidenav.toggle()" class="menu-button">
-          <mat-icon>menu</mat-icon>
-        </button>
-        <span class="app-title">JC Core - Gestión de Usuarios</span>
-        <span class="spacer"></span>
-        <span class="user-info" *ngIf="currentUser">
-          {{ currentUser.firstName }} {{ currentUser.lastName }}
-        </span>
-        <button mat-icon-button (click)="logout()" class="logout-button">
-          <mat-icon>logout</mat-icon>
-        </button>
-      </mat-toolbar>
-
-      <mat-sidenav-container class="sidenav-container">
-        <mat-sidenav #sidenav mode="side" opened class="sidenav">
-          <mat-nav-list>
-            <a mat-list-item routerLink="/dashboard" routerLinkActive="active">
-              <mat-icon matListItemIcon>dashboard</mat-icon>
-              <span matListItemTitle>Dashboard</span>
+    <mat-sidenav-container class="shell">
+      <mat-sidenav mode="side" opened class="nav">
+        <div class="brand"><span class="dot"></span> Operación en regla</div>
+        <mat-nav-list>
+          @for (item of nav; track item.path) {
+            <a mat-list-item [routerLink]="item.path" routerLinkActive="active">
+              <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+              <span matListItemTitle>{{ item.label }}</span>
             </a>
-            <a mat-list-item routerLink="/users" routerLinkActive="active">
-              <mat-icon matListItemIcon>people</mat-icon>
-              <span matListItemTitle>Usuarios</span>
-            </a>
-          </mat-nav-list>
-        </mat-sidenav>
-
-        <mat-sidenav-content class="main-content">
-          <router-outlet></router-outlet>
-        </mat-sidenav-content>
-      </mat-sidenav-container>
-    </div>
+          }
+        </mat-nav-list>
+      </mat-sidenav>
+      <mat-sidenav-content>
+        <mat-toolbar class="bar">
+          @if (context.establishments().length > 0) {
+            <mat-select class="selector" [value]="context.current()?.id" (selectionChange)="context.select($event.value)" aria-label="Establecimiento">
+              @for (e of context.establishments(); track e.id) {
+                <mat-option [value]="e.id">{{ e.name }}</mat-option>
+              }
+            </mat-select>
+          }
+          <span class="spacer"></span>
+          <span class="user">{{ auth.getCurrentUser()?.firstName }}</span>
+          <button mat-button (click)="logout()">Salir</button>
+        </mat-toolbar>
+        <main class="content"><router-outlet /></main>
+      </mat-sidenav-content>
+    </mat-sidenav-container>
   `,
   styles: [`
-    .layout-container {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .toolbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-    }
-
-    .menu-button {
-      margin-right: 16px;
-    }
-
-    .app-title {
-      font-size: 1.2rem;
-      font-weight: 500;
-    }
-
-    .spacer {
-      flex: 1 1 auto;
-    }
-
-    .user-info {
-      margin-right: 16px;
-      font-size: 0.9rem;
-    }
-
-    .sidenav-container {
-      flex: 1;
-      margin-top: 64px;
-    }
-
-    .sidenav {
-      width: 250px;
-      background-color: #fafafa;
-    }
-
-    .main-content {
-      padding: 0;
-      background-color: #f5f5f5;
-      min-height: calc(100vh - 64px);
-    }
-
-    .active {
-      background-color: rgba(63, 81, 181, 0.1);
-      color: #3f51b5;
-    }
-
-    .active mat-icon {
-      color: #3f51b5;
-    }
-
-    @media (max-width: 768px) {
-      .sidenav {
-        width: 200px;
-      }
-
-      .app-title {
-        font-size: 1rem;
-      }
-
-      .user-info {
-        display: none;
-      }
-    }
-  `]
+    .shell { height: 100vh; }
+    .nav { width: 248px; border-right: 1px solid #e2e8f0; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 20px 16px; font-weight: 700; color: #2563c9; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: #2563c9; }
+    .active { background: #eef2fb; }
+    .bar { background: #fff; border-bottom: 1px solid #e2e8f0; gap: 12px; }
+    .selector { max-width: 320px; font-size: 15px; }
+    .spacer { flex: 1; }
+    .user { font-size: 14px; color: #475569; }
+    .content { padding: 24px; max-width: 1180px; }
+  `],
 })
 export class LayoutComponent implements OnInit {
-  currentUser: User | null = null;
-
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+  readonly auth = inject(AuthService);
+  readonly context = inject(EstablishmentContextService);
+  private readonly api = inject(FacilityApiService);
+  private readonly router = inject(Router);
+  readonly nav = NAV_ITEMS;
 
   ngOnInit(): void {
-    this.authService.currentUser$.subscribe(user => {
-      this.currentUser = user;
+    this.api.establishments().subscribe({
+      next: (list) => {
+        this.context.setEstablishments(list);
+        if (list.length === 0) this.router.navigate(['/operacion/establecimientos']);
+      },
     });
   }
 
   logout(): void {
-    this.authService.logout().subscribe({
-      next: () => {
-        this.router.navigate(['/login']);
-      },
-      error: (error) => {
-        console.error('Error during logout:', error);
-        this.router.navigate(['/login']);
-      }
-    });
+    this.auth.logout();
+    this.context.clear();
+    this.router.navigate(['/login']);
   }
 }

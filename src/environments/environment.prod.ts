@@ -1,4 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:3000'
+  // Misma API que lumen-view (core-front): jc-core en producción.
+  apiUrl: 'https://core.lumen-view.com',
 };

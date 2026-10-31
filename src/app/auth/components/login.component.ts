@@ -1,153 +1,117 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Component, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
+import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { AuthService } from '../../core/services/auth.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { AuthService, LoginOutcome } from '../../core/services/auth.service';
+import { AccountSelectionData } from '../../shared/interfaces/user.interface';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule
-  ],
+  imports: [ReactiveFormsModule, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatListModule, MatProgressSpinnerModule],
   template: `
     <div class="login-container">
       <mat-card class="login-card">
-        <mat-card-header>
-          <mat-card-title>Iniciar Sesión</mat-card-title>
-          <mat-card-subtitle>Accede a tu cuenta</mat-card-subtitle>
-        </mat-card-header>
-        
-        <mat-card-content>
-          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Email</mat-label>
-              <input matInput type="email" formControlName="email" required>
-              <mat-error *ngIf="loginForm.get('email')?.hasError('required')">
-                El email es requerido
-              </mat-error>
-              <mat-error *ngIf="loginForm.get('email')?.hasError('email')">
-                Ingresa un email válido
-              </mat-error>
-            </mat-form-field>
+        <div class="brand">
+          <span class="dot"></span>
+          <div>
+            <h1>Operación en regla</h1>
+            <p>de SaludFlex · vigencias, bitácoras y carpeta de inspección</p>
+          </div>
+        </div>
 
+        @if (selection(); as sel) {
+          <h2 class="step">¿Con qué cuenta entras?</h2>
+          <mat-action-list>
+            @for (account of sel.accounts; track account.id) {
+              <button mat-list-item (click)="chooseAccount(sel, account.id)" [disabled]="loading()">{{ account.name }}</button>
+            }
+          </mat-action-list>
+        } @else {
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Correo</mat-label>
+              <input matInput type="email" formControlName="email" autocomplete="username" />
+            </mat-form-field>
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Contraseña</mat-label>
-              <input matInput type="password" formControlName="password" required>
-              <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
-                La contraseña es requerida
-              </mat-error>
-              <mat-error *ngIf="loginForm.get('password')?.hasError('minlength')">
-                La contraseña debe tener al menos 6 caracteres
-              </mat-error>
+              <input matInput type="password" formControlName="password" autocomplete="current-password" />
             </mat-form-field>
-
-            <button 
-              mat-raised-button 
-              color="primary" 
-              type="submit" 
-              class="full-width login-button"
-              [disabled]="loginForm.invalid || loading">
-              <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
-              <span *ngIf="!loading">Iniciar Sesión</span>
+            @if (error()) {
+              <p class="error" role="alert">{{ error() }}</p>
+            }
+            <button mat-flat-button color="primary" type="submit" class="full-width" [disabled]="form.invalid || loading()">
+              @if (loading()) { <mat-spinner diameter="20" /> } @else { Entrar }
             </button>
           </form>
-        </mat-card-content>
+        }
       </mat-card>
     </div>
   `,
   styles: [`
-    .login-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background-color: #f5f5f5;
-      padding: 20px;
-    }
-
-    .login-card {
-      width: 100%;
-      max-width: 400px;
-      padding: 20px;
-    }
-
-    .full-width {
-      width: 100%;
-      margin-bottom: 16px;
-    }
-
-    .login-button {
-      height: 48px;
-      margin-top: 16px;
-    }
-
-    mat-card-header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-  `]
+    .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f1f5fd; padding: 20px; }
+    .login-card { width: 100%; max-width: 420px; padding: 28px; }
+    .brand { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; }
+    .brand h1 { margin: 0; font-size: 22px; color: #2563c9; }
+    .brand p { margin: 2px 0 0; color: #64748b; font-size: 13px; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; background: #2563c9; flex: none; }
+    .step { font-size: 16px; margin: 0 0 8px; }
+    .full-width { width: 100%; }
+    .error { color: #b91c1c; font-size: 13px; margin: 0 0 12px; }
+  `],
 })
-export class LoginComponent implements OnInit {
-  loginForm: FormGroup;
-  loading = false;
+export class LoginComponent {
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  readonly form = inject(FormBuilder).nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required],
+  });
+  readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
+  readonly selection = signal<AccountSelectionData | null>(null);
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private snackBar: MatSnackBar
-  ) {
-    this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+  submit(): void {
+    const { email, password } = this.form.getRawValue();
+    this.run(this.auth.login(email, password));
+  }
+
+  chooseAccount(selection: AccountSelectionData, accountId: string): void {
+    this.run(this.auth.selectAccount(selection.selectionToken, accountId));
+  }
+
+  private run(request: ReturnType<AuthService['login']>): void {
+    this.loading.set(true);
+    this.error.set(null);
+    request.subscribe({
+      next: (outcome: LoginOutcome) => {
+        this.loading.set(false);
+        if (outcome.kind === 'select-account') {
+          this.selection.set(outcome.selection);
+        } else {
+          this.router.navigate(['/operacion/hoy']);
+        }
+      },
+      error: (err: unknown) => {
+        this.loading.set(false);
+        this.selection.set(null);
+        this.error.set(loginError(err));
+      },
     });
   }
+}
 
-  ngOnInit(): void {
-    if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
-    }
+export function loginError(err: unknown): string {
+  if (err instanceof HttpErrorResponse) {
+    if (err.status === 401 || err.status === 400) return 'Correo o contraseña incorrectos, o la cuenta no tiene Operación en regla.';
+    if (err.status === 429) return 'Demasiados intentos. Espera un minuto.';
+    if (err.status === 0) return 'No hay conexión con el servidor.';
   }
-
-  onSubmit(): void {
-    if (this.loginForm.valid) {
-      this.loading = true;
-      const loginData = this.loginForm.value;
-
-      this.authService.login(loginData).subscribe({
-        next: (response) => {
-          this.loading = false;
-          if (response.success) {
-            this.snackBar.open('Inicio de sesión exitoso', 'Cerrar', {
-              duration: 3000,
-              panelClass: ['success-snackbar']
-            });
-            this.router.navigate(['/dashboard']);
-          }
-        },
-        error: (error) => {
-          this.loading = false;
-          const errorMessage = error.error?.message || 'Error al iniciar sesión';
-          this.snackBar.open(errorMessage, 'Cerrar', {
-            duration: 5000,
-            panelClass: ['error-snackbar']
-          });
-        }
-      });
-    }
-  }
+  return err instanceof Error ? err.message : 'No se pudo iniciar sesión.';
 }

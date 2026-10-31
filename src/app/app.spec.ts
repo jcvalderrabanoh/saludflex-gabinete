@@ -1,23 +1,23 @@
 import { TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { provideRouter } from '@angular/router';
+import { AppComponent } from './app';
+import { routes } from './app.routes';
 
-describe('App', () => {
+describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [App],
+      imports: [AppComponent],
+      providers: [provideRouter(routes)],
     }).compileComponents();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+  it('se crea', () => {
+    expect(TestBed.createComponent(AppComponent).componentInstance).toBeTruthy();
   });
 
-  it('should render title', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, jc-core-front-temp');
+  it('las pantallas de operación cuelgan de /operacion y requieren sesión', () => {
+    const operacion = routes.find((r) => r.path === 'operacion');
+    expect(operacion?.canActivate?.length).toBe(1);
+    expect(operacion?.children?.map((c) => c.path)).toEqual(['hoy', 'obligaciones', 'carpeta', 'establecimientos', '']);
   });
 });

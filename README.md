@@ -1,59 +1,27 @@
-# JcCoreFrontTemp
+# Operación en regla (front)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.1.3.
+Front de **Operación en regla** de SaludFlex: vigencias, bitácoras de evidencia y carpeta de inspección del establecimiento. Es la app `facility` de jc-core (ver `jc-core/docs/arquitectura/ADR-005-operacion-del-establecimiento.md` y el plan en `jc-core/docs/gestion-clinicas/`). Primer gabinete: UDIX.
 
-## Development server
+El software **organiza la evidencia y avisa de vencimientos**; no certifica cumplimiento. Quien cumple es el establecimiento.
 
-To start a local development server, run:
+## Pantallas
 
-```bash
-ng serve
-```
+Ver [`docs/pantallas.md`](docs/pantallas.md).
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Desarrollo
 
 ```bash
-ng generate component component-name
+npm ci
+npx ng serve            # http://localhost:4200, API en environment.apiUrl
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+El backend es jc-core (`npm run start:dev`, puerto 3000). El usuario necesita la app `facility` contratada en su cuenta (`account_apps`) y permisos `facility.*`.
+
+## Pruebas
 
 ```bash
-ng generate --help
+CHROME_BIN=/ruta/a/chrome npx ng test --watch=false --browsers=ChromeHeadlessCI
+npx ng build
 ```
 
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+`ChromeHeadlessCI` (en `karma.conf.js`) corre Chrome sin sandbox, necesario en contenedores que corren como root.

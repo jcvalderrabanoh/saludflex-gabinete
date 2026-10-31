@@ -1,27 +1,26 @@
 import { Routes } from '@angular/router';
-import { AuthGuard } from './auth/guards/auth.guard';
+import { authGuard } from './auth/guards/auth.guard';
 import { LoginComponent } from './auth/components/login.component';
-import { DashboardComponent } from './dashboard/components/dashboard.component';
-import { UserListComponent } from './users/components/user-list.component';
 import { LayoutComponent } from './shared/components/layout.component';
 
+/**
+ * Pantallas de «Operación en regla» (ADR-005 de jc-core). Al añadir o cambiar
+ * una ruta, actualiza `docs/pantallas.md`.
+ */
 export const routes: Routes = [
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
   {
-    path: '',
+    path: 'operacion',
     component: LayoutComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
     children: [
-      { 
-        path: 'dashboard', 
-        component: DashboardComponent
-      },
-      { 
-        path: 'users', 
-        component: UserListComponent
-      }
-    ]
+      { path: 'hoy', loadComponent: () => import('./features/today/today.component').then((m) => m.TodayComponent) },
+      { path: 'obligaciones', loadComponent: () => import('./features/obligations/obligations.component').then((m) => m.ObligationsComponent) },
+      { path: 'carpeta', loadComponent: () => import('./features/inspection/inspection.component').then((m) => m.InspectionComponent) },
+      { path: 'establecimientos', loadComponent: () => import('./features/establishments/establishments.component').then((m) => m.EstablishmentsComponent) },
+      { path: '', pathMatch: 'full', redirectTo: 'hoy' },
+    ],
   },
-  { path: '**', redirectTo: '/dashboard' }
+  { path: '', pathMatch: 'full', redirectTo: 'operacion/hoy' },
+  { path: '**', redirectTo: 'operacion/hoy' },
 ];

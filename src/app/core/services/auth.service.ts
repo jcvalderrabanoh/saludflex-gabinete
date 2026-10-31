@@ -1,81 +1,59 @@
-import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { BehaviorSubject, Observable, map, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { LoginDto, AuthResponse, User, ApiResponse } from '../../shared/interfaces/user.interface';
+import {
+  AccountSelectionData,
+  AuthResponse,
+  SessionData,
+  User,
+  isAccountSelection,
+} from '../../shared/interfaces/user.interface';
 
-@Injectable({
-  providedIn: 'root'
-})
+/** Resultado de un intento de login: sesión lista o elegir cuenta. */
+export type LoginOutcome =
+  | { kind: 'session' }
+  | { kind: 'select-account'; selection: AccountSelectionData };
+
+export const FACILITY_APP = 'facility' as const;
+
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
-  
-  private apiUrl = environment.apiUrl;
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = environment.apiUrl;
+  private readonly currentUserSubject = new BehaviorSubject<User | null>(readUser());
+  readonly currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {
-    this.loadUserFromStorage();
+  login(email: string, password: string): Observable<LoginOutcome> {
+    return this.http
+      .post<AuthResponse>(`${this.apiUrl}/auth/login`, { email, password, app: FACILITY_APP })
+      .pipe(map((response) => this.outcome(response)));
   }
 
-  login(loginDto: LoginDto): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, loginDto)
+  selectAccount(selectionToken: string, accountId: string): Observable<LoginOutcome> {
+    return this.http
+      .post<AuthResponse>(`${this.apiUrl}/auth/select-account`, { selectionToken, accountId })
+      .pipe(map((response) => this.outcome(response)));
+  }
+
+  refreshToken(): Observable<string> {
+    return this.http
+      .post<AuthResponse>(`${this.apiUrl}/auth/refresh`, { refreshToken: this.getRefreshToken() })
       .pipe(
-        tap(response => {
-          if (response.success) {
-            this.setSession(response.data);
-          }
-        })
+        tap((response) => this.outcome(response)),
+        map(() => this.getToken() as string),
       );
   }
 
-  logout(): Observable<ApiResponse<any>> {
+  /** Cierra la sesión local y avisa al backend sin esperar respuesta. */
+  logout(): void {
     const token = this.getToken();
-    return this.http.post<ApiResponse<any>>(`${this.apiUrl}/auth/logout`, {}, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).pipe(
-      tap(() => {
-        this.clearSession();
-      })
-    );
-  }
-
-  refreshToken(): Observable<AuthResponse> {
-    const refreshToken = this.getRefreshToken();
-    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/refresh`, { refreshToken })
-      .pipe(
-        tap(response => {
-          if (response.success) {
-            this.setSession(response.data);
-          }
-        })
-      );
-  }
-
-  validateToken(): Observable<ApiResponse<any>> {
-    const token = this.getToken();
-    return this.http.post<ApiResponse<any>>(`${this.apiUrl}/auth/validate`, { accessToken: token });
-  }
-
-  private setSession(authData: { user: User; accessToken: string; refreshToken: string }): void {
-    localStorage.setItem('accessToken', authData.accessToken);
-    localStorage.setItem('refreshToken', authData.refreshToken);
-    localStorage.setItem('currentUser', JSON.stringify(authData.user));
-    this.currentUserSubject.next(authData.user);
-  }
-
-  private clearSession(): void {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('currentUser');
-    this.currentUserSubject.next(null);
-  }
-
-  private loadUserFromStorage(): void {
-    const userStr = localStorage.getItem('currentUser');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      this.currentUserSubject.next(user);
+    if (token) {
+      this.http
+        .post(`${this.apiUrl}/auth/logout`, {}, { headers: { Authorization: `Bearer ${token}` } })
+        .subscribe({ error: () => undefined });
     }
+    this.clearSession();
   }
 
   getToken(): string | null {
@@ -92,5 +70,43 @@ export class AuthService {
 
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
+  }
+
+  hasPermission(permission: string): boolean {
+    return (this.getCurrentUser()?.permissions ?? []).includes(permission);
+  }
+
+  clearSession(): void {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('currentUser');
+    this.currentUserSubject.next(null);
+  }
+
+  private outcome(response: AuthResponse): LoginOutcome {
+    if (!response.success) throw new Error(response.message || 'No se pudo iniciar sesión');
+    if (isAccountSelection(response.data)) {
+      return { kind: 'select-account', selection: response.data };
+    }
+    this.setSession(response.data);
+    return { kind: 'session' };
+  }
+
+  private setSession(data: SessionData): void {
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    if (data.user) {
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      this.currentUserSubject.next(data.user);
+    }
+  }
+}
+
+function readUser(): User | null {
+  try {
+    const raw = localStorage.getItem('currentUser');
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
   }
 }

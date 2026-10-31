@@ -1,45 +1,43 @@
 export interface User {
-  _id: string;
+  id: string;
   firstName: string;
   lastName: string;
   email: string;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
+  accountId: string;
+  permissions?: string[];
 }
 
 export interface LoginDto {
   email: string;
   password: string;
+  /** Sesión de la app «operación en regla»: el backend exige el claim `app`. */
+  app: 'facility';
+  accountId?: string;
 }
 
-export interface CreateUserDto {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
+export interface SessionData {
+  user: User;
+  accessToken: string;
+  refreshToken: string;
 }
 
-export interface UpdateUserDto {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  password?: string;
+export interface AccountChoice {
+  id: string;
+  name: string;
+}
+
+export interface AccountSelectionData {
+  requiresAccountSelection: true;
+  accounts: AccountChoice[];
+  selectionToken: string;
 }
 
 export interface AuthResponse {
   success: boolean;
-  data: {
-    user: User;
-    accessToken: string;
-    refreshToken: string;
-  };
+  data: SessionData | AccountSelectionData;
   message: string;
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message: string;
+export function isAccountSelection(data: AuthResponse['data']): data is AccountSelectionData {
+  return (data as AccountSelectionData).requiresAccountSelection === true;
 }

@@ -8,5 +8,5 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './app.scss'
 })
 export class AppComponent {
-  title = 'jc-core-front';
+  title = 'Operación en regla';
 }
