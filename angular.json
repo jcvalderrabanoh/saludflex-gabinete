@@ -6,7 +6,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "jc-core-front-temp": {
+    "saludflex-gabinete": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -70,10 +70,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "jc-core-front-temp:build:production"
+              "buildTarget": "saludflex-gabinete:build:production"
             },
             "development": {
-              "buildTarget": "jc-core-front-temp:build:development"
+              "buildTarget": "saludflex-gabinete:build:development"
             }
           },
           "defaultConfiguration": "development"

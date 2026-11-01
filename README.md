@@ -1,4 +1,6 @@
-# Sistema Integral de Gabinete (front)
+# saludflex-gabinete
+
+**Sistema Integral de Gabinete** de SaludFlex (front).
 
 Front del **Sistema Integral de Gabinete** de SaludFlex, una app distinta de lumen-view con los datos conectados por la plataforma jc-core. Su primer módulo es **operación en regla**: vigencias, bitácoras de evidencia y carpeta de inspección del establecimiento. Es la app `facility` de jc-core (ver `jc-core/docs/arquitectura/ADR-005-operacion-del-establecimiento.md` y el plan en `jc-core/docs/gestion-clinicas/`). Primer gabinete: UDIX.
 
