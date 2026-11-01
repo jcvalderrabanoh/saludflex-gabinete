@@ -19,6 +19,7 @@ export const routes: Routes = [
       { path: 'equipos-y-personal', loadComponent: () => import('./features/subjects/subjects.component').then((m) => m.SubjectsComponent) },
       { path: 'carpeta', loadComponent: () => import('./features/inspection/inspection.component').then((m) => m.InspectionComponent) },
       { path: 'establecimientos', loadComponent: () => import('./features/establishments/establishments.component').then((m) => m.EstablishmentsComponent) },
+      { path: 'plataforma', loadComponent: () => import('./features/platform/platform.component').then((m) => m.PlatformComponent) },
       { path: '', pathMatch: 'full', redirectTo: 'hoy' },
     ],
   },

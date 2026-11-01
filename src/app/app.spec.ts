@@ -18,6 +18,6 @@ describe('AppComponent', () => {
   it('las pantallas de operación cuelgan de /operacion y requieren sesión', () => {
     const operacion = routes.find((r) => r.path === 'operacion');
     expect(operacion?.canActivate?.length).toBe(1);
-    expect(operacion?.children?.map((c) => c.path)).toEqual(['hoy', 'obligaciones', 'equipos-y-personal', 'carpeta', 'establecimientos', '']);
+    expect(operacion?.children?.map((c) => c.path)).toEqual(['hoy', 'obligaciones', 'equipos-y-personal', 'carpeta', 'establecimientos', 'plataforma', '']);
   });
 });

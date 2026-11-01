@@ -9,6 +9,7 @@ Front de la app `facility` de jc-core (ADR-005 en `jc-core/docs/arquitectura/`).
 | `/operacion/obligaciones` | Obligaciones | Semáforo completo por sección de la carpeta; activar obligaciones de persona o equipo; historial y corrección | `facility.read`, `facility.manage` para activar o desactivar | `features/obligations/obligations.component.ts` |
 | `/operacion/equipos-y-personal` | Equipos y personal | Registrar equipos (modalidad, serie) y personal (rol, cédula, POE); cada registro activa solo sus obligaciones | `facility.read`, `facility.manage` para registrar | `features/subjects/subjects.component.ts` |
 | `/operacion/carpeta` | Carpeta de inspección | Descargar la carpeta en PDF en el orden de la visita y ver la integridad de la cadena de evidencia | `facility.inspect` | `features/inspection/inspection.component.ts` |
+| `/operacion/plataforma` | Plataforma | Consola interna de SaludFlex: crear cuentas, unirlas a apps (p. ej. UDIX al gabinete), permisos de producto e invitaciones. Solo aparece y responde para los correos de `PLATFORM_ADMIN_EMAILS` (jc-core) | admin de plataforma | `features/platform/platform.component.ts` |
 | `/operacion/establecimientos` | Establecimientos | Alta y edición del establecimiento (servicios, CLUES, responsable sanitario). Sin establecimientos, el layout manda aquí | `facility.manage` | `features/establishments/establishments.component.ts` |
 
 Diálogos:

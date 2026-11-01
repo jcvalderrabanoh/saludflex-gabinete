@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +9,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { AuthService } from '../../core/services/auth.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { PlatformApiService } from '../../core/services/platform-api.service';
 
 export const NAV_ITEMS = [
   { path: '/operacion/hoy', label: 'Hoy', icon: 'today' },
@@ -31,6 +32,12 @@ export const NAV_ITEMS = [
             <a mat-list-item [routerLink]="item.path" routerLinkActive="active">
               <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
               <span matListItemTitle>{{ item.label }}</span>
+            </a>
+          }
+          @if (platformAdmin()) {
+            <a mat-list-item routerLink="/operacion/plataforma" routerLinkActive="active">
+              <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
+              <span matListItemTitle>Plataforma</span>
             </a>
           }
         </mat-nav-list>
@@ -79,8 +86,12 @@ export class LayoutComponent implements OnInit {
   private readonly api = inject(FacilityApiService);
   private readonly router = inject(Router);
   readonly nav = NAV_ITEMS;
+  private readonly platform = inject(PlatformApiService);
+  /** «Plataforma» solo aparece para los admins de plataforma (lo decide el backend). */
+  readonly platformAdmin = signal(false);
 
   ngOnInit(): void {
+    this.platform.isPlatformAdmin().subscribe((ok) => this.platformAdmin.set(ok));
     this.api.establishments().subscribe({
       next: (list) => {
         this.context.setEstablishments(list);
