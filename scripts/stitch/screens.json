@@ -1,13 +1,13 @@
 {
-  "projectTitle": "Operación en regla — SaludFlex",
-  "promptPrefix": "Diseña una pantalla para \"Operación en regla\" de SaludFlex: SaaS para que clínicas y gabinetes de imagen en México tengan su cumplimiento sanitario al día (licencias COFEPRIS, dosimetría, control de calidad de rayos X, RPBI, protección civil) y saquen la carpeta de inspección en un clic. Usuarios: coordinador de recepción y responsable sanitario de un gabinete pequeño (1 a 3 personas), con poco tiempo. Estilo: Material 3, limpio y profesional, color primario azul SaludFlex (#2563C9), verde (#166534) para «Vigente», ámbar (#92400E) para «Por vencer», rojo (#991B1B) para «Vencido» y «Falta». Tipografía Inter. Textos en español de México. Accesible (contraste AA, objetivos táctiles de 48 px o más). El sistema organiza evidencia; nunca dice «certificado» ni «garantiza cumplimiento».",
+  "projectTitle": "Sistema Integral de Gabinete — SaludFlex",
+  "promptPrefix": "Diseña una pantalla para \"Sistema Integral de Gabinete\" de SaludFlex (app distinta del visor lumen-view; su primer módulo es \"operación en regla\"): SaaS para que clínicas y gabinetes de imagen en México tengan su cumplimiento sanitario al día (licencias COFEPRIS, dosimetría, control de calidad de rayos X, RPBI, protección civil) y saquen la carpeta de inspección en un clic. Usuarios: coordinador de recepción y responsable sanitario de un gabinete pequeño (1 a 3 personas), con poco tiempo. Estilo: Material 3, limpio y profesional, color primario azul SaludFlex (#2563C9), verde (#166534) para «Vigente», ámbar (#92400E) para «Por vencer», rojo (#991B1B) para «Vencido» y «Falta». Tipografía Inter. Textos en español de México. Accesible (contraste AA, objetivos táctiles de 48 px o más). El sistema organiza evidencia; nunca dice «certificado» ni «garantiza cumplimiento».",
   "screens": [
     {
       "id": "F1",
       "route": "/login",
       "name": "Entrar",
       "deviceType": "DESKTOP",
-      "prompt": "Pantalla de acceso centrada: marca «Operación en regla · de SaludFlex» con un punto azul, subtítulo «vigencias, bitácoras y carpeta de inspección», campos correo y contraseña, botón «Entrar». Segundo estado en la misma tarjeta: «¿Con qué cuenta entras?» con una lista de cuentas (UDIX, Clínica San Pablo)."
+      "prompt": "Pantalla de acceso centrada: marca «Sistema Integral de Gabinete · de SaludFlex» con un punto azul, subtítulo «vigencias, bitácoras y carpeta de inspección», campos correo y contraseña, botón «Entrar». Segundo estado en la misma tarjeta: «¿Con qué cuenta entras?» con una lista de cuentas (UDIX, Clínica San Pablo)."
     },
     {
       "id": "F2",

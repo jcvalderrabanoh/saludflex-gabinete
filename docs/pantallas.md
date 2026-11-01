@@ -1,4 +1,4 @@
-# Pantallas de «Operación en regla»
+# Pantallas del Sistema Integral de Gabinete
 
 Front de la app `facility` de jc-core (ADR-005 en `jc-core/docs/arquitectura/`). La sesión es de la app `facility`: el login manda `app: 'facility'` y el backend exige el entitlement y los permisos `facility.*` (no se conceden por rol).
 

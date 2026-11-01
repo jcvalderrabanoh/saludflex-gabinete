@@ -8,5 +8,5 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './app.scss'
 })
 export class AppComponent {
-  title = 'Operación en regla';
+  title = 'Sistema Integral de Gabinete';
 }

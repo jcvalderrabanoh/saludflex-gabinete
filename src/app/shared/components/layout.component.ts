@@ -24,7 +24,7 @@ export const NAV_ITEMS = [
   template: `
     <mat-sidenav-container class="shell">
       <mat-sidenav mode="side" opened class="nav">
-        <div class="brand"><span class="dot"></span> Operación en regla</div>
+        <div class="brand"><span class="dot"></span> Sistema Integral de Gabinete</div>
         <mat-nav-list>
           @for (item of nav; track item.path) {
             <a mat-list-item [routerLink]="item.path" routerLinkActive="active">

@@ -21,8 +21,8 @@ import { AccountSelectionData } from '../../shared/interfaces/user.interface';
         <div class="brand">
           <span class="dot"></span>
           <div>
-            <h1>Operación en regla</h1>
-            <p>de SaludFlex · vigencias, bitácoras y carpeta de inspección</p>
+            <h1>Sistema Integral de Gabinete</h1>
+            <p>de SaludFlex · operación en regla: vigencias, bitácoras y carpeta de inspección</p>
           </div>
         </div>
 
@@ -109,7 +109,7 @@ export class LoginComponent {
 
 export function loginError(err: unknown): string {
   if (err instanceof HttpErrorResponse) {
-    if (err.status === 401 || err.status === 400) return 'Correo o contraseña incorrectos, o la cuenta no tiene Operación en regla.';
+    if (err.status === 401 || err.status === 400) return 'Correo o contraseña incorrectos, o la cuenta no tiene el Sistema Integral de Gabinete.';
     if (err.status === 429) return 'Demasiados intentos. Espera un minuto.';
     if (err.status === 0) return 'No hay conexión con el servidor.';
   }
