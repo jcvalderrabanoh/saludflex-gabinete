@@ -34,6 +34,10 @@ export const NAV_ITEMS = [
             </a>
           }
         </mat-nav-list>
+        <div class="nav-footer">
+          <a mat-flat-button color="primary" class="folder-btn" routerLink="/operacion/carpeta"><mat-icon>download</mat-icon> Carpeta en 1 clic</a>
+          <p>Organiza la evidencia. No emite certificados.</p>
+        </div>
       </mat-sidenav>
       <mat-sidenav-content>
         <mat-toolbar class="bar">
@@ -55,6 +59,10 @@ export const NAV_ITEMS = [
   styles: [`
     .shell { height: 100vh; }
     .nav { width: 248px; border-right: 1px solid #e2e8f0; }
+    .nav ::ng-deep .mat-drawer-inner-container { display: flex; flex-direction: column; }
+    .nav-footer { margin-top: auto; padding: 16px; }
+    .folder-btn { width: 100%; }
+    .nav-footer p { font-size: 11px; color: #94a3b8; text-align: center; margin: 8px 0 0; }
     .brand { display: flex; align-items: center; gap: 10px; padding: 20px 16px; font-weight: 700; color: #2563c9; }
     .dot { width: 12px; height: 12px; border-radius: 50%; background: #2563c9; }
     .active { background: #eef2fb; }

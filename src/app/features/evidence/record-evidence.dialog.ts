@@ -50,10 +50,17 @@ export interface RecordEvidenceData {
             <textarea matInput rows="2" formControlName="correctionReason"></textarea>
           </mat-form-field>
         }
-        <label class="file wide">
-          <span>Foto o PDF {{ data.correcting ? '(si no subes uno nuevo, se conserva el anterior)' : '' }}</span>
+        <label class="upload wide" [class.has-file]="fileName()">
           <input type="file" accept="image/*,application/pdf" capture="environment" (change)="pick($event)" />
+          @if (fileName(); as name) {
+            <span class="ok">✓ {{ name }}</span>
+            <span class="small">Toca para cambiarlo</span>
+          } @else {
+            <span class="cta">Tomar foto o subir PDF</span>
+            <span class="small">{{ data.correcting ? 'Si no subes uno nuevo, se conserva el anterior' : 'Foto del celular o PDF del proveedor' }}</span>
+          }
         </label>
+        <p class="trace wide"><strong>Aviso de trazabilidad:</strong> los registros no se borran; corregir crea uno nuevo con motivo.</p>
       </form>
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
     </mat-dialog-content>
@@ -68,7 +75,12 @@ export interface RecordEvidenceData {
     .what { margin: 0 0 4px; } .hint { margin: 0 0 8px; color: #64748b; font-size: 13px; }
     .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; margin-top: 12px; }
     .wide { grid-column: 1 / -1; }
-    .file { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #334155; margin-bottom: 8px; }
+    .upload { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px; border: 2px dashed #93c5fd; border-radius: 12px; background: #eff6ff; cursor: pointer; margin-bottom: 12px; }
+    .upload.has-file { border-style: solid; border-color: #86efac; background: #f0fdf4; }
+    .upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .cta { color: #1d4ed8; font-weight: 600; } .ok { color: #166534; font-weight: 600; }
+    .small { font-size: 12px; color: #64748b; }
+    .trace { font-size: 12px; background: #fffbeb; border: 1px solid #fde68a; color: #78350f; border-radius: 10px; padding: 8px 12px; margin: 0 0 8px; }
     .error { color: #b91c1c; font-size: 13px; }
   `],
 })
@@ -79,6 +91,7 @@ export class RecordEvidenceDialogComponent {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   private file: File | null = null;
+  readonly fileName = signal<string | null>(null);
 
   readonly form = inject(FormBuilder).nonNullable.group({
     performedOn: [this.data.correcting?.performedOn ?? this.data.today, Validators.required],
@@ -89,6 +102,7 @@ export class RecordEvidenceDialogComponent {
 
   pick(event: Event): void {
     this.file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    this.fileName.set(this.file?.name ?? null);
   }
 
   save(): void {

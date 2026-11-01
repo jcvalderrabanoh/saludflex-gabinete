@@ -21,7 +21,7 @@ Al añadir o cambiar una ruta, actualiza esta tabla y `app.routes.ts` (la prueba
 
 ## Propuestas en Google Stitch
 
-Mismo flujo que el Checador: cada pantalla tiene su prompt en `scripts/stitch/screens.json` (prefijo común con la paleta de SaludFlex). Se generan en Stitch y se guardan aquí en `docs/stitch/` (HTML y PNG), con el id del proyecto en `docs/stitch/manifest.json`. Stitch no genera Angular: el código final se escribe en Angular Material.
+Proyecto generado (01-nov-2026): https://stitch.withgoogle.com/projects/9959578893517974265 — capturas y HTML en jc-core `docs/gestion-clinicas/stitch/`. Mismo flujo que el Checador: cada pantalla tiene su prompt en `scripts/stitch/screens.json` (prefijo común con la paleta de SaludFlex). Se generan en Stitch y se guardan aquí en `docs/stitch/` (HTML y PNG), con el id del proyecto en `docs/stitch/manifest.json`. Stitch no genera Angular: el código final se escribe en Angular Material.
 
 ```bash
 STITCH_API_KEY=… node scripts/stitch/generate-screens.mjs        # todas las pendientes
@@ -30,10 +30,10 @@ STITCH_API_KEY=… node scripts/stitch/generate-screens.mjs F2 F3  # solo esas
 
 | # | Ruta | Pantalla | Stitch |
 |---|---|---|---|
-| F1 | `/login` | Entrar | pendiente |
-| F2 | `/operacion/hoy` | Hoy | pendiente |
-| F3 | diálogo en `/operacion/hoy` | Registrar evidencia (móvil) | pendiente |
-| F4 | `/operacion/obligaciones` | Obligaciones | pendiente |
-| F5 | `/operacion/carpeta` | Carpeta de inspección | pendiente |
-| F6 | `/operacion/establecimientos` | Establecimientos | pendiente |
-| F7 | `/operacion/equipos-y-personal` | Equipos y personal | pendiente |
+| F1 | `/login` | Entrar | [Stitch](https://stitch.withgoogle.com/projects/9959578893517974265) |
+| F2 | `/operacion/hoy` | Hoy | [Stitch](https://stitch.withgoogle.com/projects/9959578893517974265) |
+| F3 | diálogo en `/operacion/hoy` | Registrar evidencia (móvil) | [Stitch](https://stitch.withgoogle.com/projects/9959578893517974265) |
+| F4 | `/operacion/obligaciones` | Obligaciones | [Stitch](https://stitch.withgoogle.com/projects/9959578893517974265) |
+| F5 | `/operacion/carpeta` | Carpeta de inspección | [Stitch](https://stitch.withgoogle.com/projects/9959578893517974265) |
+| F6 | `/operacion/establecimientos` | Establecimientos | [Stitch](https://stitch.withgoogle.com/projects/9959578893517974265) |
+| F7 | `/operacion/equipos-y-personal` | Equipos y personal | [Stitch](https://stitch.withgoogle.com/projects/9959578893517974265) |

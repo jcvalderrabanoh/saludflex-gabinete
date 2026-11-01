@@ -21,16 +21,23 @@ import { SubjectFormData, SubjectFormDialogComponent } from './subject-form.dial
     <section>
       <div class="head"><h2>Equipos</h2><button mat-flat-button color="primary" (click)="open({ kind: 'equipment' })">Registrar equipo</button></div>
       @if (equipment().length === 0) { <p class="empty">Sin equipos registrados.</p> }
-      @for (e of equipment(); track e.id) {
-        <mat-card class="row">
-          <div class="text">
+      <div class="grid">
+        @for (e of equipment(); track e.id) {
+          <mat-card class="tile">
+            @if (e.room) { <span class="room">{{ e.room }}</span> }
             <div class="title">{{ e.name }}</div>
-            <div class="meta">{{ modality(e) }}{{ e.serialNumber ? ' · serie ' + e.serialNumber : '' }}{{ e.manufacturer ? ' · ' + e.manufacturer : '' }}{{ e.model ? ' ' + e.model : '' }}</div>
-          </div>
-          <button mat-button (click)="open({ kind: 'equipment', current: e })">Editar</button>
-          <button mat-button (click)="retireEquipment(e)">Dar de baja</button>
-        </mat-card>
-      }
+            <div class="meta">{{ modality(e) }}</div>
+            <dl>
+              @if (e.manufacturer) { <dt>Marca</dt><dd>{{ e.manufacturer }}{{ e.model ? ' ' + e.model : '' }}</dd> }
+              <dt>Número de serie</dt><dd class="mono">{{ e.serialNumber || '—' }}</dd>
+            </dl>
+            <div class="tile-actions">
+              <button mat-button (click)="open({ kind: 'equipment', current: e })">Editar</button>
+              <button mat-button color="warn" (click)="retireEquipment(e)">Dar de baja</button>
+            </div>
+          </mat-card>
+        }
+      </div>
     </section>
 
     <section>
@@ -57,6 +64,12 @@ import { SubjectFormData, SubjectFormDialogComponent } from './subject-form.dial
     .text { flex: 1; } .title { font-weight: 600; } .meta { font-size: 12px; color: #64748b; }
     .tag { font-size: 11px; background: #fef3c7; color: #92400e; border-radius: 8px; padding: 1px 8px; margin-left: 6px; }
     .empty { color: #64748b; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .tile { padding: 16px; }
+    .room { align-self: flex-start; font-size: 11px; font-weight: 600; background: #eff6ff; color: #1d4ed8; border-radius: 6px; padding: 2px 8px; margin-bottom: 8px; }
+    dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; margin: 12px 0 4px; }
+    dt { color: #64748b; } dd { margin: 0; text-align: right; } .mono { font-family: monospace; }
+    .tile-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 8px; }
   `],
 })
 export class SubjectsComponent {
