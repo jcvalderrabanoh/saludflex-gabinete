@@ -13,6 +13,7 @@ import { FacilityApiService } from '../../core/services/facility-api.service';
 export const NAV_ITEMS = [
   { path: '/operacion/hoy', label: 'Hoy', icon: 'today' },
   { path: '/operacion/obligaciones', label: 'Obligaciones', icon: 'fact_check' },
+  { path: '/operacion/equipos-y-personal', label: 'Equipos y personal', icon: 'groups' },
   { path: '/operacion/carpeta', label: 'Carpeta de inspección', icon: 'folder_shared' },
   { path: '/operacion/establecimientos', label: 'Establecimientos', icon: 'apartment' },
 ] as const;

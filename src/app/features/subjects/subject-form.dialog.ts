@@ -1,0 +1,129 @@
+import { Component, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { Observable } from 'rxjs';
+import { Equipment, Personnel, SubjectResult } from '../../core/models/facility.models';
+import { MODALITY_LABELS, ROLE_LABELS } from '../../core/models/labels';
+import { FacilityApiService } from '../../core/services/facility-api.service';
+import { apiMessage } from '../evidence/record-evidence.dialog';
+
+export type SubjectFormData =
+  | { kind: 'equipment'; establishmentId: string; current?: Equipment }
+  | { kind: 'person'; establishmentId: string; current?: Personnel };
+
+/** Alta y edición de un equipo o una persona. Devuelve cuántas obligaciones se activaron. */
+@Component({
+  selector: 'app-subject-form-dialog',
+  standalone: true,
+  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, MatSelectModule],
+  template: `
+    <h2 mat-dialog-title>{{ title() }}</h2>
+    <mat-dialog-content>
+      @if (data.kind === 'equipment') {
+        <form [formGroup]="equipment" class="form">
+          <mat-form-field appearance="outline" class="wide"><mat-label>Nombre</mat-label><input matInput formControlName="name" placeholder="Sala 1 · Rayos X" /></mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Modalidad</mat-label>
+            <mat-select formControlName="modality">
+              @for (m of modalities; track m[0]) { <mat-option [value]="m[0]">{{ m[1] }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Número de serie</mat-label><input matInput formControlName="serialNumber" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Marca</mat-label><input matInput formControlName="manufacturer" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Modelo</mat-label><input matInput formControlName="model" /></mat-form-field>
+          <mat-form-field appearance="outline" class="wide"><mat-label>Sala</mat-label><input matInput formControlName="room" /></mat-form-field>
+        </form>
+        <p class="hint">Al registrarlo se activan su mantenimiento y, si emite radiación, su control de calidad.</p>
+      } @else {
+        <form [formGroup]="person" class="form">
+          <mat-form-field appearance="outline" class="wide"><mat-label>Nombre completo</mat-label><input matInput formControlName="fullName" /></mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Rol</mat-label>
+            <mat-select formControlName="role">
+              @for (r of roles; track r[0]) { <mat-option [value]="r[0]">{{ r[1] }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Cédula profesional</mat-label><input matInput formControlName="professionalLicense" /></mat-form-field>
+          <mat-checkbox class="wide" formControlName="occupationallyExposed">Personal ocupacionalmente expuesto a radiación (POE)</mat-checkbox>
+        </form>
+        <p class="hint">Si es POE se activan su dosimetría y su capacitación; si es clínico, su título y cédula.</p>
+      }
+      @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Cancelar</button>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="invalid() || saving()">Guardar</button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; min-width: 480px; }
+    .wide { grid-column: 1 / -1; margin-bottom: 8px; }
+    .hint { font-size: 12px; color: #64748b; margin: 4px 0 0; }
+    .error { color: #b91c1c; font-size: 13px; }
+  `],
+})
+export class SubjectFormDialogComponent {
+  readonly data = inject<SubjectFormData>(MAT_DIALOG_DATA);
+  private readonly ref = inject(MatDialogRef<SubjectFormDialogComponent, number>);
+  private readonly api = inject(FacilityApiService);
+  private readonly fb = inject(FormBuilder).nonNullable;
+  readonly modalities = Object.entries(MODALITY_LABELS);
+  readonly roles = Object.entries(ROLE_LABELS);
+  readonly saving = signal(false);
+  readonly error = signal<string | null>(null);
+
+  private readonly eq = this.data.kind === 'equipment' ? this.data.current : undefined;
+  private readonly pe = this.data.kind === 'person' ? this.data.current : undefined;
+
+  readonly equipment = this.fb.group({
+    name: [this.eq?.name ?? '', Validators.required],
+    modality: [this.eq?.modality ?? 'xray', Validators.required],
+    serialNumber: [this.eq?.serialNumber ?? ''],
+    manufacturer: [this.eq?.manufacturer ?? ''],
+    model: [this.eq?.model ?? ''],
+    room: [this.eq?.room ?? ''],
+  });
+
+  readonly person = this.fb.group({
+    fullName: [this.pe?.fullName ?? '', Validators.required],
+    role: [this.pe?.role ?? 'tecnico-radiologo', Validators.required],
+    professionalLicense: [this.pe?.professionalLicense ?? '', Validators.pattern(/^\d{7,8}$/)],
+    occupationallyExposed: [this.pe?.occupationallyExposed ?? false],
+  });
+
+  title(): string {
+    const verb = this.data.current ? 'Editar' : 'Registrar';
+    return `${verb} ${this.data.kind === 'equipment' ? 'equipo' : 'persona'}`;
+  }
+
+  invalid(): boolean {
+    return this.data.kind === 'equipment' ? this.equipment.invalid : this.person.invalid;
+  }
+
+  save(): void {
+    const d = this.data;
+    let request: Observable<SubjectResult<unknown>>;
+    if (d.kind === 'equipment') {
+      const v = this.equipment.getRawValue() as Partial<Equipment>;
+      request = d.current ? this.api.updateEquipment(d.current.id, v) : this.api.registerEquipment(d.establishmentId, v);
+    } else {
+      const v = this.person.getRawValue() as Partial<Personnel>;
+      request = d.current ? this.api.updatePerson(d.current.id, v) : this.api.registerPerson(d.establishmentId, v);
+    }
+    this.saving.set(true);
+    this.error.set(null);
+    request.subscribe({
+      next: (result) => this.ref.close(result.activated.length),
+      error: (err: HttpErrorResponse) => {
+        this.saving.set(false);
+        this.error.set(apiMessage(err));
+      },
+    });
+  }
+}

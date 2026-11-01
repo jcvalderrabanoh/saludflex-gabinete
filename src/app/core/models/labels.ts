@@ -48,3 +48,21 @@ export function dueLabel(daysLeft: number | null, dueOn: string | null): string 
   if (daysLeft === 0) return `Vence hoy (${dueOn})`;
   return `Faltan ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} (${dueOn})`;
 }
+
+export const MODALITY_LABELS: Record<import('./facility.models').EquipmentModality, string> = {
+  xray: 'Rayos X',
+  mammography: 'Mastografía',
+  ct: 'Tomografía',
+  ultrasound: 'Ultrasonido',
+  other: 'Otro',
+};
+
+export const ROLE_LABELS: Record<import('./facility.models').StaffRole, string> = {
+  'medico-radiologo': 'Médico radiólogo',
+  medico: 'Médico',
+  'tecnico-radiologo': 'Técnico radiólogo',
+  enfermeria: 'Enfermería',
+  'responsable-sanitario': 'Responsable sanitario',
+  'responsable-operacion': 'Responsable de la operación (RX)',
+  administrativo: 'Administrativo',
+};

@@ -1,0 +1,119 @@
+import { Component, effect, inject, signal } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Equipment, Personnel } from '../../core/models/facility.models';
+import { MODALITY_LABELS, ROLE_LABELS } from '../../core/models/labels';
+import { EstablishmentContextService } from '../../core/services/establishment-context.service';
+import { FacilityApiService } from '../../core/services/facility-api.service';
+import { SubjectFormData, SubjectFormDialogComponent } from './subject-form.dialog';
+
+/** Equipos y personal: registrarlos activa solas sus obligaciones. */
+@Component({
+  selector: 'app-subjects',
+  standalone: true,
+  imports: [MatCardModule, MatButtonModule, MatSnackBarModule],
+  template: `
+    <h1>Equipos y personal</h1>
+    <p class="sub">Registra cada equipo y a cada persona: el sistema activa su control de calidad, mantenimiento, dosimetría, capacitación y cédula, y te avisa antes de que venzan.</p>
+
+    <section>
+      <div class="head"><h2>Equipos</h2><button mat-flat-button color="primary" (click)="open({ kind: 'equipment' })">Registrar equipo</button></div>
+      @if (equipment().length === 0) { <p class="empty">Sin equipos registrados.</p> }
+      @for (e of equipment(); track e.id) {
+        <mat-card class="row">
+          <div class="text">
+            <div class="title">{{ e.name }}</div>
+            <div class="meta">{{ modality(e) }}{{ e.serialNumber ? ' · serie ' + e.serialNumber : '' }}{{ e.manufacturer ? ' · ' + e.manufacturer : '' }}{{ e.model ? ' ' + e.model : '' }}</div>
+          </div>
+          <button mat-button (click)="open({ kind: 'equipment', current: e })">Editar</button>
+          <button mat-button (click)="retireEquipment(e)">Dar de baja</button>
+        </mat-card>
+      }
+    </section>
+
+    <section>
+      <div class="head"><h2>Personal</h2><button mat-flat-button color="primary" (click)="open({ kind: 'person' })">Registrar persona</button></div>
+      @if (personnel().length === 0) { <p class="empty">Sin personal registrado.</p> }
+      @for (p of personnel(); track p.id) {
+        <mat-card class="row">
+          <div class="text">
+            <div class="title">{{ p.fullName }} @if (p.occupationallyExposed) { <span class="tag">POE</span> }</div>
+            <div class="meta">{{ role(p) }}{{ p.professionalLicense ? ' · cédula ' + p.professionalLicense : '' }}</div>
+          </div>
+          <button mat-button (click)="open({ kind: 'person', current: p })">Editar</button>
+          <button mat-button (click)="retirePerson(p)">Dar de baja</button>
+        </mat-card>
+      }
+    </section>
+  `,
+  styles: [`
+    h1 { margin: 0; } .sub { color: #64748b; max-width: 760px; }
+    section { margin-top: 20px; max-width: 900px; }
+    .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    h2 { font-size: 16px; margin: 0; color: #1e3a8a; }
+    .row { display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 10px 14px; margin-bottom: 8px; }
+    .text { flex: 1; } .title { font-weight: 600; } .meta { font-size: 12px; color: #64748b; }
+    .tag { font-size: 11px; background: #fef3c7; color: #92400e; border-radius: 8px; padding: 1px 8px; margin-left: 6px; }
+    .empty { color: #64748b; font-size: 14px; }
+  `],
+})
+export class SubjectsComponent {
+  private readonly api = inject(FacilityApiService);
+  private readonly context = inject(EstablishmentContextService);
+  private readonly dialog = inject(MatDialog);
+  private readonly snack = inject(MatSnackBar);
+  readonly equipment = signal<Equipment[]>([]);
+  readonly personnel = signal<Personnel[]>([]);
+
+  constructor() {
+    effect(() => {
+      const e = this.context.current();
+      if (e) this.load(e.id);
+    });
+  }
+
+  load(id: string): void {
+    this.api.equipment(id).subscribe((list) => this.equipment.set(list));
+    this.api.personnel(id).subscribe((list) => this.personnel.set(list));
+  }
+
+  modality(e: Equipment): string {
+    return MODALITY_LABELS[e.modality] ?? e.modality;
+  }
+
+  role(p: Personnel): string {
+    return ROLE_LABELS[p.role] ?? p.role;
+  }
+
+  open(partial: { kind: 'equipment'; current?: Equipment } | { kind: 'person'; current?: Personnel }): void {
+    const establishmentId = this.context.current()?.id;
+    if (!establishmentId) return;
+    const data = { ...partial, establishmentId } as SubjectFormData;
+    this.dialog
+      .open(SubjectFormDialogComponent, { width: '600px', data })
+      .afterClosed()
+      .subscribe((activated?: number) => {
+        if (activated === undefined) return;
+        if (activated > 0) {
+          this.snack.open(activatedMessage(activated), 'OK', { duration: 5000 });
+        }
+        this.load(establishmentId);
+      });
+  }
+
+  retireEquipment(e: Equipment): void {
+    if (!confirm(`¿Dar de baja «${e.name}»? Sus obligaciones se desactivan; la evidencia se conserva.`)) return;
+    this.api.retireEquipment(e.id).subscribe(() => this.load(e.establishmentId));
+  }
+
+  retirePerson(p: Personnel): void {
+    if (!confirm(`¿Dar de baja a «${p.fullName}»? Sus obligaciones se desactivan; la evidencia se conserva.`)) return;
+    this.api.retirePerson(p.id).subscribe(() => this.load(p.establishmentId));
+  }
+}
+
+export function activatedMessage(n: number): string {
+  return n === 1 ? 'Se activó 1 obligación. Revísala en «Hoy».' : `Se activaron ${n} obligaciones. Revísalas en «Hoy».`;
+}

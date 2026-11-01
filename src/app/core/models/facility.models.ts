@@ -160,3 +160,38 @@ export interface ChainVerification {
   brokenAtSeq: number | null;
   reason: string | null;
 }
+
+export type EquipmentModality = 'xray' | 'mammography' | 'ct' | 'ultrasound' | 'other';
+export type StaffRole =
+  | 'medico-radiologo'
+  | 'medico'
+  | 'tecnico-radiologo'
+  | 'enfermeria'
+  | 'responsable-sanitario'
+  | 'responsable-operacion'
+  | 'administrativo';
+
+export interface Equipment {
+  id: string;
+  establishmentId: string;
+  name: string;
+  modality: EquipmentModality;
+  manufacturer?: string | null;
+  model?: string | null;
+  serialNumber?: string | null;
+  room?: string | null;
+}
+
+export interface Personnel {
+  id: string;
+  establishmentId: string;
+  fullName: string;
+  role: StaffRole;
+  professionalLicense?: string | null;
+  occupationallyExposed: boolean;
+}
+
+export interface SubjectResult<T> {
+  subject: T;
+  activated: { id: string; catalogKey: string }[];
+}

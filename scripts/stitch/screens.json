@@ -43,6 +43,13 @@
       "name": "Establecimientos",
       "deviceType": "DESKTOP",
       "prompt": "Lista de establecimientos en tarjetas (UDIX Matriz · Gabinete de imagen · Rayos X, Ultrasonido · Responsable sanitario Dr. Moreno) con botones «Ver Hoy» y «Editar». Formulario de alta en panel lateral: nombre, tipo, servicios (multiselección de chips: Rayos X, Mastografía, Tomografía, Ultrasonido, Laboratorio), razón social, RFC, CLUES opcional, domicilio, responsable sanitario y cédula. Mensaje: «Al darlo de alta se activan solas las obligaciones que le aplican por sus servicios»."
+    },
+    {
+      "id": "F7",
+      "route": "/operacion/equipos-y-personal",
+      "name": "Equipos y personal",
+      "deviceType": "DESKTOP",
+      "prompt": "Pantalla «Equipos y personal» con dos secciones. Equipos: tarjetas (Sala 1 · Rayos X · serie DX-4410 · Philips; Sala 2 · Mastógrafo · serie MG-778; Sala 3 · Ultrasonido) con Editar y Dar de baja, botón «Registrar equipo». Personal: tarjetas (Ana López · Técnico radiólogo · cédula 12345678 · etiqueta POE; Dr. Moreno · Responsable sanitario) con botón «Registrar persona». Aviso tipo snackbar: «Se activaron 3 obligaciones. Revísalas en Hoy»."
     }
   ]
 }

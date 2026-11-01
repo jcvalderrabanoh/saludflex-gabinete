@@ -1,6 +1,7 @@
 import { EstablishmentStatus, EvaluatedObligation, ObligationDefinition } from '../core/models/facility.models';
 import { applicableDefinitions } from './obligations/activate-obligation.dialog';
 import { groupSections } from './obligations/obligations.component';
+import { activatedMessage } from './subjects/subjects.component';
 import { todaySummary } from './today/today.component';
 
 const ob = (id: string, folderOrder: number) => ({ id, folderOrder }) as EvaluatedObligation;
@@ -27,5 +28,10 @@ describe('helpers de pantallas', () => {
   it('todaySummary resume en una línea', () => {
     const s = { todayItems: [{}, {}, {}], score: { overdue: 1, missing: 2, dueSoon: 0 } } as unknown as EstablishmentStatus;
     expect(todaySummary(s)).toBe('3 cosas necesitan atención: 1 vencida, 2 sin registro.');
+  });
+
+  it('activatedMessage dice cuántas obligaciones nacieron', () => {
+    expect(activatedMessage(1)).toBe('Se activó 1 obligación. Revísala en «Hoy».');
+    expect(activatedMessage(3)).toBe('Se activaron 3 obligaciones. Revísalas en «Hoy».');
   });
 });

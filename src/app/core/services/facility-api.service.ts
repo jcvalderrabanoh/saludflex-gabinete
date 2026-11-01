@@ -6,6 +6,9 @@ import {
   ActivateObligationInput,
   Catalog,
   ChainVerification,
+  Equipment,
+  Personnel,
+  SubjectResult,
   Establishment,
   EstablishmentInput,
   EstablishmentStatus,
@@ -71,6 +74,38 @@ export class FacilityApiService {
     return this.http.get(`${this.base}/establishments/${establishmentId}/inspection-folder`, {
       responseType: 'blob',
     });
+  }
+
+  equipment(establishmentId: string): Observable<Equipment[]> {
+    return this.http.get<Equipment[]>(`${this.base}/establishments/${establishmentId}/equipment`);
+  }
+
+  registerEquipment(establishmentId: string, input: Partial<Equipment>): Observable<SubjectResult<Equipment>> {
+    return this.http.post<SubjectResult<Equipment>>(`${this.base}/establishments/${establishmentId}/equipment`, clean(input));
+  }
+
+  updateEquipment(id: string, input: Partial<Equipment>): Observable<SubjectResult<Equipment>> {
+    return this.http.patch<SubjectResult<Equipment>>(`${this.base}/equipment/${id}`, clean(input));
+  }
+
+  retireEquipment(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/equipment/${id}`);
+  }
+
+  personnel(establishmentId: string): Observable<Personnel[]> {
+    return this.http.get<Personnel[]>(`${this.base}/establishments/${establishmentId}/personnel`);
+  }
+
+  registerPerson(establishmentId: string, input: Partial<Personnel>): Observable<SubjectResult<Personnel>> {
+    return this.http.post<SubjectResult<Personnel>>(`${this.base}/establishments/${establishmentId}/personnel`, clean(input));
+  }
+
+  updatePerson(id: string, input: Partial<Personnel>): Observable<SubjectResult<Personnel>> {
+    return this.http.patch<SubjectResult<Personnel>>(`${this.base}/personnel/${id}`, clean(input));
+  }
+
+  retirePerson(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/personnel/${id}`);
   }
 
   verifyChain(): Observable<ChainVerification> {

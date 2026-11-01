@@ -7,6 +7,7 @@ Front de la app `facility` de jc-core (ADR-005 en `jc-core/docs/arquitectura/`).
 | `/login` | Entrar | Login con correo y contraseña. Si el usuario tiene varias cuentas con la app, pide elegir | — | `auth/components/login.component.ts` |
 | `/operacion/hoy` | Hoy | Bandeja del día: lo vencido, lo faltante y lo por vencer, con «Registrar» y el score «listo para inspección» | `facility.read` (`facility.record` para registrar) | `features/today/today.component.ts` |
 | `/operacion/obligaciones` | Obligaciones | Semáforo completo por sección de la carpeta; activar obligaciones de persona o equipo; historial y corrección | `facility.read`, `facility.manage` para activar o desactivar | `features/obligations/obligations.component.ts` |
+| `/operacion/equipos-y-personal` | Equipos y personal | Registrar equipos (modalidad, serie) y personal (rol, cédula, POE); cada registro activa solo sus obligaciones | `facility.read`, `facility.manage` para registrar | `features/subjects/subjects.component.ts` |
 | `/operacion/carpeta` | Carpeta de inspección | Descargar la carpeta en PDF en el orden de la visita y ver la integridad de la cadena de evidencia | `facility.inspect` | `features/inspection/inspection.component.ts` |
 | `/operacion/establecimientos` | Establecimientos | Alta y edición del establecimiento (servicios, CLUES, responsable sanitario). Sin establecimientos, el layout manda aquí | `facility.manage` | `features/establishments/establishments.component.ts` |
 
@@ -35,3 +36,4 @@ STITCH_API_KEY=… node scripts/stitch/generate-screens.mjs F2 F3  # solo esas
 | F4 | `/operacion/obligaciones` | Obligaciones | pendiente |
 | F5 | `/operacion/carpeta` | Carpeta de inspección | pendiente |
 | F6 | `/operacion/establecimientos` | Establecimientos | pendiente |
+| F7 | `/operacion/equipos-y-personal` | Equipos y personal | pendiente |
