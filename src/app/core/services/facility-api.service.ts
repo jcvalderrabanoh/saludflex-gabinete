@@ -108,6 +108,12 @@ export class FacilityApiService {
     return this.http.delete<void>(`${this.base}/personnel/${id}`);
   }
 
+  inspectionPackage(establishmentId: string): Observable<Blob> {
+    return this.http.get(`${this.base}/establishments/${establishmentId}/inspection-package`, {
+      responseType: 'blob',
+    });
+  }
+
   verifyChain(): Observable<ChainVerification> {
     return this.http.get<ChainVerification>(`${this.base}/evidence-chain/verification`);
   }

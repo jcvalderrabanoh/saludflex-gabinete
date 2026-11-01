@@ -20,9 +20,15 @@ import { FacilityApiService } from '../../core/services/facility-api.service';
         @if (s.score.overdue + s.score.missing > 0) {
           <p class="warn">La carpeta sale igual, pero marca lo vencido y lo faltante. Revisa «Hoy» antes de imprimirla.</p>
         }
-        <button mat-flat-button color="primary" (click)="download()" [disabled]="downloading()">
-          {{ downloading() ? 'Generando…' : 'Descargar carpeta (PDF)' }}
-        </button>
+        <div class="buttons">
+          <button mat-flat-button color="primary" (click)="downloadPackage()" [disabled]="downloading()">
+            {{ downloading() === 'zip' ? 'Armando la carpeta…' : 'Descargar carpeta completa (ZIP)' }}
+          </button>
+          <button mat-stroked-button (click)="download()" [disabled]="downloading()">
+            {{ downloading() === 'pdf' ? 'Generando…' : 'Solo el índice (PDF)' }}
+          </button>
+        </div>
+        <p class="hint">La carpeta completa trae el índice, el documento vigente de cada obligación ordenado como lo pide el verificador y un manifiesto con la huella de cada archivo.</p>
       </mat-card>
     }
     @if (chain(); as c) {
@@ -46,6 +52,8 @@ import { FacilityApiService } from '../../core/services/facility-api.service';
     .hash { font-family: monospace; font-size: 11px; color: #64748b; word-break: break-all; }
     h2 { font-size: 15px; margin: 0 0 6px; }
     .note { font-size: 12px; color: #94a3b8; margin-top: 18px; }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .hint { font-size: 12px; color: #64748b; margin: 10px 0 0; }
   `],
 })
 export class InspectionComponent {
@@ -53,7 +61,7 @@ export class InspectionComponent {
   private readonly context = inject(EstablishmentContextService);
   readonly status = signal<EstablishmentStatus | null>(null);
   readonly chain = signal<ChainVerification | null>(null);
-  readonly downloading = signal(false);
+  readonly downloading = signal<'pdf' | 'zip' | null>(null);
 
   constructor() {
     effect(() => {
@@ -66,18 +74,30 @@ export class InspectionComponent {
   download(): void {
     const e = this.context.current();
     if (!e) return;
-    this.downloading.set(true);
+    this.downloading.set('pdf');
     this.api.inspectionFolder(e.id).subscribe({
-      next: (blob) => {
-        this.downloading.set(false);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `carpeta-inspeccion-${this.status()?.today ?? ''}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
-      },
-      error: () => this.downloading.set(false),
+      next: (blob) => this.save(blob, 'pdf'),
+      error: () => this.downloading.set(null),
     });
+  }
+
+  downloadPackage(): void {
+    const e = this.context.current();
+    if (!e) return;
+    this.downloading.set('zip');
+    this.api.inspectionPackage(e.id).subscribe({
+      next: (blob) => this.save(blob, 'zip'),
+      error: () => this.downloading.set(null),
+    });
+  }
+
+  private save(blob: Blob, extension: 'pdf' | 'zip'): void {
+    this.downloading.set(null);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `carpeta-inspeccion-${this.status()?.today ?? ''}.${extension}`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

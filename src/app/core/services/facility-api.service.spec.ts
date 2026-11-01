@@ -36,6 +36,13 @@ describe('FacilityApiService', () => {
     req.flush({});
   });
 
+  it('la carpeta completa (ZIP) se pide como blob', () => {
+    api.inspectionPackage('e1').subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/establishments/e1/inspection-package');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(new Blob(['PK']));
+  });
+
   it('la carpeta se pide como blob', () => {
     api.inspectionFolder('e1').subscribe();
     const req = http.expectOne('http://localhost:3000/facility/establishments/e1/inspection-folder');
