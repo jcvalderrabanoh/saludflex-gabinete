@@ -21,3 +21,59 @@ jobs:
         run: npx ng test --watch=false --browsers=ChromeHeadlessCI
         env:
           CHROME_BIN: /usr/bin/google-chrome
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: gabinete-dist
+          path: dist/saludflex-gabinete/browser
+          retention-days: 7
+
+  # Publica en gabinete.salud-flex.com solo lo que paso el job anterior.
+  # Credenciales temporales por OIDC: el rol solo puede desplegar la app
+  # Amplify «saludflex-gabinete» y solo desde main de este repo. Sin secretos.
+  # Sin `environment`: cambiaria el `sub` del token y el trust del rol (que
+  # exige ref:refs/heads/main) lo rechazaria.
+  deploy:
+    name: deploy a gabinete.salud-flex.com
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      # La cola de `concurrency` serializa pero no ordena: si dos merges
+      # seguidos terminan el build al reves, el mas viejo se publicaria encima
+      # del nuevo. Solo publica la punta de main; la punta siempre tiene su
+      # propio run y lo hara ella.
+      - name: ¿sigue siendo la punta de main?
+        id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
+          if [ "$head" = "$GITHUB_SHA" ]; then
+            echo "latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$GITHUB_SHA ya no es la punta de main ($head): no se publica"
+            echo "latest=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.head.outputs.latest == 'true'
+      - uses: actions/download-artifact@v4
+        if: steps.head.outputs.latest == 'true'
+        with:
+          name: gabinete-dist
+          path: dist/saludflex-gabinete/browser
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: steps.head.outputs.latest == 'true'
+        with:
+          role-to-assume: arn:aws:iam::723528227799:role/github-saludflex-gabinete-deploy
+          aws-region: us-east-1
+      - run: scripts/deploy-amplify.sh
+        if: steps.head.outputs.latest == 'true'
+        env:
+          AMPLIFY_APP_ID: d2pukol2ot9zb1
