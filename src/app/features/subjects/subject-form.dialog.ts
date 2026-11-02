@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
-import { Equipment, Personnel, SubjectResult } from '../../core/models/facility.models';
+import { Equipment, Personnel, ServiceType, SubjectResult } from '../../core/models/facility.models';
 import { MODALITY_LABELS, ROLE_LABELS } from '../../core/models/labels';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
@@ -17,7 +17,13 @@ export type SubjectFormData =
   | { kind: 'equipment'; establishmentId: string; current?: Equipment }
   | { kind: 'person'; establishmentId: string; current?: Personnel };
 
-/** Alta y edición de un equipo o una persona. Devuelve cuántas obligaciones se activaron. */
+/** Lo que devuelve el diálogo al guardar. */
+export interface SubjectFormResult {
+  activated: number;
+  missingService?: ServiceType | null;
+}
+
+/** Alta y edición de un equipo o una persona. Devuelve cuántas obligaciones se activaron y si falta un servicio. */
 @Component({
   selector: 'app-subject-form-dialog',
   standalone: true,
@@ -119,7 +125,8 @@ export class SubjectFormDialogComponent {
     this.saving.set(true);
     this.error.set(null);
     request.subscribe({
-      next: (result) => this.ref.close(result.activated.length),
+      next: (result) =>
+        this.ref.close({ activated: result.activated.length, missingService: result.missingService } satisfies SubjectFormResult),
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
         this.error.set(apiMessage(err));

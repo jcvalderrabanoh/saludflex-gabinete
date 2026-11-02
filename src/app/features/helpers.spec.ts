@@ -1,7 +1,7 @@
 import { EstablishmentStatus, EvaluatedObligation, ObligationDefinition } from '../core/models/facility.models';
 import { applicableDefinitions } from './obligations/activate-obligation.dialog';
 import { groupSections } from './obligations/obligations.component';
-import { activatedMessage } from './subjects/subjects.component';
+import { activatedMessage, subjectSavedMessage } from './subjects/subjects.component';
 import { todaySummary } from './today/today.component';
 
 const ob = (id: string, folderOrder: number) => ({ id, folderOrder }) as EvaluatedObligation;
@@ -33,5 +33,16 @@ describe('helpers de pantallas', () => {
   it('activatedMessage dice cuántas obligaciones nacieron', () => {
     expect(activatedMessage(1)).toBe('Se activó 1 obligación. Revísala en «Hoy».');
     expect(activatedMessage(3)).toBe('Se activaron 3 obligaciones. Revísalas en «Hoy».');
+  });
+
+  it('subjectSavedMessage avisa primero del servicio que falta en el establecimiento', () => {
+    expect(subjectSavedMessage({ activated: 2, missingService: 'ct' })).toBe(
+      'Este equipo es de Tomografía y el establecimiento no tiene ese servicio. Agrégalo en «Establecimientos» para activar las obligaciones que le tocan.',
+    );
+  });
+
+  it('subjectSavedMessage sin servicio faltante dice cuántas obligaciones nacieron, o nada', () => {
+    expect(subjectSavedMessage({ activated: 1, missingService: null })).toBe(activatedMessage(1));
+    expect(subjectSavedMessage({ activated: 0 })).toBeNull();
   });
 });
