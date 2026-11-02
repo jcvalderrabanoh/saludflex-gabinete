@@ -197,3 +197,16 @@ export interface SubjectResult<T> {
   /** Solo en equipos: servicio que el equipo implica y el establecimiento no tiene. */
   missingService?: ServiceType | null;
 }
+
+/** Sugerencia de la IA al leer un documento (POST …/evidence/analyze). No guarda nada. */
+export interface EvidenceAnalysis {
+  documentType: string;
+  obligation: { id: string; catalogKey: string; title: string; subjectLabel: string | null } | null;
+  fields: { performedOn: string | null; validUntil: string | null; notes: string | null };
+  /** Porcentajes enteros 0..100. */
+  confidence: { overall: number; obligation: number; performedOn: number; validUntil: number };
+  warnings: string[];
+  ocr: { source: 'text-layer' | 'vision'; chars: number };
+  model: string;
+  promptVersion: string;
+}
