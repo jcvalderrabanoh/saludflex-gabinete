@@ -47,6 +47,16 @@ describe('AuthService', () => {
     expect(auth.isAuthenticated()).toBeTrue();
   });
 
+  it('canjea el token de Google (Auth0) por una sesión de la app facility', () => {
+    let outcome: LoginOutcome | undefined;
+    auth.exchangeGoogle('auth0-token').subscribe((o) => (outcome = o));
+    const req = http.expectOne('http://localhost:3000/auth/auth0/exchange');
+    expect(req.request.body).toEqual({ auth0Token: 'auth0-token', app: 'facility' });
+    req.flush({ success: true, data: session, message: 'ok' });
+    expect(outcome).toEqual({ kind: 'session' });
+    expect(auth.getToken()).toBe('tok');
+  });
+
   it('logout limpia la sesión aunque el backend falle', () => {
     localStorage.setItem('accessToken', 'tok');
     auth.logout();

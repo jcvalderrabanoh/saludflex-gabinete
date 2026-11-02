@@ -9,6 +9,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { AuthService } from '../../core/services/auth.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { GoogleSignIn } from '../../core/services/google-sign-in';
 import { PlatformApiService } from '../../core/services/platform-api.service';
 
 export const NAV_ITEMS = [
@@ -85,6 +86,7 @@ export class LayoutComponent implements OnInit {
   readonly context = inject(EstablishmentContextService);
   private readonly api = inject(FacilityApiService);
   private readonly router = inject(Router);
+  private readonly google = inject(GoogleSignIn);
   readonly nav = NAV_ITEMS;
   private readonly platform = inject(PlatformApiService);
   /** «Plataforma» solo aparece para los admins de plataforma (lo decide el backend). */
@@ -103,6 +105,7 @@ export class LayoutComponent implements OnInit {
   logout(): void {
     this.auth.logout();
     this.context.clear();
-    this.router.navigate(['/login']);
+    // Tras entrar con Google, Auth0 cierra su sesión y él mismo regresa a /login.
+    if (!this.google.signOut()) this.router.navigate(['/login']);
   }
 }
