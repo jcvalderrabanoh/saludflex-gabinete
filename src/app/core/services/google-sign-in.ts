@@ -7,14 +7,15 @@ type Auth0Port = Pick<Auth0Client, 'loginWithRedirect' | 'handleRedirectCallback
 
 const GOOGLE_CONNECTION = 'google-oauth2';
 const SIGNED_IN_WITH_GOOGLE_KEY = 'gabinete.google';
-const LOGIN_PATH = '/login';
 
 /**
  * El SDK se carga bajo demanda: quien entra con contraseña no lo descarga.
  *
- * Auth0 vuelve a `/login` (no a la raíz): la raíz redirige a una ruta con guard
- * que mandaría al login descartando `?code=&state=`. `memory`: la sesión que
- * manda es la de Gabinete; la de Auth0 solo dura lo que tarda el canje.
+ * Regreso y salida van al origin, como en lumen-view (core-front): son las URLs
+ * que ya tiene registradas la Application de Auth0. La ruta raíz reenvía el
+ * regreso a `/login` sin perder `?code=&state=` (ver `app.routes.ts`).
+ * `memory`: la sesión que manda es la de Gabinete; la de Auth0 solo dura lo que
+ * tarda el canje.
  */
 export const AUTH0_CLIENT = new InjectionToken<() => Promise<Auth0Port>>('AUTH0_CLIENT', {
   providedIn: 'root',
@@ -28,7 +29,7 @@ export const AUTH0_CLIENT = new InjectionToken<() => Promise<Auth0Port>>('AUTH0_
             clientId: environment.auth0.clientId,
             cacheLocation: 'memory',
             authorizationParams: {
-              redirect_uri: `${window.location.origin}${LOGIN_PATH}`,
+              redirect_uri: window.location.origin,
               audience: environment.auth0.audience,
               scope: 'openid profile email',
             },
@@ -81,7 +82,7 @@ export class GoogleSignIn {
   signOut(): boolean {
     if (!wasRemembered()) return false;
     remember(false);
-    void this.client().then((client) => client.logout({ logoutParams: { returnTo: `${window.location.origin}${LOGIN_PATH}` } }));
+    void this.client().then((client) => client.logout({ logoutParams: { returnTo: window.location.origin } }));
     return true;
   }
 }

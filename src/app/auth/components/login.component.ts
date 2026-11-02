@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { DOCUMENT, Location } from '@angular/common';
+import { Location } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -138,7 +138,7 @@ export class LoginComponent implements OnInit {
   private readonly google = inject(GoogleSignIn);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
-  private readonly document = inject(DOCUMENT);
+  private readonly route = inject(ActivatedRoute);
   readonly form = inject(FormBuilder).nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
@@ -148,9 +148,12 @@ export class LoginComponent implements OnInit {
   readonly selection = signal<AccountSelectionData | null>(null);
   readonly showPassword = signal(false);
 
+  /** El query viene de la ruta: en la primera navegación la barra de direcciones aún muestra la raíz. */
   ngOnInit(): void {
-    const url = this.document.location.href;
-    if (this.google.isReturn(url)) this.finishGoogle(url);
+    const url = new URL('/login', window.location.origin);
+    const query = this.route.snapshot.queryParamMap;
+    for (const key of query.keys) url.searchParams.set(key, query.get(key)!);
+    if (this.google.isReturn(url.href)) this.finishGoogle(url.href);
   }
 
   signInWithGoogle(): void {

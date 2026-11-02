@@ -4,8 +4,8 @@ export const environment = {
   /**
    * Auth0 (login con Google). Valores PÚBLICOS: viajan en el navegador (SPA
    * con PKCE). Tenant compartido con LumenView y SIRA; se separa por Application.
-   * LOCAL -> Application `lumen-view-local`: su «Allowed Callback URLs» y
-   * «Allowed Logout URLs» deben incluir http://localhost:4200/login.
+   * LOCAL -> Application `lumen-view-local`. Regreso y salida al origin, como
+   * lumen-view: reutiliza http://localhost:4200, ya registrado.
    */
   auth0: {
     domain: 'dev-6sdp03y5drfk5w1y.us.auth0.com',

@@ -66,7 +66,8 @@ describe('GoogleSignIn', () => {
     await google.finish(`${ORIGIN}/login?code=c&state=s`);
     expect(google.signOut()).toBeTrue();
     await flush();
-    expect(client.logout).toHaveBeenCalledWith({ logoutParams: { returnTo: `${ORIGIN}/login` } });
+    // Mismas URLs que lumen-view ya registró en Auth0: regreso y salida al origin.
+    expect(client.logout).toHaveBeenCalledWith({ logoutParams: { returnTo: ORIGIN } });
   });
 
   it('con contraseña, signOut no pasa por Auth0', async () => {

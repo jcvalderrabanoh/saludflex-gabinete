@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../core/services/auth.service';
@@ -9,7 +9,7 @@ describe('LoginComponent', () => {
   let auth: jasmine.SpyObj<AuthService>;
   let google: jasmine.SpyObj<GoogleSignIn>;
   let router: Router;
-  let returning: boolean;
+  let query: Record<string, string>;
 
   function create() {
     const fixture = TestBed.createComponent(LoginComponent);
@@ -18,17 +18,18 @@ describe('LoginComponent', () => {
   }
 
   beforeEach(() => {
-    returning = false;
+    query = {};
     auth = jasmine.createSpyObj('AuthService', ['login', 'selectAccount', 'exchangeGoogle']);
     google = jasmine.createSpyObj('GoogleSignIn', ['start', 'isReturn', 'finish', 'forget']);
     google.start.and.resolveTo();
-    google.isReturn.and.callFake(() => returning);
+    google.isReturn.and.callFake((url: string) => new URL(url).searchParams.has('state'));
     TestBed.configureTestingModule({
       imports: [LoginComponent],
       providers: [
         provideRouter([]),
         { provide: AuthService, useValue: auth },
         { provide: GoogleSignIn, useValue: google },
+        { provide: ActivatedRoute, useFactory: () => ({ snapshot: { queryParamMap: convertToParamMap(query) } }) },
       ],
     });
     router = TestBed.inject(Router);
@@ -72,18 +73,19 @@ describe('LoginComponent', () => {
   });
 
   it('al regresar de Auth0 canjea el token y entra a Hoy', async () => {
-    returning = true;
+    query = { code: 'c', state: 's' };
     google.finish.and.resolveTo('auth0-token');
     auth.exchangeGoogle.and.returnValue(of({ kind: 'session' }));
     const fixture = create();
     await fixture.whenStable();
-    expect(google.finish).toHaveBeenCalledWith(document.location.href);
+    // La raíz reenvía el regreso de Auth0 a /login: el query llega por la ruta, no por la barra de direcciones.
+    expect(google.finish).toHaveBeenCalledWith(`${window.location.origin}/login?code=c&state=s`);
     expect(auth.exchangeGoogle).toHaveBeenCalledWith('auth0-token');
     expect(router.navigate).toHaveBeenCalledWith(['/operacion/hoy']);
   });
 
   it('con varias cuentas tras Google pide elegir (paso 2 de 2)', async () => {
-    returning = true;
+    query = { code: 'c', state: 's' };
     google.finish.and.resolveTo('auth0-token');
     auth.exchangeGoogle.and.returnValue(of({ kind: 'select-account', selection: { requiresAccountSelection: true, accounts: [{ id: 'a1', name: 'Clínica Norte' }], selectionToken: 'sel' } }));
     const fixture = create();
@@ -95,7 +97,7 @@ describe('LoginComponent', () => {
   });
 
   it('si jc-core rechaza el canje, olvida Google y muestra el motivo', async () => {
-    returning = true;
+    query = { code: 'c', state: 's' };
     google.finish.and.resolveTo('auth0-token');
     auth.exchangeGoogle.and.returnValue(throwError(() => new Error('La cuenta no tiene el Sistema Integral de Gabinete')));
     const fixture = create();
