@@ -8,6 +8,7 @@ import { EstablishmentContextService } from '../../core/services/establishment-c
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { StatusChipComponent } from '../../shared/components/status-chip.component';
 import { EvidenceHistoryDialogComponent } from '../evidence/evidence-history.dialog';
+import { AnalyzeDocumentDialogComponent } from '../evidence/analyze-document.dialog';
 import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialog';
 
 /** «Hoy»: lo vencido, lo faltante y lo por vencer, con un botón para registrar. */
@@ -22,6 +23,7 @@ import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialo
           <span class="place">{{ s.establishmentName }}</span>
           <h1>Hoy · {{ s.today }}</h1>
           <p class="sub">Lo que hay que registrar o renovar para tener la evidencia al día.</p>
+          <button mat-flat-button color="primary" class="upload-doc" (click)="upload()">Subir documento</button>
           @if (s.todayItems.length > 0) {
             <p class="alert"><span class="dot red"></span>{{ summary(s) }}</p>
           } @else {
@@ -105,6 +107,7 @@ import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialo
     .subject { font-size: 13px; color: #475569; margin-top: 4px; }
     .evidence { font-size: 12px; color: #64748b; margin-top: 2px; }
     .actions { display: flex; gap: 8px; align-items: center; }
+    .upload-doc { margin: 4px 0 12px; }
     .disclaimer { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 28px; }
   `],
 })
@@ -144,6 +147,16 @@ export class TodayComponent {
   record(obligation: EvaluatedObligation): void {
     this.dialog
       .open(RecordEvidenceDialogComponent, { width: '560px', data: { obligation, today: this.status()?.today } })
+      .afterClosed()
+      .subscribe((saved) => saved && this.reload());
+  }
+
+  /** La IA lee el documento y propone obligación y fechas; la persona revisa y guarda. */
+  upload(): void {
+    const status = this.status();
+    if (!status) return;
+    this.dialog
+      .open(AnalyzeDocumentDialogComponent, { width: '600px', data: { status } })
       .afterClosed()
       .subscribe((saved) => saved && this.reload());
   }

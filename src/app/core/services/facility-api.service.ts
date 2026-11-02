@@ -12,6 +12,7 @@ import {
   Establishment,
   EstablishmentInput,
   EstablishmentStatus,
+  EvidenceAnalysis,
   EvidenceInput,
   EvidenceRecord,
 } from '../models/facility.models';
@@ -56,6 +57,13 @@ export class FacilityApiService {
 
   records(obligationId: string): Observable<EvidenceRecord[]> {
     return this.http.get<EvidenceRecord[]>(`${this.base}/obligations/${obligationId}/records`);
+  }
+
+  /** OCR + IA: sugiere obligación, fechas y notas con su confianza. No guarda. */
+  analyzeEvidence(establishmentId: string, file: File): Observable<EvidenceAnalysis> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<EvidenceAnalysis>(`${this.base}/establishments/${establishmentId}/evidence/analyze`, form);
   }
 
   recordEvidence(obligationId: string, input: EvidenceInput): Observable<EvidenceRecord> {

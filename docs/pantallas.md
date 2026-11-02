@@ -14,6 +14,7 @@ Front de la app `facility` de jc-core (ADR-005 en `jc-core/docs/arquitectura/`).
 
 Diálogos:
 - `features/evidence/record-evidence.dialog.ts`: registrar o corregir evidencia. Corregir crea un registro nuevo con motivo.
+- `features/evidence/analyze-document.dialog.ts`: «Subir documento» desde Hoy. La IA (OCR + clasificación en jc-core, `POST /facility/establishments/:id/evidence/analyze`) propone obligación, fechas y notas con su confianza; la persona revisa y guarda con el registro normal. Si la IA no está disponible, se llena a mano.
 - `features/evidence/evidence-history.dialog.ts`: historial con las correcciones visibles y descarga del archivo.
 - `features/obligations/activate-obligation.dialog.ts`: activar una obligación del catálogo.
 - `features/establishments/establishment-form.dialog.ts`: alta y edición del establecimiento.

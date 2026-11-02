@@ -36,6 +36,17 @@ describe('FacilityApiService', () => {
     req.flush({});
   });
 
+  it('analizar un documento manda solo el archivo al establecimiento', () => {
+    const file = new File(['%PDF-1.4'], 'licencia.pdf', { type: 'application/pdf' });
+    let overall = -1;
+    api.analyzeEvidence('e1', file).subscribe((a) => (overall = a.confidence.overall));
+    const req = http.expectOne('http://localhost:3000/facility/establishments/e1/evidence/analyze');
+    expect(req.request.method).toBe('POST');
+    expect((req.request.body as FormData).get('file')).toBeTruthy();
+    req.flush({ confidence: { overall: 88 } });
+    expect(overall).toBe(88);
+  });
+
   it('la carpeta completa (ZIP) se pide como blob', () => {
     api.inspectionPackage('e1').subscribe();
     const req = http.expectOne('http://localhost:3000/facility/establishments/e1/inspection-package');
