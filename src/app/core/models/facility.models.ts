@@ -194,4 +194,6 @@ export interface Personnel {
 export interface SubjectResult<T> {
   subject: T;
   activated: { id: string; catalogKey: string }[];
+  /** Solo en equipos: servicio que el equipo implica y el establecimiento no tiene. */
+  missingService?: ServiceType | null;
 }

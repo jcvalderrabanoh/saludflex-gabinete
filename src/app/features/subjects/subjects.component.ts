@@ -1,13 +1,14 @@
 import { Component, effect, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Equipment, Personnel } from '../../core/models/facility.models';
-import { MODALITY_LABELS, ROLE_LABELS } from '../../core/models/labels';
+import { MODALITY_LABELS, ROLE_LABELS, SERVICE_LABELS } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
-import { SubjectFormData, SubjectFormDialogComponent } from './subject-form.dialog';
+import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from './subject-form.dialog';
 
 /** Equipos y personal: registrarlos activa solas sus obligaciones. */
 @Component({
@@ -77,6 +78,7 @@ export class SubjectsComponent {
   private readonly context = inject(EstablishmentContextService);
   private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);
+  private readonly router = inject(Router);
   readonly equipment = signal<Equipment[]>([]);
   readonly personnel = signal<Personnel[]>([]);
 
@@ -107,13 +109,25 @@ export class SubjectsComponent {
     this.dialog
       .open(SubjectFormDialogComponent, { width: '600px', data })
       .afterClosed()
-      .subscribe((activated?: number) => {
-        if (activated === undefined) return;
-        if (activated > 0) {
-          this.snack.open(activatedMessage(activated), 'OK', { duration: 5000 });
-        }
+      .subscribe((result?: SubjectFormResult) => {
+        if (!result) return;
+        this.notify(result);
         this.load(establishmentId);
       });
+  }
+
+  /** El servicio faltante se queda en pantalla hasta que lo atiendan; lo demás se va solo. */
+  private notify(result: SubjectFormResult): void {
+    const message = subjectSavedMessage(result);
+    if (!message) return;
+    if (!result.missingService) {
+      this.snack.open(message, 'OK', { duration: 5000 });
+      return;
+    }
+    this.snack
+      .open(message, 'Ir a Establecimientos')
+      .onAction()
+      .subscribe(() => this.router.navigate(['/operacion/establecimientos']));
   }
 
   retireEquipment(e: Equipment): void {
@@ -129,4 +143,13 @@ export class SubjectsComponent {
 
 export function activatedMessage(n: number): string {
   return n === 1 ? 'Se activó 1 obligación. Revísala en «Hoy».' : `Se activaron ${n} obligaciones. Revísalas en «Hoy».`;
+}
+
+/** Mensaje al guardar: primero el servicio que falta en el establecimiento; si no, cuántas obligaciones nacieron. */
+export function subjectSavedMessage(result: SubjectFormResult): string | null {
+  if (result.missingService) {
+    const service = SERVICE_LABELS[result.missingService] ?? result.missingService;
+    return `Este equipo es de ${service} y el establecimiento no tiene ese servicio. Agrégalo en «Establecimientos» para activar las obligaciones que le tocan.`;
+  }
+  return result.activated > 0 ? activatedMessage(result.activated) : null;
 }
