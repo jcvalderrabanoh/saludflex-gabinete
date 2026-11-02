@@ -157,7 +157,7 @@ export class LoginComponent implements OnInit {
     if (this.loading()) return;
     this.loading.set(true);
     this.error.set(null);
-    this.google.start(null).catch(() => {
+    this.google.start().catch(() => {
       this.loading.set(false);
       this.error.set(GOOGLE_FAILED);
     });
@@ -176,7 +176,7 @@ export class LoginComponent implements OnInit {
   private finishGoogle(url: string): void {
     this.location.replaceState('/login');
     this.run(
-      from(this.google.finish(url)).pipe(switchMap(({ token }) => this.auth.exchangeGoogle(token))),
+      from(this.google.finish(url)).pipe(switchMap((token) => this.auth.exchangeGoogle(token))),
       (err) => {
         this.google.forget();
         return googleError(err);

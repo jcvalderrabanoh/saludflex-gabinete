@@ -11,7 +11,7 @@ import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { catchError, filter, switchMap, take } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
-const AUTH_PATHS = ['/auth/login', '/auth/refresh', '/auth/select-account'];
+const AUTH_PATHS = ['/auth/login', '/auth/refresh', '/auth/select-account', '/auth/auth0/exchange'];
 
 /** Adjunta el token y, ante un 401, renueva la sesión una vez. */
 @Injectable()

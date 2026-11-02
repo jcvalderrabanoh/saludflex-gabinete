@@ -5,16 +5,6 @@ import { environment } from '../../../environments/environment';
 /** Lo que Gabinete usa del SDK de Auth0. */
 type Auth0Port = Pick<Auth0Client, 'loginWithRedirect' | 'handleRedirectCallback' | 'getTokenSilently' | 'logout'>;
 
-interface GoogleAppState {
-  returnUrl: string | null;
-}
-
-export interface GoogleReturn {
-  /** Access token de Auth0 para canjear en jc-core. */
-  token: string;
-  returnUrl: string | null;
-}
-
 const GOOGLE_CONNECTION = 'google-oauth2';
 const SIGNED_IN_WITH_GOOGLE_KEY = 'gabinete.google';
 const LOGIN_PATH = '/login';
@@ -57,12 +47,9 @@ export class GoogleSignIn {
   private readonly client = inject(AUTH0_CLIENT);
 
   /** Va directo al selector de Google; sin `connection`, Auth0 pediría su propia contraseña. */
-  async start(returnUrl: string | null): Promise<void> {
+  async start(): Promise<void> {
     const client = await this.client();
-    await client.loginWithRedirect<GoogleAppState>({
-      authorizationParams: { connection: GOOGLE_CONNECTION },
-      appState: { returnUrl },
-    });
+    await client.loginWithRedirect({ authorizationParams: { connection: GOOGLE_CONNECTION } });
   }
 
   /** Auth0 regresa con `code` o con `error`, siempre junto a `state`. */
@@ -71,14 +58,14 @@ export class GoogleSignIn {
     return params.has('state') && (params.has('code') || params.has('error'));
   }
 
-  /** Lanza si Auth0 rechazó la entrada (p. ej. se canceló en Google). */
-  async finish(url: string): Promise<GoogleReturn> {
+  /** Devuelve el access token de Auth0 para canjear en jc-core. Lanza si Auth0 rechazó la entrada (p. ej. se canceló en Google). */
+  async finish(url: string): Promise<string> {
     const client = await this.client();
-    const { appState } = await client.handleRedirectCallback<GoogleAppState>(url);
+    await client.handleRedirectCallback(url);
     const token = await client.getTokenSilently();
     if (!token) throw new Error('Auth0 no entregó un token');
     remember(true);
-    return { token, returnUrl: appState?.returnUrl ?? null };
+    return token;
   }
 
   /** El canje falló: no queda sesión de Gabinete que cerrar después. */

@@ -73,7 +73,7 @@ describe('LoginComponent', () => {
 
   it('al regresar de Auth0 canjea el token y entra a Hoy', async () => {
     returning = true;
-    google.finish.and.resolveTo({ token: 'auth0-token', returnUrl: null });
+    google.finish.and.resolveTo('auth0-token');
     auth.exchangeGoogle.and.returnValue(of({ kind: 'session' }));
     const fixture = create();
     await fixture.whenStable();
@@ -84,7 +84,7 @@ describe('LoginComponent', () => {
 
   it('con varias cuentas tras Google pide elegir (paso 2 de 2)', async () => {
     returning = true;
-    google.finish.and.resolveTo({ token: 'auth0-token', returnUrl: null });
+    google.finish.and.resolveTo('auth0-token');
     auth.exchangeGoogle.and.returnValue(of({ kind: 'select-account', selection: { requiresAccountSelection: true, accounts: [{ id: 'a1', name: 'Clínica Norte' }], selectionToken: 'sel' } }));
     const fixture = create();
     await fixture.whenStable();
@@ -96,7 +96,7 @@ describe('LoginComponent', () => {
 
   it('si jc-core rechaza el canje, olvida Google y muestra el motivo', async () => {
     returning = true;
-    google.finish.and.resolveTo({ token: 'auth0-token', returnUrl: null });
+    google.finish.and.resolveTo('auth0-token');
     auth.exchangeGoogle.and.returnValue(throwError(() => new Error('La cuenta no tiene el Sistema Integral de Gabinete')));
     const fixture = create();
     await fixture.whenStable();

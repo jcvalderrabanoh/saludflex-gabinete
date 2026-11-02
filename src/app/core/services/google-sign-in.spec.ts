@@ -8,7 +8,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve));
 describe('GoogleSignIn', () => {
   let client: jasmine.SpyObj<{
     loginWithRedirect: (o: unknown) => Promise<void>;
-    handleRedirectCallback: (url: string) => Promise<{ appState?: { returnUrl: string | null } }>;
+    handleRedirectCallback: (url: string) => Promise<unknown>;
     getTokenSilently: () => Promise<string>;
     logout: (o: unknown) => Promise<void>;
   }>;
@@ -18,7 +18,7 @@ describe('GoogleSignIn', () => {
     localStorage.clear();
     client = jasmine.createSpyObj('Auth0Client', ['loginWithRedirect', 'handleRedirectCallback', 'getTokenSilently', 'logout']);
     client.loginWithRedirect.and.resolveTo();
-    client.handleRedirectCallback.and.resolveTo({ appState: { returnUrl: '/operacion/carpeta' } });
+    client.handleRedirectCallback.and.resolveTo({});
     client.getTokenSilently.and.resolveTo('auth0-token');
     client.logout.and.resolveTo();
     TestBed.configureTestingModule({
@@ -29,11 +29,8 @@ describe('GoogleSignIn', () => {
 
   // Sin `connection`, Auth0 mostraría su propio formulario de contraseña, que no es la de Gabinete.
   it('start va directo al selector de cuentas de Google', async () => {
-    await google.start('/operacion/carpeta');
-    expect(client.loginWithRedirect).toHaveBeenCalledWith({
-      authorizationParams: { connection: 'google-oauth2' },
-      appState: { returnUrl: '/operacion/carpeta' },
-    });
+    await google.start();
+    expect(client.loginWithRedirect).toHaveBeenCalledWith({ authorizationParams: { connection: 'google-oauth2' } });
   });
 
   it('reconoce el regreso de Auth0 con código', () => {
@@ -48,15 +45,15 @@ describe('GoogleSignIn', () => {
     expect(google.isReturn(`${ORIGIN}/login?returnUrl=%2Foperacion`)).toBeFalse();
   });
 
-  it('finish devuelve el token de Auth0 y a dónde volver', async () => {
+  it('finish devuelve el token de Auth0 para el canje', async () => {
     const url = `${ORIGIN}/login?code=c&state=s`;
-    await expectAsync(google.finish(url)).toBeResolvedTo({ token: 'auth0-token', returnUrl: '/operacion/carpeta' });
+    await expectAsync(google.finish(url)).toBeResolvedTo('auth0-token');
     expect(client.handleRedirectCallback).toHaveBeenCalledWith(url);
   });
 
-  it('finish sin appState no tiene a dónde volver', async () => {
-    client.handleRedirectCallback.and.resolveTo({});
-    await expectAsync(google.finish(`${ORIGIN}/login?code=c&state=s`)).toBeResolvedTo({ token: 'auth0-token', returnUrl: null });
+  it('finish lanza si Auth0 no entrega token', async () => {
+    client.getTokenSilently.and.resolveTo('');
+    await expectAsync(google.finish(`${ORIGIN}/login?code=c&state=s`)).toBeRejectedWithError('Auth0 no entregó un token');
   });
 
   it('finish propaga el rechazo de Auth0', async () => {
