@@ -16,6 +16,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'hoy', loadComponent: () => import('./features/today/today.component').then((m) => m.TodayComponent) },
+      { path: 'documentos', loadComponent: () => import('./features/documents/documents.component').then((m) => m.DocumentsComponent) },
       { path: 'obligaciones', loadComponent: () => import('./features/obligations/obligations.component').then((m) => m.ObligationsComponent) },
       { path: 'equipos-y-personal', loadComponent: () => import('./features/subjects/subjects.component').then((m) => m.SubjectsComponent) },
       { path: 'carpeta', loadComponent: () => import('./features/inspection/inspection.component').then((m) => m.InspectionComponent) },

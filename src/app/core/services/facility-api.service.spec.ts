@@ -47,6 +47,23 @@ describe('FacilityApiService', () => {
     expect(overall).toBe(88);
   });
 
+  it('subir a la bandeja manda el archivo y la confirmación de que no trae datos de pacientes', () => {
+    const file = new File(['%PDF-1.4'], 'aviso.pdf', { type: 'application/pdf' });
+    api.uploadDocument('e1', file).subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/establishments/e1/documents');
+    const body = req.request.body as FormData;
+    expect(body.get('noPatientData')).toBe('true');
+    expect((body.get('file') as File).name).toBe('aviso.pdf');
+    req.flush({ document: {}, duplicate: false });
+  });
+
+  it('ligar un documento manda la obligación y las fechas confirmadas', () => {
+    api.linkDocument('d1', { obligationId: 'o1', performedOn: '2026-10-01', validUntil: '', notes: '' }).subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/documents/d1/link');
+    expect(req.request.body).toEqual({ obligationId: 'o1', performedOn: '2026-10-01' });
+    req.flush({});
+  });
+
   it('la carpeta completa (ZIP) se pide como blob', () => {
     api.inspectionPackage('e1').subscribe();
     const req = http.expectOne('http://localhost:3000/facility/establishments/e1/inspection-package');

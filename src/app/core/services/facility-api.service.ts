@@ -13,6 +13,8 @@ import {
   EstablishmentInput,
   EstablishmentStatus,
   EvidenceAnalysis,
+  FacilityDocument,
+  LinkDocumentInput,
   EvidenceInput,
   EvidenceRecord,
 } from '../models/facility.models';
@@ -47,8 +49,8 @@ export class FacilityApiService {
     return this.http.get<Catalog>(`${this.base}/catalog`);
   }
 
-  activateObligation(establishmentId: string, input: ActivateObligationInput): Observable<unknown> {
-    return this.http.post(`${this.base}/establishments/${establishmentId}/obligations`, clean(input));
+  activateObligation(establishmentId: string, input: ActivateObligationInput): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${this.base}/establishments/${establishmentId}/obligations`, clean(input));
   }
 
   deactivateObligation(obligationId: string): Observable<void> {
@@ -57,6 +59,37 @@ export class FacilityApiService {
 
   records(obligationId: string): Observable<EvidenceRecord[]> {
     return this.http.get<EvidenceRecord[]>(`${this.base}/obligations/${obligationId}/records`);
+  }
+
+  /** Sube UN archivo a la bandeja; la IA lo lee en segundo plano. */
+  uploadDocument(establishmentId: string, file: File): Observable<{ document: FacilityDocument; duplicate: boolean }> {
+    const form = new FormData();
+    form.append('noPatientData', 'true');
+    form.append('file', file, file.name);
+    return this.http.post<{ document: FacilityDocument; duplicate: boolean }>(
+      `${this.base}/establishments/${establishmentId}/documents`,
+      form,
+    );
+  }
+
+  documents(establishmentId: string): Observable<FacilityDocument[]> {
+    return this.http.get<FacilityDocument[]>(`${this.base}/establishments/${establishmentId}/documents`);
+  }
+
+  linkDocument(documentId: string, input: LinkDocumentInput): Observable<FacilityDocument> {
+    return this.http.post<FacilityDocument>(`${this.base}/documents/${documentId}/link`, clean(input));
+  }
+
+  discardDocument(documentId: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/documents/${documentId}/discard`, {});
+  }
+
+  retryDocument(documentId: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/documents/${documentId}/retry`, {});
+  }
+
+  documentFile(documentId: string): Observable<Blob> {
+    return this.http.get(`${this.base}/documents/${documentId}/file`, { responseType: 'blob' });
   }
 
   /** OCR + IA: sugiere obligación, fechas y notas con su confianza. No guarda. */

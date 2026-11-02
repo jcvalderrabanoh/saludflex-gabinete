@@ -210,3 +210,33 @@ export interface EvidenceAnalysis {
   model: string;
   promptVersion: string;
 }
+
+export type DocumentState =
+  | 'queued' | 'reading' | 'classified' | 'unknown' | 'illegible' | 'blocked'
+  | 'failed' | 'linking' | 'linked' | 'discarded' | 'expired';
+
+/** Documento de la bandeja (GET …/documents). */
+export interface FacilityDocument {
+  id: string;
+  establishmentId: string;
+  state: DocumentState;
+  originalName: string | null;
+  contentType: string;
+  sizeBytes: number;
+  suggestion: Omit<EvidenceAnalysis, 'ocr' | 'model' | 'promptVersion'> | null;
+  detectedType: string | null;
+  confidence: number | null;
+  suggestedObligationId: string | null;
+  lastError: string | null;
+  evidenceRecordId: string | null;
+  purgeAfter: string | null;
+  hasFile: boolean;
+  createdAt: string;
+}
+
+export interface LinkDocumentInput {
+  obligationId: string;
+  performedOn: string;
+  validUntil?: string;
+  notes?: string;
+}
