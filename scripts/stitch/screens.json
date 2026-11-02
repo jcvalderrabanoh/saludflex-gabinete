@@ -50,6 +50,27 @@
       "name": "Equipos y personal",
       "deviceType": "DESKTOP",
       "prompt": "Pantalla «Equipos y personal» con dos secciones. Equipos: tarjetas (Sala 1 · Rayos X · serie DX-4410 · Philips; Sala 2 · Mastógrafo · serie MG-778; Sala 3 · Ultrasonido) con Editar y Dar de baja, botón «Registrar equipo». Personal: tarjetas (Ana López · Técnico radiólogo · cédula 12345678 · etiqueta POE; Dr. Moreno · Responsable sanitario) con botón «Registrar persona». Aviso tipo snackbar: «Se activaron 3 obligaciones. Revísalas en Hoy»."
+    },
+    {
+      "id": "F8",
+      "route": "/operacion/documentos",
+      "name": "Documentos (cola)",
+      "deviceType": "MOBILE",
+      "prompt": "Pantalla móvil «Documentos» (390 px). Encabezado con tres contadores rotulados con texto: «Por revisar», «Sin obligación», «Listos». Dos botones de 48 px: «Tomar fotos seguidas» (principal) y «Subir varios archivos». Debajo, aviso fijo: «Sube solo documentos del establecimiento. No subas expedientes, resultados, recetas ni identificaciones de pacientes.» y casilla obligatoria «Confirmo que no contienen datos de pacientes». Lista de tarjetas por archivo con miniatura, nombre y etiqueta de estado con texto e icono: «En cola», «Leyendo…» con barra, «Por revisar», «Sin obligación», «No se pudo leer: toma otra foto», «Ya subiste este archivo el 28 oct; no lo leemos otra vez». Pie pequeño: «Datos ficticios de ejemplo». Nota al pie: «Los documentos que no ligues se eliminan en 30 días.»"
+    },
+    {
+      "id": "F9",
+      "route": "/operacion/documentos/:id",
+      "name": "Revisar documento",
+      "deviceType": "MOBILE",
+      "prompt": "Pantalla móvil «Revisar documento» con indicador «3 de 12» y flecha para salir. Arriba, vista previa del documento (foto de un reporte de dosimetría ficticio) con botón «Ver completo». Tarjeta «Obligación sugerida: Dosimetría personal · Ana López (ficticio)» con etiqueta de confianza con texto «Confianza media: revisa la fecha» en ámbar. Campos editables «Fecha del documento» y «Vigente hasta (si lo dice)», y «Notas». Aviso: «La IA solo sugiere. Al ligar, el documento queda como evidencia permanente y no se puede borrar.» Barra inferior fija: botón principal «Ligar a esta obligación», secundarios «Cambiar obligación» y «Descartar»."
+    },
+    {
+      "id": "F10",
+      "route": "/operacion/documentos/:id",
+      "name": "Ligar documento sin obligación",
+      "deviceType": "MOBILE",
+      "prompt": "Pantalla móvil para un documento «Sin obligación». Tarjeta «La IA lo describe como: Póliza de responsabilidad civil (ejemplo ficticio)», fechas leídas y motivo «No coincide con ninguna obligación activa». Selector agrupado: «Vencidas o faltan», «Activas», «Del catálogo (no activas)»; las del catálogo muestran candado y el texto «Pedir al responsable sanitario» para quien no tiene permiso de administrar. Al elegir una del catálogo, panel que explica qué se activa (periodicidad y avisos) antes de confirmar. Acciones: «Ligar» (principal), «Guardar en archivo general», «Descartar». Pie: «Datos ficticios de ejemplo»."
     }
   ]
 }
