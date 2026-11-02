@@ -4,7 +4,7 @@ Front de la app `facility` de jc-core (ADR-005 en `jc-core/docs/arquitectura/`).
 
 | Ruta | Nombre en la UI | Para qué sirve | Permiso | Componente |
 |---|---|---|---|---|
-| `/login` | Entrar | Login con correo y contraseña. Si el usuario tiene varias cuentas con la app, pide elegir | — | `auth/components/login.component.ts` |
+| `/login` | Entrar | Login con Google (Auth0 regresa a la raíz, que reenvía a `/login`; canje en `/auth/auth0/exchange`) o con correo y contraseña. Si el usuario tiene varias cuentas con la app, pide elegir | — | `auth/components/login.component.ts` |
 | `/operacion/hoy` | Hoy | Bandeja del día: lo vencido, lo faltante y lo por vencer, con «Registrar» y el score «listo para inspección» | `facility.read` (`facility.record` para registrar) | `features/today/today.component.ts` |
 | `/operacion/obligaciones` | Obligaciones | Semáforo completo por sección de la carpeta; activar obligaciones de persona o equipo; historial y corrección | `facility.read`, `facility.manage` para activar o desactivar | `features/obligations/obligations.component.ts` |
 | `/operacion/equipos-y-personal` | Equipos y personal | Registrar equipos (modalidad, serie) y personal (rol, cédula, POE); cada registro activa solo sus obligaciones | `facility.read`, `facility.manage` para registrar | `features/subjects/subjects.component.ts` |

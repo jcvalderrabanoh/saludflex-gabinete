@@ -30,6 +30,13 @@ export class AuthService {
       .pipe(map((response) => this.outcome(response)));
   }
 
+  /** Canjea la identidad de Google (token de Auth0) por la sesión de Gabinete. */
+  exchangeGoogle(auth0Token: string): Observable<LoginOutcome> {
+    return this.http
+      .post<AuthResponse>(`${this.apiUrl}/auth/auth0/exchange`, { auth0Token, app: FACILITY_APP })
+      .pipe(map((response) => this.outcome(response)));
+  }
+
   selectAccount(selectionToken: string, accountId: string): Observable<LoginOutcome> {
     return this.http
       .post<AuthResponse>(`${this.apiUrl}/auth/select-account`, { selectionToken, accountId })

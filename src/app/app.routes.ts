@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
 import { authGuard } from './auth/guards/auth.guard';
 import { LoginComponent } from './auth/components/login.component';
 import { LayoutComponent } from './shared/components/layout.component';
@@ -23,6 +24,12 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'hoy' },
     ],
   },
-  { path: '', pathMatch: 'full', redirectTo: 'operacion/hoy' },
+  // Auth0 regresa a la raíz (callback que ya usa lumen-view): el regreso se reenvía al login con su código.
+  {
+    path: '',
+    pathMatch: 'full',
+    redirectTo: ({ queryParams }) =>
+      'state' in queryParams ? inject(Router).createUrlTree(['/login'], { queryParams }) : '/operacion/hoy',
+  },
   { path: '**', redirectTo: 'operacion/hoy' },
 ];

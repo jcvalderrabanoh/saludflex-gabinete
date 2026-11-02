@@ -33,6 +33,17 @@ describe('AuthInterceptor', () => {
     req.flush({});
   });
 
+  // Un rechazo del canje de Google (p. ej. la cuenta no tiene Gabinete) debe llegar al login, no renovar una sesión vieja.
+  it('el canje de Google no lleva token ni dispara la renovación ante un 401', () => {
+    let status = 0;
+    http.post('http://localhost:3000/auth/auth0/exchange', {}).subscribe({ error: (e) => (status = e.status) });
+    const req = backend.expectOne('http://localhost:3000/auth/auth0/exchange');
+    expect(req.request.headers.has('Authorization')).toBeFalse();
+    req.flush({ message: 'sin Gabinete' }, { status: 401, statusText: 'x' });
+    backend.expectNone('http://localhost:3000/auth/refresh');
+    expect(status).toBe(401);
+  });
+
   it('ante un 401 renueva una vez y reintenta con el token nuevo', () => {
     let done = false;
     http.get('http://localhost:3000/facility/catalog').subscribe(() => (done = true));
