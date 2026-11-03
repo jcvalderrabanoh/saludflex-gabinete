@@ -317,7 +317,17 @@ export interface AppointmentInput {
   notes?: string;
 }
 
-export type AppointmentUpdate = Partial<AppointmentInput> & { state?: AppointmentState };
+/** Al editar, `null` borra un campo opcional; lo que no viene no cambia. */
+export interface AppointmentUpdate {
+  kind?: AppointmentKind;
+  scheduledOn?: string;
+  title?: string;
+  startTime?: string | null;
+  obligationId?: string | null;
+  location?: string | null;
+  notes?: string | null;
+  state?: AppointmentState;
+}
 
 export interface DateRange {
   from: string;

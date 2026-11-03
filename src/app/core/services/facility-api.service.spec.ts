@@ -53,6 +53,13 @@ describe('FacilityApiService', () => {
     expect(http.expectOne('http://localhost:3000/facility/appointments/a1').request.method).toBe('DELETE');
   });
 
+  it('editar una cita manda null para borrar hora, lugar u obligación y omite lo que no cambia', () => {
+    api.updateAppointment('a1', { title: 'Fumigación', startTime: null, location: null, notes: undefined }).subscribe();
+    const patch = http.expectOne('http://localhost:3000/facility/appointments/a1');
+    expect(patch.request.body).toEqual({ title: 'Fumigación', startTime: null, location: null });
+    patch.flush({});
+  });
+
   it('registrar evidencia va como multipart con el archivo', () => {
     const file = new File(['%PDF-1.4'], 'dosimetria.pdf', { type: 'application/pdf' });
     api.recordEvidence('o1', { performedOn: '2026-10-31', file }).subscribe();

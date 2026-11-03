@@ -10,6 +10,7 @@ import { Appointment, AppointmentKind, EvaluatedObligation } from '../../core/mo
 import { APPOINTMENT_KIND_LABELS } from '../../core/models/labels';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
+import { toAppointmentUpdate } from './schedule-appointment.helpers';
 
 export interface ScheduleAppointmentData {
   establishmentId: string;
@@ -116,7 +117,7 @@ export class ScheduleAppointmentDialogComponent {
   save(): void {
     const input = this.form.getRawValue();
     const request = this.data.editing
-      ? this.api.updateAppointment(this.data.editing.id, input)
+      ? this.api.updateAppointment(this.data.editing.id, toAppointmentUpdate(input))
       : this.api.scheduleAppointment(this.data.establishmentId, input);
     this.saving.set(true);
     this.error.set(null);
