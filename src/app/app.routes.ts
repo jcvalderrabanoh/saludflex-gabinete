@@ -20,7 +20,7 @@ export const routes: Routes = [
       { path: 'documentos', loadComponent: () => import('./features/documents/documents.component').then((m) => m.DocumentsComponent) },
       { path: 'obligaciones', loadComponent: () => import('./features/obligations/obligations.component').then((m) => m.ObligationsComponent) },
       { path: 'equipos-y-personal', loadComponent: () => import('./features/subjects/subjects.component').then((m) => m.SubjectsComponent) },
-      { path: 'carpeta', loadComponent: () => import('./features/inspection/inspection.component').then((m) => m.InspectionComponent) },
+      { path: 'carpeta', canActivate: [permissionGuard('inspect')], loadComponent: () => import('./features/inspection/inspection.component').then((m) => m.InspectionComponent) },
       { path: 'establecimientos', loadComponent: () => import('./features/establishments/establishments.component').then((m) => m.EstablishmentsComponent) },
       { path: 'equipo', canActivate: [permissionGuard('manage')], loadComponent: () => import('./features/team/team.component').then((m) => m.TeamComponent) },
       { path: 'plataforma', loadComponent: () => import('./features/platform/platform.component').then((m) => m.PlatformComponent) },
