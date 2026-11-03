@@ -14,7 +14,12 @@ import { StatusChipComponent } from '../../shared/components/status-chip.compone
 import { EvidenceHistoryDialogComponent } from '../evidence/evidence-history.dialog';
 import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialog';
 import { ActivateObligationDialogComponent } from './activate-obligation.dialog';
+import { windowState } from '../calendar/payment-window.helpers';
+import { PaymentWindowDialogComponent } from './payment-window.dialog';
 import { ResponsiblesDialogComponent } from './responsibles.dialog';
+
+const SHORT_FORMAT = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const shortDate = (date: string) => SHORT_FORMAT.format(new Date(`${date}T00:00:00Z`));
 
 /** Semáforo completo, por sección de la carpeta. */
 @Component({
@@ -41,6 +46,7 @@ import { ResponsiblesDialogComponent } from './responsibles.dialog';
             <div class="text">
               <div class="title">{{ o.title }}{{ o.verification === 'NV' ? ' †' : '' }}@if (o.subjectLabel) { <span class="subject"> · {{ o.subjectLabel }}</span> }</div>
               <div class="meta">{{ o.currentRecord ? due(o) : 'Sin registro' }} · {{ o.norms.join(' · ') }}</div>
+              @if (o.window) { <div class="window">Plazo de pago: {{ windowText(o) }}</div> }
             </div>
             <div class="responsible">
               <span class="label">Responsable</span>
@@ -57,6 +63,7 @@ import { ResponsiblesDialogComponent } from './responsibles.dialog';
             <mat-menu #menu="matMenu">
               <button mat-menu-item (click)="history(o)">Historial</button>
               <button *appCan="'manage'" mat-menu-item (click)="assign(o)">Asignar responsables</button>
+              <button *appCan="'manage'" mat-menu-item (click)="paymentWindow(o)">{{ o.window ? 'Cambiar plazo de pago' : 'Poner plazo de pago' }}</button>
               <button *appCan="'manage'" mat-menu-item (click)="deactivate(o)">Desactivar</button>
             </mat-menu>
           </div>
@@ -82,6 +89,7 @@ import { ResponsiblesDialogComponent } from './responsibles.dialog';
     .row:last-child { border-bottom: 0; }
     .text { flex: 1; } .title { font-weight: 600; font-size: 14px; } .subject { font-weight: 400; color: #475569; }
     .meta { font-size: 12px; color: #64748b; }
+    .window { font-size: 12px; color: #78350f; font-weight: 600; margin-top: 2px; }
   `],
 })
 export class ObligationsComponent {
@@ -132,6 +140,20 @@ export class ObligationsComponent {
   assign(obligation: EvaluatedObligation): void {
     this.dialog
       .open(ResponsiblesDialogComponent, { width: '520px', data: { obligation } })
+      .afterClosed()
+      .subscribe((saved) => saved && this.reload());
+  }
+
+  /** «del 1 ene al 31 mar · Abierto · vence en 5 días». */
+  windowText(o: EvaluatedObligation): string {
+    if (!o.window) return '';
+    const label = windowState(o.window, this.status()?.today ?? '').label;
+    return `del ${shortDate(o.window.startsOn)} al ${shortDate(o.window.endsOn)} · ${label}`;
+  }
+
+  paymentWindow(obligation: EvaluatedObligation): void {
+    this.dialog
+      .open(PaymentWindowDialogComponent, { width: '480px', data: { obligation } })
       .afterClosed()
       .subscribe((saved) => saved && this.reload());
   }

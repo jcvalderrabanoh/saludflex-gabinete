@@ -9,11 +9,15 @@ import { FacilityApiService } from '../../core/services/facility-api.service';
 import { PermissionsService } from '../../core/services/permissions.service';
 import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialog';
 import { CalendarEntry, UPCOMING_DAYS, addDays, calendarEntriesByDay, monthGrid, monthRange, upcomingEntries } from './calendar.helpers';
+import { windowState } from './payment-window.helpers';
+import { BandTone, WindowBandComponent } from './window-band.component';
 import { ScheduleAppointmentDialogComponent, ScheduleAppointmentData } from './schedule-appointment.dialog';
 
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const MONTH_FORMAT = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const DAY_FORMAT = new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' });
+const SHORT_FORMAT = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const shortDate = (date: string) => SHORT_FORMAT.format(new Date(`${date}T00:00:00Z`));
 
 const KIND_ICONS: Record<AppointmentKind, string> = {
   service: 'pest_control',
@@ -26,7 +30,7 @@ const KIND_ICONS: Record<AppointmentKind, string> = {
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, WindowBandComponent],
   template: `
     <div class="head">
       <div>
@@ -67,9 +71,13 @@ const KIND_ICONS: Record<AppointmentKind, string> = {
                 <span class="day-number">{{ dayOfMonth(day.date) }}</span>
               }
               @for (entry of byDay().get(day.date) ?? []; track entry.type + entry.id) {
-                <button class="pill" [class]="'pill ' + pillClass(entry)" (click)="open(entry)" [matTooltip]="pillText(entry)" [attr.aria-label]="pillText(entry)">
-                  <mat-icon>{{ pillIcon(entry) }}</mat-icon><span>{{ pillText(entry) }}</span>
-                </button>
+                @if (entry.type === 'window') {
+                  <app-window-band [segment]="entry.segment" [tone]="bandTone(entry)" [title]="entry.title" [showTitle]="entry.showTitle" [text]="pillText(entry)" (pick)="open(entry)" />
+                } @else {
+                  <button class="pill" [class]="'pill ' + pillClass(entry)" (click)="open(entry)" [matTooltip]="pillText(entry)" [attr.aria-label]="pillText(entry)">
+                    <mat-icon>{{ pillIcon(entry) }}</mat-icon><span>{{ pillText(entry) }}</span>
+                  </button>
+                }
               }
             </div>
           }
@@ -77,6 +85,7 @@ const KIND_ICONS: Record<AppointmentKind, string> = {
         <div class="legend" aria-hidden="true">
           <span><i class="dot overdue"></i>Vencido</span>
           <span><i class="dot due-soon"></i>Por vencer</span>
+          <span><i class="bar"></i>Plazo de pago (de A a B)</span>
           <span><i class="dot appointment"></i>Cita programada</span>
           <span><i class="dot done"></i>Cita hecha</span>
         </div>
@@ -85,7 +94,7 @@ const KIND_ICONS: Record<AppointmentKind, string> = {
       <aside class="upcoming" aria-label="Próximos 30 días">
         <h2>Próximos {{ upcomingDays }} días <span class="count">{{ upcoming().length }}</span></h2>
         @for (entry of upcoming(); track entry.type + entry.id) {
-          <article class="card" [class]="'card c-' + pillClass(entry)">
+          <article [class]="'card c-' + pillClass(entry)">
             <div class="card-top">
               <span class="when"><mat-icon>{{ pillIcon(entry) }}</mat-icon>{{ whenLabel(entry) }}</span>
               <span class="badge" [class]="'badge ' + pillClass(entry)">{{ badge(entry) }}</span>
@@ -154,12 +163,15 @@ const KIND_ICONS: Record<AppointmentKind, string> = {
     .overdue { background: #fee2e2; color: #991b1b; } .due-soon { background: #fef3c7; color: #92400e; }
     .appointment { background: #dbeafe; color: #1e3a8a; } .done { background: #dcfce7; color: #166534; }
     .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; font-size: 12px; color: #475569; }
+    .bar { display: inline-block; width: 22px; height: 10px; border-radius: 5px; margin-right: 6px; vertical-align: middle; background: #fde68a; }
+    .upcoming { background: #e2e8f0; color: #334155; }
     .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
     .upcoming h2 { font-size: 16px; margin: 0 0 10px; color: #1e3a8a; display: flex; align-items: center; gap: 8px; }
     .count { font-size: 12px; background: #eef2fb; color: #1e3a8a; border-radius: 10px; padding: 1px 8px; }
     .card { background: #fff; border: 1px solid #e2e8f0; border-left-width: 4px; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
     .c-overdue { border-left-color: #991b1b; } .c-due-soon { border-left-color: #92400e; }
     .c-appointment { border-left-color: #2563c9; } .c-done { border-left-color: #166534; }
+    .c-upcoming { border-left-color: #64748b; }
     .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; }
     .when { display: flex; align-items: center; gap: 4px; color: #475569; }
     .badge { font-weight: 600; border-radius: 10px; padding: 1px 8px; }
@@ -246,28 +258,49 @@ export class CalendarComponent {
     return Number(date.slice(8));
   }
 
+  private windowOf(entry: CalendarEntry & { type: 'window' }) {
+    return windowState(entry.obligation.window!, this.today());
+  }
+
+  /** El plazo reutiliza los tonos de estado: abierto = por vencer, vencido = vencido. */
+  bandTone(entry: CalendarEntry & { type: 'window' }): BandTone {
+    const state = this.windowOf(entry).state;
+    return state === 'open' ? 'due-soon' : state === 'overdue' ? 'overdue' : 'upcoming';
+  }
+
   pillClass(entry: CalendarEntry): string {
+    if (entry.type === 'window') return this.bandTone(entry);
     if (entry.type === 'due') return entry.obligation.status;
     return entry.appointment.state === 'done' ? 'done' : 'appointment';
   }
 
   pillIcon(entry: CalendarEntry): string {
+    if (entry.type === 'window') return 'payments';
     if (entry.type === 'due') return entry.obligation.status === 'overdue' ? 'error_outline' : 'schedule';
     return entry.appointment.state === 'done' ? 'check_circle' : KIND_ICONS[entry.appointment.kind];
   }
 
   pillText(entry: CalendarEntry): string {
+    if (entry.type === 'window') {
+      const { startsOn, endsOn } = entry.obligation.window!;
+      return `${entry.title} · plazo del ${shortDate(startsOn)} al ${shortDate(endsOn)} · ${this.windowOf(entry).label}`;
+    }
     if (entry.type === 'due') return `${entry.obligation.status === 'overdue' ? 'Vencido' : 'Vence'} · ${entry.title}`;
     const time = entry.appointment.startTime ? `${entry.appointment.startTime} · ` : '';
     return `${time}${entry.title}`;
   }
 
   whenLabel(entry: CalendarEntry & { date: string }): string {
+    if (entry.type === 'window') {
+      const { startsOn, endsOn } = entry.obligation.window!;
+      return `Pagar entre ${shortDate(startsOn)} y ${shortDate(endsOn)}`;
+    }
     const day = DAY_FORMAT.format(new Date(`${entry.date}T00:00:00Z`));
     return entry.type === 'appointment' && entry.appointment.startTime ? `${day} · ${entry.appointment.startTime}` : day;
   }
 
   badge(entry: CalendarEntry): string {
+    if (entry.type === 'window') return this.windowOf(entry).label;
     if (entry.type === 'due') return entry.obligation.status === 'overdue' ? 'Vencido' : 'Por vencer';
     return entry.appointment.state === 'done' ? 'Hecha' : 'Programada';
   }
@@ -277,7 +310,7 @@ export class CalendarComponent {
   }
 
   open(entry: CalendarEntry): void {
-    if (entry.type === 'due') {
+    if (entry.type !== 'appointment') {
       if (this.permissions.canRecord(entry.obligation)) this.record(entry.obligation);
     } else if (this.permissions.can('schedule')) this.edit(entry.appointment);
   }

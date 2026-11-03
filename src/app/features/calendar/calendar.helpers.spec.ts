@@ -86,3 +86,62 @@ describe('upcomingEntries', () => {
     expect(entries.map((e) => e.id)).toEqual(['late', 'a1', 'soon']);
   });
 });
+
+describe('plazo de pago (fecha A a fecha B)', () => {
+  const window = { startsOn: '2026-11-28', endsOn: '2026-12-02', paid: false };
+  const refrendo = obligation({ id: 'w1', title: 'Refrendo', status: 'ok', dueOn: '2026-12-02', window });
+
+  it('pinta una franja en cada día del plazo, con inicio y fin marcados', () => {
+    const byDay = calendarEntriesByDay([refrendo], []);
+    const segments = ['2026-11-28', '2026-11-29', '2026-11-30', '2026-12-01', '2026-12-02'].map((date) => {
+      const [entry] = byDay.get(date) ?? [];
+      return entry?.type === 'window' ? entry.segment : null;
+    });
+    expect(segments).toEqual(['start', 'middle', 'middle', 'middle', 'end']);
+    expect(byDay.get('2026-11-27')).toBeUndefined();
+    expect(byDay.get('2026-12-03')).toBeUndefined();
+  });
+
+  it('el título solo se repite al empezar y al empezar cada semana (lunes)', () => {
+    const byDay = calendarEntriesByDay([refrendo], []);
+    const titled = [...byDay.entries()].filter(([, [e]]) => e.type === 'window' && e.showTitle).map(([d]) => d);
+    expect(titled).toEqual(['2026-11-28', '2026-11-30']);
+  });
+
+  it('un plazo de un solo día es un segmento único', () => {
+    const oneDay = obligation({ id: 'w2', window: { startsOn: '2026-11-10', endsOn: '2026-11-10', paid: false } });
+    const [entry] = calendarEntriesByDay([oneDay], []).get('2026-11-10') ?? [];
+    expect(entry?.type === 'window' && entry.segment).toBe('single');
+  });
+
+  it('con el plazo sin pagar, la fecha B no se repite como vencimiento suelto', () => {
+    const vencida = obligation({ id: 'w3', status: 'overdue', dueOn: '2026-12-02', window });
+    const types = (calendarEntriesByDay([vencida], []).get('2026-12-02') ?? []).map((e) => e.type);
+    expect(types).toEqual(['window']);
+  });
+
+  it('pagado ya no pinta la franja', () => {
+    const pagado = obligation({ id: 'w4', status: 'ok', window: { ...window, paid: true } });
+    expect(calendarEntriesByDay([pagado], []).size).toBe(0);
+  });
+
+  it('en «Próximos» sale una sola vez, por su fecha B, si abre dentro de los 30 días', () => {
+    const list = upcomingEntries('2026-11-20', [refrendo], []);
+    expect(list.map((e) => [e.type, e.date])).toEqual([['window', '2026-12-02']]);
+  });
+
+  it('un plazo abierto que vence en más de 30 días también sale en «Próximos»', () => {
+    const largo = obligation({ id: 'w5', status: 'due-soon', window: { startsOn: '2026-11-01', endsOn: '2027-03-31', paid: false } });
+    expect(upcomingEntries('2026-11-20', [largo], []).map((e) => e.id)).toEqual(['w5']);
+  });
+
+  it('un plazo que abre en más de 30 días todavía no sale en «Próximos»', () => {
+    const lejano = obligation({ id: 'w6', status: 'ok', window: { startsOn: '2027-01-01', endsOn: '2027-03-31', paid: false } });
+    expect(upcomingEntries('2026-11-20', [lejano], [])).toEqual([]);
+  });
+
+  it('un plazo vencido sin pagar sigue en «Próximos»', () => {
+    const vencida = obligation({ id: 'w7', status: 'overdue', window: { startsOn: '2026-10-01', endsOn: '2026-10-31', paid: false } });
+    expect(upcomingEntries('2026-11-20', [vencida], []).map((e) => e.id)).toEqual(['w7']);
+  });
+});
