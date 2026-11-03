@@ -78,6 +78,82 @@ describe('FacilityApiService', () => {
     req.flush(new Blob(['%PDF']));
   });
 
+  it('Hoy con «Mis pendientes» manda ?mine=true; sin filtro, la ruta de siempre', () => {
+    api.status('e1', { mine: true }).subscribe();
+    const mine = http.expectOne((r) => r.url === 'http://localhost:3000/facility/establishments/e1/status');
+    expect(mine.request.params.get('mine')).toBe('true');
+    mine.flush({});
+    api.status('e1').subscribe();
+    const all = http.expectOne('http://localhost:3000/facility/establishments/e1/status');
+    expect(all.request.params.has('mine')).toBeFalse();
+    all.flush({});
+  });
+
+  it('asignar responsables hace PATCH a la obligación solo con los ids', () => {
+    api.setResponsibles('o1', ['u1', 'u2']).subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/obligations/o1');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ responsibleUserIds: ['u1', 'u2'] });
+    req.flush({});
+  });
+
+  it('asignar cero responsables manda la lista vacía (no la quita)', () => {
+    api.setResponsibles('o1', []).subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/obligations/o1');
+    expect(req.request.body).toEqual({ responsibleUserIds: [] });
+    req.flush({});
+  });
+
+  describe('equipo', () => {
+    it('lista el equipo de la cuenta', () => {
+      let n = 0;
+      api.team().subscribe((list) => (n = list.length));
+      const req = http.expectOne('http://localhost:3000/facility/team');
+      expect(req.request.method).toBe('GET');
+      req.flush([{ id: 'u1' }, { id: 'u2' }]);
+      expect(n).toBe(2);
+    });
+
+    it('invitar manda correo, nombre y preset y devuelve la persona y si se mandó el correo', () => {
+      let invited: boolean | undefined;
+      let memberId: string | undefined;
+      api.inviteTeamMember({ email: 'ana@clinica.mx', name: 'Ana López', preset: 'responsable' }).subscribe((r) => {
+        invited = r.invited;
+        memberId = r.member.id;
+      });
+      const req = http.expectOne('http://localhost:3000/facility/team/invitations');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ email: 'ana@clinica.mx', name: 'Ana López', preset: 'responsable' });
+      req.flush({ member: { id: 'u1' }, invited: false });
+      expect(invited).toBeFalse();
+      expect(memberId).toBe('u1');
+    });
+
+    it('reenviar la invitación devuelve si se mandó el correo', () => {
+      let invited: boolean | undefined;
+      api.resendInvitation('u1').subscribe((r) => (invited = r.invited));
+      const req = http.expectOne('http://localhost:3000/facility/team/u1/resend');
+      expect(req.request.method).toBe('POST');
+      req.flush({ invited: true });
+      expect(invited).toBeTrue();
+    });
+
+    it('cambiar preset hace PATCH con el preset', () => {
+      api.changePreset('u1', 'consulta').subscribe();
+      const req = http.expectOne('http://localhost:3000/facility/team/u1');
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ preset: 'consulta' });
+      req.flush({});
+    });
+
+    it('dar de baja hace DELETE', () => {
+      api.removeTeamMember('u1').subscribe();
+      const req = http.expectOne('http://localhost:3000/facility/team/u1');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+  });
+
   it('los listados se piden como blob en el formato elegido', () => {
     api.exportLists('e1', 'csv').subscribe();
     const req = http.expectOne('http://localhost:3000/facility/establishments/e1/export?format=csv');

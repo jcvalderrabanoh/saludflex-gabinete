@@ -9,6 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { EstablishmentStatus, EvidenceAnalysis, EvidenceRecord } from '../../core/models/facility.models';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { PermissionsService } from '../../core/services/permissions.service';
 import { confidenceLevel, formFromAnalysis } from './analyze-document.helpers';
 import { apiMessage } from './record-evidence.dialog';
 
@@ -62,7 +63,7 @@ type Step = 'pick' | 'reading' | 'review';
             <mat-form-field appearance="outline" class="wide">
               <mat-label>Obligación</mat-label>
               <mat-select formControlName="obligationId">
-                @for (o of data.status.obligations; track o.id) {
+                @for (o of obligations; track o.id) {
                   <mat-option [value]="o.id">{{ o.title }}@if (o.subjectLabel) { · {{ o.subjectLabel }} }</mat-option>
                 }
               </mat-select>
@@ -111,13 +112,16 @@ type Step = 'pick' | 'reading' | 'review';
     .wide { grid-column: 1 / -1; }
     .trace { font-size: 12px; background: #fffbeb; border: 1px solid #fde68a; color: #78350f; border-radius: 10px; padding: 8px 12px; margin: 0 0 8px; }
     .error { color: #b91c1c; font-size: 13px; }
-    @media (max-width: 640px) { .form { grid-template-columns: 1fr; } }
+    @media (max-width: 767.98px) { .form { grid-template-columns: 1fr; } }
   `],
 })
 export class AnalyzeDocumentDialogComponent {
   readonly data = inject<AnalyzeDocumentData>(MAT_DIALOG_DATA);
   private readonly ref = inject(MatDialogRef<AnalyzeDocumentDialogComponent, EvidenceRecord>);
   private readonly api = inject(FacilityApiService);
+  /** Solo las obligaciones en que el usuario puede registrar (con permiso asignado, las suyas). */
+  private readonly permissions = inject(PermissionsService);
+  readonly obligations = this.data.status.obligations.filter((o) => this.permissions.canRecord(o));
   readonly step = signal<Step>('pick');
   readonly analysis = signal<EvidenceAnalysis | null>(null);
   readonly fileName = signal('');

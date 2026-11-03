@@ -3,6 +3,8 @@ import { applicableDefinitions } from './obligations/activate-obligation.dialog'
 import { groupSections } from './obligations/obligations.component';
 import { activatedMessage, subjectSavedMessage } from './subjects/subjects.component';
 import { todaySummary } from './today/today.component';
+import { capturedByLabel } from './evidence/evidence-history.dialog';
+import { EvidenceRecord } from '../core/models/facility.models';
 
 const ob = (id: string, folderOrder: number) => ({ id, folderOrder }) as EvaluatedObligation;
 const def = (key: string, appliesTo: string[], subject: string, folderOrder: number) =>
@@ -44,5 +46,15 @@ describe('helpers de pantallas', () => {
   it('subjectSavedMessage sin servicio faltante dice cuántas obligaciones nacieron, o nada', () => {
     expect(subjectSavedMessage({ activated: 1, missingService: null })).toBe(activatedMessage(1));
     expect(subjectSavedMessage({ activated: 0 })).toBeNull();
+  });
+
+  it('capturedByLabel dice quién capturó y cuándo', () => {
+    const r = { createdAt: '2026-11-02T16:05:00.000Z', createdBy: { id: 'u1', name: 'Ana López' } } as unknown as EvidenceRecord;
+    expect(capturedByLabel(r)).toBe('Capturado por Ana López el 2026-11-02 16:05');
+  });
+
+  it('capturedByLabel sin autor resuelto muestra solo la fecha', () => {
+    const r = { createdAt: '2026-11-02T16:05:00.000Z' } as unknown as EvidenceRecord;
+    expect(capturedByLabel(r)).toBe('Capturado el 2026-11-02 16:05');
   });
 });

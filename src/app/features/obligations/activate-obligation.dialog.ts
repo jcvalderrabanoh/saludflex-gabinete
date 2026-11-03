@@ -65,6 +65,7 @@ export interface ActivateObligationData {
   `,
   styles: [`
     .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; min-width: 460px; }
+    @media (max-width: 767.98px) { .form { grid-template-columns: 1fr; min-width: 0; } }
     .wide { grid-column: 1 / -1; }
     .hint { margin: -8px 0 12px; font-size: 12px; color: #64748b; }
     .error { color: #b91c1c; font-size: 13px; }

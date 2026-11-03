@@ -91,6 +91,8 @@ export interface EvaluatedObligation {
   period: Period | null;
   alertDays: number[];
   responsibleUserIds: string[];
+  /** Nombres resueltos por el backend; `valid=false` si ya no puede capturar o salió de la cuenta. */
+  responsibles?: ObligationResponsible[];
   status: ObligationStatus;
   dueOn: string | null;
   daysLeft: number | null;
@@ -101,6 +103,12 @@ export interface EvaluatedObligation {
     validUntil: string | null;
     hasFile: boolean;
   } | null;
+}
+
+export interface ObligationResponsible {
+  id: string;
+  name: string;
+  valid: boolean;
 }
 
 export interface ReadinessScore {
@@ -134,6 +142,8 @@ export interface EvidenceRecord {
   correctionReason: string | null;
   correctedBy: string | null;
   createdByUserId: string;
+  /** Autor resuelto («Usuario dado de baja» si ya no existe). */
+  createdBy?: { id: string; name: string };
   createdAt: string;
   accountSeq: string;
   hash: string;
@@ -241,4 +251,39 @@ export interface LinkDocumentInput {
   performedOn: string;
   validUntil?: string;
   notes?: string;
+}
+
+/** Preajustes al invitar (lista blanca del backend: nunca `manage` ni `inspect`). */
+export type TeamPreset = 'coordinador' | 'responsable' | 'consulta';
+export type TeamMemberStatus = 'active' | 'invited' | 'inactive';
+
+/** Persona del equipo del gabinete (GET /facility/team). */
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  status: TeamMemberStatus;
+  /** Solo permisos `facility.*`. */
+  permissions: string[];
+  isManager: boolean;
+}
+
+/**
+ * Respuesta de POST /facility/team/invitations. `invited=false`: la persona ya era
+ * de la cuenta (solo se ajustaron permisos) o falló el envío del correo.
+ */
+export interface InviteMemberResult {
+  member: TeamMember;
+  invited: boolean;
+}
+
+/** Respuesta de POST /facility/team/:userId/resend: `invited=false` si no se pudo mandar el correo. */
+export interface ResendInvitationResult {
+  invited: boolean;
+}
+
+export interface InviteMemberInput {
+  email: string;
+  name: string;
+  preset: TeamPreset;
 }

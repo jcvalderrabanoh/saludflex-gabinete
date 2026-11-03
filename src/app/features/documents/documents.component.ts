@@ -10,6 +10,7 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 import { FacilityDocument } from '../../core/models/facility.models';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { CanDirective } from '../../shared/directives/can.directive';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { IN_PROGRESS, REVIEWABLE, documentCounters, runLimited, stateLabel } from './documents.helpers';
 import { ReviewDocumentDialogComponent } from './review-document.dialog';
@@ -30,7 +31,7 @@ interface UploadLine {
 @Component({
   selector: 'app-documents',
   standalone: true,
-  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatProgressBarModule],
+  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatProgressBarModule, CanDirective],
   template: `
     <section class="head">
       <div>
@@ -39,7 +40,7 @@ interface UploadLine {
       </div>
     </section>
 
-    <section class="card notice">
+    <section *appCan="'record'" class="card notice">
       <p><strong>Sube solo documentos del establecimiento:</strong> licencias, avisos, constancias, mantenimientos, capacitación y reportes de proveedores. No subas expedientes, resultados, recetas ni identificaciones de pacientes.</p>
       <p class="small">Para leerlos y clasificarlos, los procesa Google (Gemini) por cuenta de SaludFlex. Los que no ligues se eliminan en 30 días.</p>
       <mat-checkbox [(ngModel)]="acknowledged">Confirmo que estos documentos no contienen datos de pacientes</mat-checkbox>
@@ -61,7 +62,7 @@ interface UploadLine {
         <div class="counter ok"><span>Ligados</span><b>{{ c.linked }}</b></div>
       </section>
     }
-    <div class="actions">
+    <div *appCan="'record'" class="actions">
       <button mat-flat-button color="primary" (click)="review()" [disabled]="reviewable().length === 0">
         Revisar {{ reviewable().length }} {{ reviewable().length === 1 ? 'documento' : 'documentos' }}
       </button>
@@ -79,7 +80,7 @@ interface UploadLine {
               @if (d.purgeAfter && d.state !== 'linked') { · se elimina el {{ d.purgeAfter.slice(0, 10) }} }
             </div>
           </div>
-          @if (d.state === 'failed') { <button mat-button (click)="retry(d)">Reintentar</button> }
+          @if (d.state === 'failed') { <button *appCan="'record'" mat-button (click)="retry(d)">Reintentar</button> }
         </article>
       } @empty {
         <p class="empty">Todavía no hay documentos en la bandeja.</p>

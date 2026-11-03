@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -18,6 +18,11 @@ import {
   LinkDocumentInput,
   EvidenceInput,
   EvidenceRecord,
+  InviteMemberInput,
+  InviteMemberResult,
+  ResendInvitationResult,
+  TeamMember,
+  TeamPreset,
 } from '../models/facility.models';
 
 /** Cliente de la API `facility` de jc-core. */
@@ -42,8 +47,10 @@ export class FacilityApiService {
       .pipe(map((r) => r.establishment));
   }
 
-  status(establishmentId: string): Observable<EstablishmentStatus> {
-    return this.http.get<EstablishmentStatus>(`${this.base}/establishments/${establishmentId}/status`);
+  /** Semáforo y «Hoy». Con `mine`, solo lo de las obligaciones donde el usuario es responsable. */
+  status(establishmentId: string, options: { mine?: boolean } = {}): Observable<EstablishmentStatus> {
+    const params = options.mine ? new HttpParams().set('mine', 'true') : undefined;
+    return this.http.get<EstablishmentStatus>(`${this.base}/establishments/${establishmentId}/status`, { params });
   }
 
   catalog(): Observable<Catalog> {
@@ -52,6 +59,11 @@ export class FacilityApiService {
 
   activateObligation(establishmentId: string, input: ActivateObligationInput): Observable<{ id: string }> {
     return this.http.post<{ id: string }>(`${this.base}/establishments/${establishmentId}/obligations`, clean(input));
+  }
+
+  /** Reemplaza los responsables de la obligación (el backend valida cuenta y permiso de captura). */
+  setResponsibles(obligationId: string, responsibleUserIds: string[]): Observable<unknown> {
+    return this.http.patch(`${this.base}/obligations/${obligationId}`, { responsibleUserIds });
   }
 
   deactivateObligation(obligationId: string): Observable<void> {
@@ -154,6 +166,27 @@ export class FacilityApiService {
     return this.http.get(`${this.base}/establishments/${establishmentId}/inspection-package`, {
       responseType: 'blob',
     });
+  }
+
+  team(): Observable<TeamMember[]> {
+    return this.http.get<TeamMember[]>(`${this.base}/team`);
+  }
+
+  inviteTeamMember(input: InviteMemberInput): Observable<InviteMemberResult> {
+    return this.http.post<InviteMemberResult>(`${this.base}/team/invitations`, input);
+  }
+
+  resendInvitation(userId: string): Observable<ResendInvitationResult> {
+    return this.http.post<ResendInvitationResult>(`${this.base}/team/${userId}/resend`, {});
+  }
+
+  changePreset(userId: string, preset: TeamPreset): Observable<void> {
+    return this.http.patch<void>(`${this.base}/team/${userId}`, { preset });
+  }
+
+  /** Baja del gabinete: quita sus permisos `facility.*` y lo saca de los responsables. */
+  removeTeamMember(userId: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/team/${userId}`);
   }
 
   /** Obligaciones, equipos, personal e historial: Excel o un ZIP con un CSV por listado. */

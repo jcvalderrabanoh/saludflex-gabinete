@@ -75,6 +75,7 @@ export interface RecordEvidenceData {
     .what { margin: 0 0 4px; } .hint { margin: 0 0 8px; color: #64748b; font-size: 13px; }
     .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; margin-top: 12px; }
     .wide { grid-column: 1 / -1; }
+    @media (max-width: 767.98px) { .form { grid-template-columns: 1fr; } }
     .upload { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px; border: 2px dashed #93c5fd; border-radius: 12px; background: #eff6ff; cursor: pointer; margin-bottom: 12px; }
     .upload.has-file { border-style: solid; border-color: #86efac; background: #f0fdf4; }
     .upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
