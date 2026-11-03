@@ -26,6 +26,33 @@ describe('FacilityApiService', () => {
     expect(name).toBe('UDIX');
   });
 
+  it('las citas se piden por rango de fechas del establecimiento', () => {
+    api.appointments('e1', { from: '2026-11-01', to: '2026-11-30' }).subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/establishments/e1/appointments?from=2026-11-01&to=2026-11-30');
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
+
+  it('programar una cita manda solo campos con valor', () => {
+    api
+      .scheduleAppointment('e1', { kind: 'service', scheduledOn: '2026-11-15', startTime: '', obligationId: 'o1', title: '' })
+      .subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/establishments/e1/appointments');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ kind: 'service', scheduledOn: '2026-11-15', obligationId: 'o1' });
+    req.flush({});
+  });
+
+  it('marcar como hecha y cancelar van a la cita', () => {
+    api.updateAppointment('a1', { state: 'done' }).subscribe();
+    const patch = http.expectOne('http://localhost:3000/facility/appointments/a1');
+    expect(patch.request.method).toBe('PATCH');
+    expect(patch.request.body).toEqual({ state: 'done' });
+    patch.flush({});
+    api.cancelAppointment('a1').subscribe();
+    expect(http.expectOne('http://localhost:3000/facility/appointments/a1').request.method).toBe('DELETE');
+  });
+
   it('registrar evidencia va como multipart con el archivo', () => {
     const file = new File(['%PDF-1.4'], 'dosimetria.pdf', { type: 'application/pdf' });
     api.recordEvidence('o1', { performedOn: '2026-10-31', file }).subscribe();
