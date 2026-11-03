@@ -7,7 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { Establishment, EstablishmentInput } from '../../core/models/facility.models';
-import { ESTABLISHMENT_TYPE_LABELS, SERVICE_LABELS } from '../../core/models/labels';
+import { ESTABLISHMENT_TYPE_LABELS, SERVICE_LABELS, stateOptions } from '../../core/models/labels';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 
@@ -19,7 +19,7 @@ import { apiMessage } from '../evidence/record-evidence.dialog';
     <h2 mat-dialog-title>{{ data ? 'Editar establecimiento' : 'Nuevo establecimiento' }}</h2>
     <mat-dialog-content>
       @if (!data) {
-        <p class="hint">Al darlo de alta se activan solas las obligaciones que le aplican por sus servicios. Las de cada persona o equipo (dosimetría, control de calidad) las activas después.</p>
+        <p class="hint">Al darlo de alta se activan solas las obligaciones que le aplican por sus servicios y su domicilio (estado y municipio). Las de cada persona o equipo (dosimetría, control de calidad) las activas después.</p>
       }
       <form [formGroup]="form" class="form">
         <mat-form-field appearance="outline" class="wide"><mat-label>Nombre</mat-label><input matInput formControlName="name" /></mat-form-field>
@@ -43,7 +43,12 @@ import { apiMessage } from '../evidence/record-evidence.dialog';
         <mat-form-field appearance="outline"><mat-label>Número</mat-label><input matInput formControlName="exteriorNumber" /></mat-form-field>
         <mat-form-field appearance="outline"><mat-label>Colonia</mat-label><input matInput formControlName="neighborhood" /></mat-form-field>
         <mat-form-field appearance="outline"><mat-label>Municipio</mat-label><input matInput formControlName="municipality" /></mat-form-field>
-        <mat-form-field appearance="outline"><mat-label>Estado</mat-label><input matInput formControlName="state" /></mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Estado</mat-label>
+          <mat-select formControlName="state">
+            @for (s of states; track s) { <mat-option [value]="s">{{ s }}</mat-option> }
+          </mat-select>
+        </mat-form-field>
         <mat-form-field appearance="outline"><mat-label>Responsable sanitario</mat-label><input matInput formControlName="sanitaryResponsibleName" /></mat-form-field>
         <mat-form-field appearance="outline"><mat-label>Cédula del responsable</mat-label><input matInput formControlName="sanitaryResponsibleLicense" /></mat-form-field>
       </form>
@@ -68,6 +73,7 @@ export class EstablishmentFormDialogComponent {
   private readonly api = inject(FacilityApiService);
   readonly types = Object.entries(ESTABLISHMENT_TYPE_LABELS);
   readonly services = Object.entries(SERVICE_LABELS);
+  readonly states = stateOptions(this.data?.state);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
 

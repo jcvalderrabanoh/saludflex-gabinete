@@ -61,6 +61,8 @@ export interface ObligationDefinition {
   subject: ObligationSubject;
   norms: string[];
   appliesTo: ServiceType[];
+  /** Dónde rige si es estatal o municipal; sin él, en todo el país. */
+  jurisdictions?: { state: string; municipalities?: string[] }[];
   activatedByDefault: boolean;
   period?: Period;
   alertDays: number[];
