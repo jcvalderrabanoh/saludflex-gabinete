@@ -212,7 +212,9 @@ export class FacilityApiService {
   }
 
   updateAppointment(id: string, input: AppointmentUpdate): Observable<Appointment> {
-    return this.http.patch<Appointment>(`${this.base}/appointments/${id}`, clean(input));
+    // A diferencia de `clean`, conserva `null`: así se borra la hora, el lugar o la obligación.
+    const body = Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
+    return this.http.patch<Appointment>(`${this.base}/appointments/${id}`, body);
   }
 
   cancelAppointment(id: string): Observable<void> {
