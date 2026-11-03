@@ -1,11 +1,15 @@
 import { Component, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { EstablishmentStatus, EvaluatedObligation } from '../../core/models/facility.models';
 import { dueLabel } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { PermissionsService } from '../../core/services/permissions.service';
+import { CanDirective, CanRecordDirective } from '../../shared/directives/can.directive';
 import { StatusChipComponent } from '../../shared/components/status-chip.component';
 import { EvidenceHistoryDialogComponent } from '../evidence/evidence-history.dialog';
 import { AnalyzeDocumentDialogComponent } from '../evidence/analyze-document.dialog';
@@ -15,17 +19,25 @@ import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialo
 @Component({
   selector: 'app-today',
   standalone: true,
-  imports: [MatButtonModule, MatProgressBarModule, StatusChipComponent],
+  imports: [MatButtonModule, MatButtonToggleModule, MatProgressBarModule, StatusChipComponent, CanDirective, CanRecordDirective],
   template: `
     @if (status(); as s) {
       <div class="top">
         <section class="card intro">
-          <span class="place">{{ s.establishmentName }}</span>
-          <h1>Hoy · {{ s.today }}</h1>
-          <p class="sub">Lo que hay que registrar o renovar para tener la evidencia al día.</p>
-          <button mat-flat-button color="primary" class="upload-doc" (click)="upload()">Subir documento</button>
+          <div class="intro-head">
+            <span class="place">{{ s.establishmentName }}</span>
+            <mat-button-toggle-group class="scope" [value]="mine()" (change)="setMine($event.value)" aria-label="Qué pendientes ver" hideSingleSelectionIndicator>
+              <mat-button-toggle [value]="true">Míos</mat-button-toggle>
+              <mat-button-toggle [value]="false">Todos</mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+          <h1>{{ mine() ? 'Mis pendientes' : 'Hoy' }} · {{ s.today }}</h1>
+          <p class="sub">{{ mine() ? 'Lo que te toca registrar o renovar en las obligaciones que tienes asignadas.' : 'Lo que hay que registrar o renovar para tener la evidencia al día.' }}</p>
+          <button *appCan="'record'" mat-flat-button color="primary" class="upload-doc" (click)="upload()">Subir documento</button>
           @if (s.todayItems.length > 0) {
             <p class="alert"><span class="dot red"></span>{{ summary(s) }}</p>
+          } @else if (mine()) {
+            <p class="ok-line"><span class="dot green"></span>No tienes pendientes asignados. Elige «Todos» para ver lo de todo el establecimiento.</p>
           } @else {
             <p class="ok-line"><span class="dot green"></span>Todo vigente. Nada que registrar hoy.</p>
           }
@@ -60,7 +72,7 @@ import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialo
               </div>
               <div class="actions">
                 @if (o.currentRecord) { <button mat-button (click)="history(o)">Historial</button> }
-                <button mat-flat-button color="primary" (click)="record(o)">Registrar</button>
+                <button *appCanRecord="o" mat-flat-button color="primary" (click)="record(o)">Registrar</button>
               </div>
             </article>
           }
@@ -75,6 +87,9 @@ import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialo
     .top { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; margin-bottom: 22px; }
     @media (max-width: 900px) { .top { grid-template-columns: 1fr; } }
     .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px 22px; }
+    .intro-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .scope { font-size: 14px; }
+    .scope ::ng-deep .mat-button-toggle-label-content { line-height: 40px; min-width: 56px; }
     .place { display: inline-block; font-size: 12px; font-weight: 600; background: #f1f5f9; border-radius: 8px; padding: 3px 10px; color: #334155; }
     h1 { margin: 10px 0 6px; font-size: 28px; line-height: 1.2; }
     .sub { margin: 0 0 14px; color: #475569; }
@@ -115,19 +130,33 @@ export class TodayComponent {
   private readonly api = inject(FacilityApiService);
   private readonly context = inject(EstablishmentContextService);
   private readonly dialog = inject(MatDialog);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly permissions = inject(PermissionsService);
   readonly status = signal<EstablishmentStatus | null>(null);
   readonly loading = signal(false);
+  /** «Mis pendientes»: por omisión para quien no administra; la liga del correo trae `?mine=1`. */
+  readonly mine = signal(
+    resolveMine(this.route.snapshot.queryParamMap.get('mine'), this.permissions.can('manage')),
+  );
 
   constructor() {
     effect(() => {
       const establishment = this.context.current();
-      if (establishment) this.load(establishment.id);
+      const mine = this.mine();
+      if (establishment) this.load(establishment.id, mine);
     });
   }
 
-  load(id: string): void {
+  /** Conmutador «Míos / Todos»; se deja en la URL para que recargar no lo pierda. */
+  setMine(mine: boolean): void {
+    this.mine.set(mine);
+    this.router.navigate([], { relativeTo: this.route, queryParams: { mine: mine ? 1 : 0 }, replaceUrl: true });
+  }
+
+  load(id: string, mine = this.mine()): void {
     this.loading.set(true);
-    this.api.status(id).subscribe({
+    this.api.status(id, { mine }).subscribe({
       next: (status) => {
         this.status.set(status);
         this.loading.set(false);
@@ -173,6 +202,13 @@ export class TodayComponent {
     const id = this.context.current()?.id;
     if (id) this.load(id);
   }
+}
+
+/** `?mine=1|true` → mis pendientes; `?mine=0|false` → todos; sin parámetro, según si administra. */
+export function resolveMine(param: string | null, isManager: boolean): boolean {
+  if (param === '1' || param === 'true') return true;
+  if (param === '0' || param === 'false') return false;
+  return !isManager;
 }
 
 /** «3 cosas para hoy: 1 vencida, 2 por registrar.» */
