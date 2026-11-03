@@ -266,6 +266,20 @@ export interface TeamMember {
   isManager: boolean;
 }
 
+/**
+ * Respuesta de POST /facility/team/invitations. `invited=false`: la persona ya era
+ * de la cuenta (solo se ajustaron permisos) o falló el envío del correo.
+ */
+export interface InviteMemberResult {
+  member: TeamMember;
+  invited: boolean;
+}
+
+/** Respuesta de POST /facility/team/:userId/resend: `invited=false` si no se pudo mandar el correo. */
+export interface ResendInvitationResult {
+  invited: boolean;
+}
+
 export interface InviteMemberInput {
   email: string;
   name: string;

@@ -6,12 +6,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
-import { TeamPreset } from '../../core/models/facility.models';
+import { InviteMemberResult, TeamPreset } from '../../core/models/facility.models';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { PRESETS } from './team.helpers';
 
-/** Invitar a alguien del gabinete: le llega un correo para crear su contraseña. */
+/** Invitar a alguien del gabinete. Cierra con la respuesta del backend (persona + si se mandó el correo). */
 @Component({
   selector: 'app-invite-member-dialog',
   standalone: true,
@@ -42,7 +42,7 @@ import { PRESETS } from './team.helpers';
             }
           </mat-radio-group>
         </fieldset>
-        <p class="hint">Le llega un correo para crear su contraseña. Usuarios ilimitados: el precio es por establecimiento.</p>
+        <p class="hint">Le llega un correo para entrar. Usuarios ilimitados: el precio es por establecimiento.</p>
       </form>
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
     </mat-dialog-content>
@@ -66,7 +66,7 @@ import { PRESETS } from './team.helpers';
   `],
 })
 export class InviteMemberDialogComponent {
-  private readonly ref = inject(MatDialogRef<InviteMemberDialogComponent, boolean>);
+  private readonly ref = inject(MatDialogRef<InviteMemberDialogComponent, InviteMemberResult>);
   private readonly api = inject(FacilityApiService);
   readonly presets = PRESETS;
   readonly saving = signal(false);
@@ -89,7 +89,7 @@ export class InviteMemberDialogComponent {
     this.saving.set(true);
     this.error.set(null);
     this.api.inviteTeamMember(input).subscribe({
-      next: () => this.ref.close(true),
+      next: (result) => this.ref.close(result),
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
         this.error.set(apiMessage(err));

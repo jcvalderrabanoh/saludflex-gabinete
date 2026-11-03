@@ -18,6 +18,8 @@ import {
   EvidenceInput,
   EvidenceRecord,
   InviteMemberInput,
+  InviteMemberResult,
+  ResendInvitationResult,
   TeamMember,
   TeamPreset,
 } from '../models/facility.models';
@@ -169,12 +171,12 @@ export class FacilityApiService {
     return this.http.get<TeamMember[]>(`${this.base}/team`);
   }
 
-  inviteTeamMember(input: InviteMemberInput): Observable<TeamMember> {
-    return this.http.post<TeamMember>(`${this.base}/team/invitations`, input);
+  inviteTeamMember(input: InviteMemberInput): Observable<InviteMemberResult> {
+    return this.http.post<InviteMemberResult>(`${this.base}/team/invitations`, input);
   }
 
-  resendInvitation(userId: string): Observable<void> {
-    return this.http.post<void>(`${this.base}/team/${userId}/resend`, {});
+  resendInvitation(userId: string): Observable<ResendInvitationResult> {
+    return this.http.post<ResendInvitationResult>(`${this.base}/team/${userId}/resend`, {});
   }
 
   changePreset(userId: string, preset: TeamPreset): Observable<void> {

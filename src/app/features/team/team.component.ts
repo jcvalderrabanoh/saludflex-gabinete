@@ -6,12 +6,18 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Observable } from 'rxjs';
-import { TeamMember, TeamPreset } from '../../core/models/facility.models';
+import { InviteMemberResult, TeamMember, TeamPreset } from '../../core/models/facility.models';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { PermissionsService } from '../../core/services/permissions.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { InviteMemberDialogComponent } from './invite-member.dialog';
 import { PRESETS, STATUS_LABELS, canOperate, presetLabel, presetOf } from './team.helpers';
+
+const SNACK_DURATION_MS = 5000;
+const INVITE_SENT = 'Le llegará un correo para entrar.';
+const INVITE_NOT_SENT = 'Ajustamos sus permisos. Si aún no ha entrado, usa Reenviar invitación.';
+const RESEND_SENT = 'Reenviamos la invitación.';
+const RESEND_NOT_SENT = 'No pudimos mandar el correo. Intenta de nuevo en unos minutos.';
 
 /** Equipo del gabinete: invitar, reenviar, cambiar lo que puede hacer y dar de baja. */
 @Component({
@@ -101,17 +107,26 @@ export class TeamComponent implements OnInit {
 
   invite(): void {
     this.dialog
-      .open(InviteMemberDialogComponent, { width: '520px', maxWidth: '100vw' })
+      .open<InviteMemberDialogComponent, unknown, InviteMemberResult>(InviteMemberDialogComponent, { width: '520px', maxWidth: '100vw' })
       .afterClosed()
-      .subscribe((sent) => {
-        if (!sent) return;
-        this.snack.open('Invitación enviada. Le llegará un correo para crear su contraseña.', 'OK', { duration: 5000 });
+      .subscribe((result) => {
+        if (!result) return;
+        this.notify(result.invited ? INVITE_SENT : INVITE_NOT_SENT);
         this.load();
       });
   }
 
+  /** `invited=false`: el backend no pudo mandar el correo; se avisa como error para que se reintente. */
   resend(member: TeamMember): void {
-    this.run(this.api.resendInvitation(member.id), `Reenviamos la invitación a ${member.email}.`);
+    this.error.set(null);
+    this.api.resendInvitation(member.id).subscribe({
+      next: ({ invited }) => {
+        if (invited) this.notify(RESEND_SENT);
+        else this.error.set(RESEND_NOT_SENT);
+        this.load();
+      },
+      error: (err: HttpErrorResponse) => this.fail(err),
+    });
   }
 
   changePreset(member: TeamMember, preset: TeamPreset): void {
@@ -129,13 +144,19 @@ export class TeamComponent implements OnInit {
     this.error.set(null);
     action.subscribe({
       next: () => {
-        this.snack.open(done, 'OK', { duration: 5000 });
+        this.notify(done);
         this.load();
       },
-      error: (err: HttpErrorResponse) => {
-        this.error.set(apiMessage(err));
-        this.load();
-      },
+      error: (err: HttpErrorResponse) => this.fail(err),
     });
+  }
+
+  private notify(message: string): void {
+    this.snack.open(message, 'OK', { duration: SNACK_DURATION_MS });
+  }
+
+  private fail(err: HttpErrorResponse): void {
+    this.error.set(apiMessage(err));
+    this.load();
   }
 }

@@ -114,19 +114,28 @@ describe('FacilityApiService', () => {
       expect(n).toBe(2);
     });
 
-    it('invitar manda correo, nombre y preset', () => {
-      api.inviteTeamMember({ email: 'ana@clinica.mx', name: 'Ana López', preset: 'responsable' }).subscribe();
+    it('invitar manda correo, nombre y preset y devuelve la persona y si se mandó el correo', () => {
+      let invited: boolean | undefined;
+      let memberId: string | undefined;
+      api.inviteTeamMember({ email: 'ana@clinica.mx', name: 'Ana López', preset: 'responsable' }).subscribe((r) => {
+        invited = r.invited;
+        memberId = r.member.id;
+      });
       const req = http.expectOne('http://localhost:3000/facility/team/invitations');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({ email: 'ana@clinica.mx', name: 'Ana López', preset: 'responsable' });
-      req.flush({});
+      req.flush({ member: { id: 'u1' }, invited: false });
+      expect(invited).toBeFalse();
+      expect(memberId).toBe('u1');
     });
 
-    it('reenviar la invitación', () => {
-      api.resendInvitation('u1').subscribe();
+    it('reenviar la invitación devuelve si se mandó el correo', () => {
+      let invited: boolean | undefined;
+      api.resendInvitation('u1').subscribe((r) => (invited = r.invited));
       const req = http.expectOne('http://localhost:3000/facility/team/u1/resend');
       expect(req.request.method).toBe('POST');
-      req.flush({});
+      req.flush({ invited: true });
+      expect(invited).toBeTrue();
     });
 
     it('cambiar preset hace PATCH con el preset', () => {

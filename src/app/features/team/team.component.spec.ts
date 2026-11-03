@@ -66,11 +66,11 @@ describe('TeamComponent', () => {
   beforeEach(() => {
     api = jasmine.createSpyObj('FacilityApiService', ['team', 'resendInvitation', 'changePreset', 'removeTeamMember']);
     api.team.and.returnValue(of(team));
-    api.resendInvitation.and.returnValue(of(undefined));
+    api.resendInvitation.and.returnValue(of({ invited: true }));
     api.changePreset.and.returnValue(of(undefined));
     api.removeTeamMember.and.returnValue(of(undefined));
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
-    dialog.open.and.returnValue({ afterClosed: () => of(true) } as MatDialogRef<unknown>);
+    dialog.open.and.returnValue({ afterClosed: () => of({ member: team[2], invited: true }) } as MatDialogRef<unknown>);
   });
 
   it('dice que los usuarios son ilimitados, sin contador de puestos ni «licencias»', () => {
@@ -108,6 +108,56 @@ describe('TeamComponent', () => {
     cmp.invite();
     expect(dialog.open).toHaveBeenCalledWith(InviteMemberDialogComponent, jasmine.any(Object));
     expect(api.team).toHaveBeenCalledTimes(2);
+  });
+
+  it('si se mandó la invitación, avisa que le llegará un correo', () => {
+    const { cmp } = create();
+    const open = spyOn(cmp['snack'], 'open');
+    cmp.invite();
+    expect(open).toHaveBeenCalledWith('Le llegará un correo para entrar.', 'OK', jasmine.any(Object));
+  });
+
+  it('si no se mandó correo (ya era de la cuenta o falló el envío), dice que se ajustaron permisos y cómo reenviar', () => {
+    dialog.open.and.returnValue({ afterClosed: () => of({ member: team[2], invited: false }) } as MatDialogRef<unknown>);
+    const { cmp } = create();
+    const open = spyOn(cmp['snack'], 'open');
+    cmp.invite();
+    expect(open).toHaveBeenCalledWith('Ajustamos sus permisos. Si aún no ha entrado, usa Reenviar invitación.', 'OK', jasmine.any(Object));
+    expect(api.team).toHaveBeenCalledTimes(2);
+  });
+
+  it('si se cancela el diálogo, no avisa ni recarga', () => {
+    dialog.open.and.returnValue({ afterClosed: () => of(undefined) } as MatDialogRef<unknown>);
+    const { cmp } = create();
+    const open = spyOn(cmp['snack'], 'open');
+    cmp.invite();
+    expect(open).not.toHaveBeenCalled();
+    expect(api.team).toHaveBeenCalledTimes(1);
+  });
+
+  it('reenviar con correo enviado avisa que se reenvió', () => {
+    const { cmp } = create();
+    const open = spyOn(cmp['snack'], 'open');
+    cmp.resend(team[2]);
+    expect(open).toHaveBeenCalledWith('Reenviamos la invitación.', 'OK', jasmine.any(Object));
+  });
+
+  it('reenviar sin correo enviado explica que no se pudo y qué hacer', () => {
+    api.resendInvitation.and.returnValue(of({ invited: false }));
+    const { cmp, el, fixture } = create();
+    const open = spyOn(cmp['snack'], 'open');
+    cmp.resend(team[2]);
+    fixture.detectChanges();
+    expect(open).not.toHaveBeenCalled();
+    expect(el.querySelector('[role=alert]')?.textContent).toContain('No pudimos mandar el correo. Intenta de nuevo en unos minutos.');
+  });
+
+  it('un 409 al reenviar muestra el mensaje del backend', () => {
+    api.resendInvitation.and.returnValue(throwError(() => new HttpErrorResponse({ status: 409, error: { message: 'Esa persona ya entró al gabinete.' } })));
+    const { cmp, el, fixture } = create();
+    cmp.resend(team[2]);
+    fixture.detectChanges();
+    expect(el.querySelector('[role=alert]')?.textContent).toContain('Esa persona ya entró al gabinete.');
   });
 
   it('cambiar preset llama a la API y recarga', () => {
@@ -157,7 +207,7 @@ describe('InviteMemberDialogComponent', () => {
 
   beforeEach(() => {
     api = jasmine.createSpyObj('FacilityApiService', ['inviteTeamMember']);
-    api.inviteTeamMember.and.returnValue(of({} as TeamMember));
+    api.inviteTeamMember.and.returnValue(of({ member: member('ana', ['facility.read']), invited: true }));
     ref = jasmine.createSpyObj('MatDialogRef', ['close']);
   });
 
@@ -178,7 +228,7 @@ describe('InviteMemberDialogComponent', () => {
     cmp.form.setValue({ name: ' Ana López ', email: ' ana@clinica.mx ', preset: 'coordinador' });
     cmp.save();
     expect(api.inviteTeamMember).toHaveBeenCalledWith({ name: 'Ana López', email: 'ana@clinica.mx', preset: 'coordinador' });
-    expect(ref.close).toHaveBeenCalledWith(true);
+    expect(ref.close).toHaveBeenCalledWith({ member: member('ana', ['facility.read']), invited: true });
   });
 
   it('no deja mandar sin correo válido', () => {
