@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
 import { authGuard } from './auth/guards/auth.guard';
+import { permissionGuard } from './auth/guards/permission.guard';
 import { LoginComponent } from './auth/components/login.component';
 import { LayoutComponent } from './shared/components/layout.component';
 
@@ -21,6 +22,7 @@ export const routes: Routes = [
       { path: 'equipos-y-personal', loadComponent: () => import('./features/subjects/subjects.component').then((m) => m.SubjectsComponent) },
       { path: 'carpeta', loadComponent: () => import('./features/inspection/inspection.component').then((m) => m.InspectionComponent) },
       { path: 'establecimientos', loadComponent: () => import('./features/establishments/establishments.component').then((m) => m.EstablishmentsComponent) },
+      { path: 'equipo', canActivate: [permissionGuard('manage')], loadComponent: () => import('./features/team/team.component').then((m) => m.TeamComponent) },
       { path: 'plataforma', loadComponent: () => import('./features/platform/platform.component').then((m) => m.PlatformComponent) },
       { path: '', pathMatch: 'full', redirectTo: 'hoy' },
     ],
