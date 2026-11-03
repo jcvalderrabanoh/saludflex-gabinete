@@ -8,15 +8,16 @@ import { Equipment, Personnel } from '../../core/models/facility.models';
 import { MODALITY_LABELS, ROLE_LABELS, SERVICE_LABELS } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { ExportListsButtonComponent } from '../../shared/components/export-lists-button.component';
 import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from './subject-form.dialog';
 
 /** Equipos y personal: registrarlos activa solas sus obligaciones. */
 @Component({
   selector: 'app-subjects',
   standalone: true,
-  imports: [MatCardModule, MatButtonModule, MatSnackBarModule],
+  imports: [MatCardModule, MatButtonModule, MatSnackBarModule, ExportListsButtonComponent],
   template: `
-    <h1>Equipos y personal</h1>
+    <div class="page-head"><h1>Equipos y personal</h1><app-export-lists-button /></div>
     <p class="sub">Registra cada equipo y a cada persona: el sistema activa su control de calidad, mantenimiento, dosimetría, capacitación y cédula, y te avisa antes de que venzan.</p>
 
     <section>
@@ -57,6 +58,7 @@ import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from '
     </section>
   `,
   styles: [`
+    .page-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
     h1 { margin: 0; } .sub { color: #64748b; max-width: 760px; }
     section { margin-top: 20px; max-width: 900px; }
     .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }

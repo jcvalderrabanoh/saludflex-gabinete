@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  ExportFormat,
   ActivateObligationInput,
   Catalog,
   ChainVerification,
@@ -151,6 +152,14 @@ export class FacilityApiService {
 
   inspectionPackage(establishmentId: string): Observable<Blob> {
     return this.http.get(`${this.base}/establishments/${establishmentId}/inspection-package`, {
+      responseType: 'blob',
+    });
+  }
+
+  /** Obligaciones, equipos, personal e historial: Excel o un ZIP con un CSV por listado. */
+  exportLists(establishmentId: string, format: ExportFormat): Observable<Blob> {
+    return this.http.get(`${this.base}/establishments/${establishmentId}/export`, {
+      params: { format },
       responseType: 'blob',
     });
   }
