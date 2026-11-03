@@ -3,7 +3,8 @@
 //
 // Credencial (una de las dos, como variable de entorno; nunca en el repo):
 //   STITCH_API_KEY       → header X-Goog-Api-Key
-//   STITCH_ACCESS_TOKEN  → header Authorization: Bearer
+//   STITCH_ACCESS_TOKEN  → header Authorization: Bearer (p. ej. `gcloud auth print-access-token`)
+//   STITCH_QUOTA_PROJECT → header x-goog-user-project; obligatorio con token de usuario
 //
 // Uso:
 //   node scripts/stitch/generate-screens.mjs              # todas las pendientes
@@ -25,6 +26,8 @@ else {
   console.error('Falta STITCH_API_KEY o STITCH_ACCESS_TOKEN.');
   process.exit(1);
 }
+// Con token de usuario (gcloud), Stitch exige el proyecto de Google Cloud al que se carga la cuota.
+if (process.env.STITCH_QUOTA_PROJECT) headers['x-goog-user-project'] = process.env.STITCH_QUOTA_PROJECT;
 
 let rpcId = 0;
 async function call(name, args, timeoutMs = 600_000) {

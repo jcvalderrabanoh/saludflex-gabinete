@@ -29,6 +29,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { path: '/operacion/hoy', label: 'Hoy', icon: 'today' },
   { path: '/operacion/documentos', label: 'Documentos', icon: 'upload_file' },
   { path: '/operacion/obligaciones', label: 'Obligaciones', icon: 'fact_check' },
+  { path: '/operacion/calendario', label: 'Calendario', icon: 'calendar_month' },
+  { path: '/operacion/municipal', label: 'Municipal', icon: 'account_balance' },
   { path: '/operacion/equipos-y-personal', label: 'Equipos y personal', icon: 'groups' },
   { path: '/operacion/carpeta', label: 'Carpeta de inspección', icon: 'folder_shared', requires: 'inspect' },
   { path: '/operacion/establecimientos', label: 'Establecimientos', icon: 'apartment' },
