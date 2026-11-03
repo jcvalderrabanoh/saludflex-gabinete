@@ -7,6 +7,7 @@ import { Appointment, Establishment, EstablishmentStatus, EvaluatedObligation, O
 import { dueLabel } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { PermissionsService } from '../../core/services/permissions.service';
 import { StatusChipComponent } from '../../shared/components/status-chip.component';
 import { addDays } from '../calendar/calendar.helpers';
 import { ScheduleAppointmentDialogComponent, ScheduleAppointmentData } from '../calendar/schedule-appointment.dialog';
@@ -51,8 +52,12 @@ const MONTH_SHORT = new Intl.DateTimeFormat('es-MX', { month: 'short', timeZone:
             <div class="meta muted">{{ o.evidence }}</div>
           </div>
           <div class="item-actions">
-            <button mat-flat-button color="primary" (click)="record(o)"><mat-icon>upload_file</mat-icon> Registrar evidencia</button>
-            <button mat-stroked-button (click)="scheduleFiling(o)"><mat-icon>event</mat-icon> Programar solicitud</button>
+            @if (permissions.canRecord(o)) {
+              <button mat-flat-button color="primary" (click)="record(o)"><mat-icon>upload_file</mat-icon> Registrar evidencia</button>
+            }
+            @if (permissions.can('schedule')) {
+              <button mat-stroked-button (click)="scheduleFiling(o)"><mat-icon>event</mat-icon> Programar solicitud</button>
+            }
           </div>
         </article>
       } @else {
@@ -63,7 +68,11 @@ const MONTH_SHORT = new Intl.DateTimeFormat('es-MX', { month: 'short', timeZone:
             <div class="meta">{{ row.definition.note }}</div>
           </div>
           <div class="item-actions">
-            <button mat-flat-button color="primary" (click)="activate(row.definition)" [disabled]="activating()"><mat-icon>add_circle</mat-icon> Activar trámite</button>
+            @if (permissions.can('manage')) {
+              <button mat-flat-button color="primary" (click)="activate(row.definition)" [disabled]="activating()"><mat-icon>add_circle</mat-icon> Activar trámite</button>
+            } @else {
+              <span class="muted">Pide a quien administra el gabinete que lo active.</span>
+            }
           </div>
         </article>
       }
@@ -80,12 +89,14 @@ const MONTH_SHORT = new Intl.DateTimeFormat('es-MX', { month: 'short', timeZone:
             @if (a.startTime) { <div class="time">{{ a.startTime }}</div> }
             <div class="title">{{ a.title }}</div>
             @if (a.location) { <div class="meta"><mat-icon>account_balance</mat-icon>{{ a.location }}</div> }
-            <div class="appointment-actions">
-              @if (a.state === 'scheduled') {
-                <button mat-stroked-button (click)="markDone(a)"><mat-icon>check</mat-icon> Marcar como hecha</button>
-              }
-              <button mat-button (click)="edit(a)"><mat-icon>edit_calendar</mat-icon> Reprogramar</button>
-            </div>
+            @if (permissions.can('schedule')) {
+              <div class="appointment-actions">
+                @if (a.state === 'scheduled') {
+                  <button mat-stroked-button (click)="markDone(a)"><mat-icon>check</mat-icon> Marcar como hecha</button>
+                }
+                <button mat-button (click)="edit(a)"><mat-icon>edit_calendar</mat-icon> Reprogramar</button>
+              </div>
+            }
           </div>
         </article>
       } @empty {
@@ -132,6 +143,7 @@ const MONTH_SHORT = new Intl.DateTimeFormat('es-MX', { month: 'short', timeZone:
 })
 export class MunicipalComponent {
   readonly context = inject(EstablishmentContextService);
+  readonly permissions = inject(PermissionsService);
   private readonly api = inject(FacilityApiService);
   private readonly dialog = inject(MatDialog);
 

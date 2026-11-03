@@ -6,6 +6,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Appointment, AppointmentKind, EstablishmentStatus, EvaluatedObligation } from '../../core/models/facility.models';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { PermissionsService } from '../../core/services/permissions.service';
 import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialog';
 import { CalendarEntry, UPCOMING_DAYS, addDays, calendarEntriesByDay, monthGrid, monthRange, upcomingEntries } from './calendar.helpers';
 import { ScheduleAppointmentDialogComponent, ScheduleAppointmentData } from './schedule-appointment.dialog';
@@ -47,7 +48,9 @@ const KIND_ICONS: Record<AppointmentKind, string> = {
       </div>
       <button mat-stroked-button (click)="goToday()">Hoy</button>
       <span class="spacer"></span>
-      <button mat-flat-button color="primary" (click)="schedule()" [disabled]="!context.current()"><mat-icon>add</mat-icon> Programar cita</button>
+      @if (permissions.can('schedule')) {
+        <button mat-flat-button color="primary" (click)="schedule()" [disabled]="!context.current()"><mat-icon>add</mat-icon> Programar cita</button>
+      }
     </div>
 
     <div class="layout">
@@ -56,9 +59,13 @@ const KIND_ICONS: Record<AppointmentKind, string> = {
           @for (w of weekdays; track w) { <div class="weekday">{{ w }}</div> }
           @for (day of days(); track day.date) {
             <div class="cell" [class.out]="!day.inMonth" [class.today]="day.date === today()">
-              <button class="day-number" (click)="schedule(day.date)" [attr.aria-label]="'Programar cita el ' + day.date" matTooltip="Programar cita este día">
-                {{ dayOfMonth(day.date) }}
-              </button>
+              @if (permissions.can('schedule')) {
+                <button class="day-number" (click)="schedule(day.date)" [attr.aria-label]="'Programar cita el ' + day.date" matTooltip="Programar cita este día">
+                  {{ dayOfMonth(day.date) }}
+                </button>
+              } @else {
+                <span class="day-number">{{ dayOfMonth(day.date) }}</span>
+              }
               @for (entry of byDay().get(day.date) ?? []; track entry.type + entry.id) {
                 <button class="pill" [class]="'pill ' + pillClass(entry)" (click)="open(entry)" [matTooltip]="pillText(entry)" [attr.aria-label]="pillText(entry)">
                   <mat-icon>{{ pillIcon(entry) }}</mat-icon><span>{{ pillText(entry) }}</span>
@@ -88,19 +95,29 @@ const KIND_ICONS: Record<AppointmentKind, string> = {
               @if (entry.appointment.location) { <div class="card-meta">{{ entry.appointment.location }}</div> }
               <div class="card-actions">
                 @if (entry.appointment.state === 'scheduled') {
-                  <button mat-stroked-button (click)="markDone(entry.appointment)"><mat-icon>check</mat-icon> Marcar como hecha</button>
+                  @if (permissions.can('schedule')) {
+                    <button mat-stroked-button (click)="markDone(entry.appointment)"><mat-icon>check</mat-icon> Marcar como hecha</button>
+                  }
                 } @else {
                   @if (obligationOf(entry.appointment); as o) {
-                    <button mat-flat-button color="primary" (click)="record(o)"><mat-icon>upload_file</mat-icon> Registrar evidencia</button>
+                    @if (permissions.canRecord(o)) {
+                      <button mat-flat-button color="primary" (click)="record(o)"><mat-icon>upload_file</mat-icon> Registrar evidencia</button>
+                    }
                   }
                 }
-                <button mat-icon-button (click)="edit(entry.appointment)" aria-label="Editar cita"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button class="danger" (click)="cancel(entry.appointment)" aria-label="Cancelar cita"><mat-icon>close</mat-icon></button>
+                @if (permissions.can('schedule')) {
+                  <button mat-icon-button (click)="edit(entry.appointment)" aria-label="Editar cita"><mat-icon>edit</mat-icon></button>
+                  <button mat-icon-button class="danger" (click)="cancel(entry.appointment)" aria-label="Cancelar cita"><mat-icon>close</mat-icon></button>
+                }
               </div>
             } @else {
               <div class="card-actions">
-                <button mat-stroked-button (click)="record(entry.obligation)">Registrar</button>
-                <button mat-button (click)="schedule(today(), entry.obligation)"><mat-icon>event</mat-icon> Agendar</button>
+                @if (permissions.canRecord(entry.obligation)) {
+                  <button mat-stroked-button (click)="record(entry.obligation)">Registrar</button>
+                }
+                @if (permissions.can('schedule')) {
+                  <button mat-button (click)="schedule(today(), entry.obligation)"><mat-icon>event</mat-icon> Agendar</button>
+                }
               </div>
             }
           </article>
@@ -161,6 +178,7 @@ const KIND_ICONS: Record<AppointmentKind, string> = {
 })
 export class CalendarComponent {
   readonly context = inject(EstablishmentContextService);
+  readonly permissions = inject(PermissionsService);
   private readonly api = inject(FacilityApiService);
   private readonly dialog = inject(MatDialog);
   readonly weekdays = WEEKDAYS;
@@ -259,8 +277,9 @@ export class CalendarComponent {
   }
 
   open(entry: CalendarEntry): void {
-    if (entry.type === 'due') this.record(entry.obligation);
-    else this.edit(entry.appointment);
+    if (entry.type === 'due') {
+      if (this.permissions.canRecord(entry.obligation)) this.record(entry.obligation);
+    } else if (this.permissions.can('schedule')) this.edit(entry.appointment);
   }
 
   schedule(date = this.today(), obligation?: EvaluatedObligation): void {
