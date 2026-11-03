@@ -9,6 +9,7 @@ import { FOLDER_SECTIONS, dueLabel } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { CanDirective, CanRecordDirective } from '../../shared/directives/can.directive';
+import { ExportListsButtonComponent } from '../../shared/components/export-lists-button.component';
 import { StatusChipComponent } from '../../shared/components/status-chip.component';
 import { EvidenceHistoryDialogComponent } from '../evidence/evidence-history.dialog';
 import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialog';
@@ -19,14 +20,17 @@ import { ResponsiblesDialogComponent } from './responsibles.dialog';
 @Component({
   selector: 'app-obligations',
   standalone: true,
-  imports: [MatCardModule, MatButtonModule, MatIconModule, MatMenuModule, StatusChipComponent, CanDirective, CanRecordDirective],
+  imports: [MatCardModule, MatButtonModule, MatIconModule, MatMenuModule, StatusChipComponent, CanDirective, CanRecordDirective, ExportListsButtonComponent],
   template: `
     <div class="head">
       <div>
         <h1>Obligaciones</h1>
         <p class="sub">Lo que el verificador revisa, en el orden de la visita. † = periodicidad de planeación pendiente de verificar.</p>
       </div>
-      <button *appCan="'manage'" mat-flat-button color="primary" (click)="activate()" [disabled]="!context.current()">Activar obligación</button>
+      <div class="actions">
+        <app-export-lists-button />
+        <button *appCan="'manage'" mat-flat-button color="primary" (click)="activate()" [disabled]="!context.current()">Activar obligación</button>
+      </div>
     </div>
     @for (section of sections(); track section.order) {
       <h2>{{ section.title }}</h2>
@@ -62,6 +66,7 @@ import { ResponsiblesDialogComponent } from './responsibles.dialog';
   `,
   styles: [`
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
     h1 { margin: 0; } .sub { margin: 4px 0 16px; color: #64748b; font-size: 13px; }
     h2 { font-size: 15px; margin: 22px 0 8px; color: #1e3a8a; }
     .row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; }

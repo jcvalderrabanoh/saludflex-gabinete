@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  ExportFormat,
   ActivateObligationInput,
   Catalog,
   ChainVerification,
@@ -186,6 +187,14 @@ export class FacilityApiService {
   /** Baja del gabinete: quita sus permisos `facility.*` y lo saca de los responsables. */
   removeTeamMember(userId: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/team/${userId}`);
+  }
+
+  /** Obligaciones, equipos, personal e historial: Excel o un ZIP con un CSV por listado. */
+  exportLists(establishmentId: string, format: ExportFormat): Observable<Blob> {
+    return this.http.get(`${this.base}/establishments/${establishmentId}/export`, {
+      params: { format },
+      responseType: 'blob',
+    });
   }
 
   verifyChain(): Observable<ChainVerification> {

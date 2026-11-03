@@ -154,6 +154,13 @@ describe('FacilityApiService', () => {
     });
   });
 
+  it('los listados se piden como blob en el formato elegido', () => {
+    api.exportLists('e1', 'csv').subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/establishments/e1/export?format=csv');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(new Blob(['PK']));
+  });
 });
 
 describe('clean / toForm', () => {

@@ -4,6 +4,8 @@ export type ObligationStatus = 'missing' | 'overdue' | 'due-soon' | 'ok';
 export type ObligationKind = 'document' | 'periodic';
 export type ObligationSubject = 'establishment' | 'person' | 'equipment';
 export type NormVerification = 'V' | 'NV';
+/** Descarga de listados: libro de Excel o ZIP con un CSV por listado. */
+export type ExportFormat = 'xlsx' | 'csv';
 
 export type ServiceType =
   | 'xray'
