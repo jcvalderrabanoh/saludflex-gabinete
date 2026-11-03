@@ -3,6 +3,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogModule } from '@angular/material/d
 import { MatButtonModule } from '@angular/material/button';
 import { EvaluatedObligation, EvidenceRecord } from '../../core/models/facility.models';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { CanRecordDirective } from '../../shared/directives/can.directive';
 import { RecordEvidenceDialogComponent } from './record-evidence.dialog';
 
 export interface EvidenceHistoryData {
@@ -13,7 +14,7 @@ export interface EvidenceHistoryData {
 @Component({
   selector: 'app-evidence-history-dialog',
   standalone: true,
-  imports: [MatDialogModule, MatButtonModule],
+  imports: [MatDialogModule, MatButtonModule, CanRecordDirective],
   template: `
     <h2 mat-dialog-title>Historial · {{ data.obligation.title }}</h2>
     <mat-dialog-content>
@@ -30,11 +31,12 @@ export interface EvidenceHistoryData {
               @if (r.correctsRecordId) { <span class="tag fix">corrección</span> }
               <span class="spacer"></span>
               @if (r.hasFile) { <button mat-button (click)="open(r)">Ver archivo</button> }
-              @if (!r.correctedBy) { <button mat-button (click)="correct(r)">Corregir</button> }
+              @if (!r.correctedBy) { <button *appCanRecord="data.obligation" mat-button (click)="correct(r)">Corregir</button> }
             </div>
             @if (r.notes) { <p class="notes">{{ r.notes }}</p> }
             @if (r.correctionReason) { <p class="notes">Motivo: {{ r.correctionReason }}</p> }
-            <p class="meta">Registrado {{ r.createdAt.slice(0, 16).replace('T', ' ') }} · eslabón {{ r.accountSeq }} · {{ r.hash.slice(0, 12) }}…</p>
+            <p class="author">{{ captured(r) }}</p>
+            <p class="meta">Eslabón {{ r.accountSeq }} · {{ r.hash.slice(0, 12) }}…</p>
           </li>
         }
       </ul>
@@ -50,6 +52,7 @@ export interface EvidenceHistoryData {
     .tag { font-size: 11px; background: #e2e8f0; border-radius: 8px; padding: 1px 8px; }
     .tag.fix { background: #dbeafe; }
     .notes { margin: 4px 0 0; font-size: 13px; }
+    .author { margin: 4px 0 0; font-size: 13px; color: #3c4757; }
     .meta { margin: 4px 0 0; font-size: 11px; color: #94a3b8; font-family: monospace; }
     .empty { color: #64748b; }
   `],
@@ -59,6 +62,7 @@ export class EvidenceHistoryDialogComponent implements OnInit {
   private readonly api = inject(FacilityApiService);
   private readonly dialog = inject(MatDialog);
   readonly records = signal<EvidenceRecord[]>([]);
+  readonly captured = capturedByLabel;
   /** Avisa a quien abrió el historial que algo cambió. */
   changed = false;
 
@@ -92,4 +96,10 @@ export class EvidenceHistoryDialogComponent implements OnInit {
         }
       });
   }
+}
+
+/** «Capturado por Ana López el 2026-11-02 16:05» (hora como la manda el backend). */
+export function capturedByLabel(record: Pick<EvidenceRecord, 'createdAt' | 'createdBy'>): string {
+  const when = record.createdAt.slice(0, 16).replace('T', ' ');
+  return record.createdBy?.name ? `Capturado por ${record.createdBy.name} el ${when}` : `Capturado el ${when}`;
 }
