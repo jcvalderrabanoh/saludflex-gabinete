@@ -167,12 +167,12 @@ describe('TeamComponent', () => {
     expect(api.team).toHaveBeenCalledTimes(2);
   });
 
-  it('la confirmación de baja aclara que la sesión abierta pierde el acceso en máximo 1 hora', () => {
+  it('la confirmación de baja dice que deja de capturar al momento y que la consulta se corta en máximo 1 hora', () => {
     const { cmp } = create();
     const confirmSpy = spyOn(window, 'confirm').and.returnValue(false);
     cmp.remove(team[3]);
     const question = confirmSpy.calls.mostRecent().args[0] as string;
-    expect(question).toContain('Ya no podrá capturar ni ver el gabinete. Si tiene una sesión abierta, pierde el acceso en máximo 1 hora.');
+    expect(question).toContain('Desde este momento ya no podrá capturar. Si tiene una sesión abierta, podrá seguir viendo el gabinete hasta 1 hora.');
     expect(question.toLowerCase()).not.toContain('inmediato');
     expect(question).not.toMatch(/Pierde el acceso y/);
   });
