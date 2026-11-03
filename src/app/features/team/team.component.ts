@@ -149,7 +149,7 @@ export class TeamComponent implements OnInit {
   }
 
   remove(member: TeamMember): void {
-    const question = `¿Dar de baja a ${member.name} del gabinete? Ya no podrá capturar ni ver el gabinete. Si tiene una sesión abierta, pierde el acceso en máximo 1 hora. Se quita como responsable de sus obligaciones; su evidencia se conserva.`;
+    const question = `¿Dar de baja a ${member.name} del gabinete? Desde este momento ya no podrá capturar. Si tiene una sesión abierta, podrá seguir viendo el gabinete hasta 1 hora. Se quita como responsable de sus obligaciones; su evidencia se conserva.`;
     if (!confirm(question)) return;
     this.run(this.api.removeTeamMember(member.id), `Diste de baja a ${member.name} del gabinete.`);
   }
