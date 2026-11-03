@@ -77,6 +77,17 @@ export interface Catalog {
   obligations: ObligationDefinition[];
 }
 
+/** Plazo para pagar o tramitar: de la fecha A (`startsOn`) a la fecha B (`endsOn`). */
+export interface PaymentWindow {
+  startsOn: string;
+  endsOn: string;
+}
+
+/** El plazo evaluado por la API: pagado si hay un registro desde la fecha A. */
+export interface EvaluatedPaymentWindow extends PaymentWindow {
+  paid: boolean;
+}
+
 export interface EvaluatedObligation {
   id: string;
   catalogKey: string;
@@ -99,6 +110,8 @@ export interface EvaluatedObligation {
   dueOn: string | null;
   daysLeft: number | null;
   alertLevel: number | null;
+  /** Plazo de pago, si tiene; sin pagar, `dueOn` es la fecha B. */
+  window?: EvaluatedPaymentWindow | null;
   currentRecord: {
     id: string;
     performedOn: string;

@@ -124,6 +124,21 @@ describe('FacilityApiService', () => {
     req.flush({});
   });
 
+  it('poner el plazo de pago manda las dos fechas', () => {
+    api.setPaymentWindow('o1', { startsOn: '2027-01-01', endsOn: '2027-03-31' }).subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/obligations/o1');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ windowStartsOn: '2027-01-01', windowEndsOn: '2027-03-31' });
+    req.flush({});
+  });
+
+  it('quitar el plazo manda las dos fechas en null', () => {
+    api.setPaymentWindow('o1', null).subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/obligations/o1');
+    expect(req.request.body).toEqual({ windowStartsOn: null, windowEndsOn: null });
+    req.flush({});
+  });
+
   it('asignar cero responsables manda la lista vacía (no la quita)', () => {
     api.setResponsibles('o1', []).subscribe();
     const req = http.expectOne('http://localhost:3000/facility/obligations/o1');

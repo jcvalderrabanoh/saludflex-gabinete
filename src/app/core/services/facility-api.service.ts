@@ -12,6 +12,7 @@ import {
   Catalog,
   ChainVerification,
   Equipment,
+  PaymentWindow,
   Personnel,
   SubjectResult,
   Establishment,
@@ -68,6 +69,14 @@ export class FacilityApiService {
   /** Reemplaza los responsables de la obligación (el backend valida cuenta y permiso de captura). */
   setResponsibles(obligationId: string, responsibleUserIds: string[]): Observable<unknown> {
     return this.http.patch(`${this.base}/obligations/${obligationId}`, { responsibleUserIds });
+  }
+
+  /** Pone el plazo de pago (A a B) de la obligación; `null` lo quita. */
+  setPaymentWindow(obligationId: string, window: PaymentWindow | null): Observable<unknown> {
+    return this.http.patch(`${this.base}/obligations/${obligationId}`, {
+      windowStartsOn: window?.startsOn ?? null,
+      windowEndsOn: window?.endsOn ?? null,
+    });
   }
 
   deactivateObligation(obligationId: string): Observable<void> {

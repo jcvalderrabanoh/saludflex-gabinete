@@ -26,6 +26,7 @@ Diálogos:
 - `features/evidence/analyze-document.dialog.ts`: «Subir documento» desde Hoy. La IA (OCR + clasificación en jc-core, `POST /facility/establishments/:id/evidence/analyze`) propone obligación, fechas y notas con su confianza; la persona revisa y guarda con el registro normal. Si la IA no está disponible, se llena a mano.
 - `features/evidence/evidence-history.dialog.ts`: historial con las correcciones visibles, «Capturado por <nombre> el <fecha>»; «Ver archivo» abre la evidencia en otra pestaña.
 - `features/obligations/responsibles.dialog.ts`: asignar responsables (hasta 10) entre quienes pueden capturar; avisa y quita a los inválidos al guardar.
+- `features/obligations/payment-window.dialog.ts`: plazo de pago o trámite de una obligación (fecha A a fecha B), desde «Más acciones» en Obligaciones (`facility.manage`). Sin pagar, vence en B; en el Calendario se pinta como franja de A a B y en «Próximos» sale una vez, con su fecha B. «Quitar plazo» lo borra.
 - `features/team/invite-member.dialog.ts`: invitar a una persona con su preset explicado en lenguaje llano.
 - `features/obligations/activate-obligation.dialog.ts`: activar una obligación del catálogo.
 - `features/establishments/establishment-form.dialog.ts`: alta y edición del establecimiento.
