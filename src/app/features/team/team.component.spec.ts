@@ -7,7 +7,7 @@ import { FacilityApiService } from '../../core/services/facility-api.service';
 import { PermissionsService } from '../../core/services/permissions.service';
 import { InviteMemberDialogComponent } from './invite-member.dialog';
 import { TeamComponent } from './team.component';
-import { PRESETS, canOperate, presetOf } from './team.helpers';
+import { PRESETS, canGrantAccess, canOperate, presetOf } from './team.helpers';
 
 const member = (id: string, permissions: string[], extra: Partial<TeamMember> = {}): TeamMember => ({
   id,
@@ -37,6 +37,12 @@ describe('helpers de Equipo', () => {
     expect(canOperate(member('u1', ['facility.manage'], { isManager: true }), 'u9')).toBeFalse();
     expect(canOperate(member('u9', ['facility.read']), 'u9')).toBeFalse();
   });
+
+  it('canGrantAccess: solo a quien no tiene ningún permiso del gabinete', () => {
+    expect(canGrantAccess(member('u1', [], { status: 'inactive' }))).toBeTrue();
+    expect(canGrantAccess(member('u1', ['facility.read'], { status: 'inactive' }))).toBeFalse();
+    expect(canGrantAccess(member('u1', ['facility.read']))).toBeFalse();
+  });
 });
 
 describe('TeamComponent', () => {
@@ -47,6 +53,8 @@ describe('TeamComponent', () => {
     member('me', ['facility.read', 'facility.record']),
     member('ana', ['facility.read', 'facility.record.assigned'], { status: 'invited' }),
     member('luis', ['facility.read', 'facility.record']),
+    member('eva', [], { status: 'inactive' }),
+    member('dora', ['facility.read'], { status: 'inactive' }),
   ];
 
   function create() {
@@ -82,7 +90,7 @@ describe('TeamComponent', () => {
 
   it('lista a todo el equipo con su estado', () => {
     const { el } = create();
-    expect(el.querySelectorAll('.member').length).toBe(4);
+    expect(el.querySelectorAll('.member').length).toBe(6);
     expect(el.textContent).toContain('Invitación pendiente');
   });
 
@@ -164,6 +172,29 @@ describe('TeamComponent', () => {
     const { cmp } = create();
     cmp.changePreset(team[3], 'consulta');
     expect(api.changePreset).toHaveBeenCalledWith('luis', 'consulta');
+    expect(api.team).toHaveBeenCalledTimes(2);
+  });
+
+  it('a quien no tiene acceso al gabinete le ofrece «Dar acceso como», sin baja ni reenvío', () => {
+    const { el } = create();
+    const eva = el.querySelectorAll('.member')[4];
+    expect(eva.querySelector('mat-select')).not.toBeNull();
+    expect(eva.textContent).toContain('Dar acceso como');
+    expect(eva.textContent).not.toContain('Dar de baja');
+    expect(eva.textContent).not.toContain('Reenviar invitación');
+  });
+
+  it('a una cuenta desactivada que conserva permisos no le ofrece acciones', () => {
+    const { el } = create();
+    expect(el.querySelectorAll('.member')[5].querySelector('mat-select')).toBeNull();
+  });
+
+  it('dar acceso llama a la API con el preajuste y avisa que ya puede entrar', () => {
+    const { cmp } = create();
+    const open = spyOn(cmp['snack'], 'open');
+    cmp.changePreset(team[4], 'responsable');
+    expect(api.changePreset).toHaveBeenCalledWith('eva', 'responsable');
+    expect(open).toHaveBeenCalledWith('Listo: Persona eva ya puede entrar al gabinete como responsable.', 'OK', jasmine.any(Object));
     expect(api.team).toHaveBeenCalledTimes(2);
   });
 
