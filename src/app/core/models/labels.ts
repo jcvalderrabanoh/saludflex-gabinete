@@ -66,3 +66,22 @@ export const ROLE_LABELS: Record<import('./facility.models').StaffRole, string> 
   'responsable-operacion': 'Responsable de la operación (RX)',
   administrativo: 'Administrativo',
 };
+
+/**
+ * Entidades federativas con el nombre que reconoce el backend
+ * (`MexicanStateEnum` de jc-core). El estado decide qué obligaciones estatales
+ * y municipales se activan, así que se elige de la lista en vez de escribirse.
+ */
+export const MEXICAN_STATES: readonly string[] = [
+  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche', 'Chiapas',
+  'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima', 'Durango', 'Guanajuato',
+  'Guerrero', 'Hidalgo', 'Jalisco', 'Estado de México', 'Michoacán', 'Morelos',
+  'Nayarit', 'Nuevo León', 'Oaxaca', 'Puebla', 'Querétaro', 'Quintana Roo',
+  'San Luis Potosí', 'Sinaloa', 'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala',
+  'Veracruz', 'Yucatán', 'Zacatecas',
+];
+
+/** Opciones del selector de estado; conserva un valor anterior escrito a mano. */
+export function stateOptions(current: string | null | undefined): string[] {
+  return current && !MEXICAN_STATES.includes(current) ? [current, ...MEXICAN_STATES] : [...MEXICAN_STATES];
+}
