@@ -7,22 +7,25 @@ import { Establishment } from '../../core/models/facility.models';
 import { ESTABLISHMENT_TYPE_LABELS, SERVICE_LABELS } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { PermissionsService } from '../../core/services/permissions.service';
+import { CanDirective } from '../../shared/directives/can.directive';
 import { EstablishmentFormDialogComponent } from './establishment-form.dialog';
 
 @Component({
   selector: 'app-establishments',
   standalone: true,
-  imports: [MatCardModule, MatButtonModule],
+  imports: [MatCardModule, MatButtonModule, CanDirective],
   template: `
     <div class="head">
       <h1>Establecimientos</h1>
-      <button mat-flat-button color="primary" (click)="create()">Nuevo establecimiento</button>
+      <button *appCan="'manage'" mat-flat-button color="primary" (click)="create()">Nuevo establecimiento</button>
     </div>
     @if (context.establishments().length === 0) {
       <mat-card class="empty">
         <h2>Da de alta tu primer establecimiento</h2>
         <p>Con su tipo y sus servicios (rayos X, mastografía, ultrasonido…) el sistema activa las obligaciones que le aplican: licencia, responsable, RPBI, protección civil y más.</p>
-        <button mat-flat-button color="primary" (click)="create()">Empezar</button>
+        <button *appCan="'manage'" mat-flat-button color="primary" (click)="create()">Dar de alta establecimiento</button>
+        @if (!canManage()) { <p class="muted">Todavía no hay establecimientos. Pide a quien administra el gabinete que dé de alta el primero.</p> }
       </mat-card>
     }
     <div class="grid">
@@ -34,7 +37,7 @@ import { EstablishmentFormDialogComponent } from './establishment-form.dialog';
           @if (e.clues) { <p class="muted">CLUES {{ e.clues }}</p> }
           <div class="actions">
             <button mat-button (click)="open(e)">Ver «Hoy»</button>
-            <button mat-button (click)="edit(e)">Editar</button>
+            <button *appCan="'manage'" mat-button (click)="edit(e)">Editar</button>
           </div>
         </mat-card>
       }
@@ -56,6 +59,8 @@ export class EstablishmentsComponent {
   private readonly api = inject(FacilityApiService);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
+  private readonly permissions = inject(PermissionsService);
+  readonly canManage = () => this.permissions.can('manage');
 
   typeLabel(e: Establishment): string {
     return ESTABLISHMENT_TYPE_LABELS[e.type] ?? e.type;

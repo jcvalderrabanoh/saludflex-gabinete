@@ -4,12 +4,13 @@ import { MatCardModule } from '@angular/material/card';
 import { ChainVerification, EstablishmentStatus } from '../../core/models/facility.models';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { CanDirective } from '../../shared/directives/can.directive';
 
 /** «Si llega COFEPRIS hoy, entregas esto.» */
 @Component({
   selector: 'app-inspection',
   standalone: true,
-  imports: [MatCardModule, MatButtonModule],
+  imports: [MatCardModule, MatButtonModule, CanDirective],
   template: `
     <h1>Carpeta de inspección</h1>
     <p class="sub">Si llega una verificación hoy, esta es la carpeta que entregas: tu establecimiento, cada obligación con su evidencia vigente y en el orden en que la piden.</p>
@@ -20,7 +21,7 @@ import { FacilityApiService } from '../../core/services/facility-api.service';
         @if (s.score.overdue + s.score.missing > 0) {
           <p class="warn">La carpeta sale igual, pero marca lo vencido y lo faltante. Revisa «Hoy» antes de imprimirla.</p>
         }
-        <div class="buttons">
+        <div *appCan="'inspect'" class="buttons">
           <button mat-flat-button color="primary" (click)="downloadPackage()" [disabled]="downloading()">
             {{ downloading() === 'zip' ? 'Armando la carpeta…' : 'Descargar carpeta completa (ZIP)' }}
           </button>

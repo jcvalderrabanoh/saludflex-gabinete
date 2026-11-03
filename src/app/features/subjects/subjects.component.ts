@@ -8,19 +8,20 @@ import { Equipment, Personnel } from '../../core/models/facility.models';
 import { MODALITY_LABELS, ROLE_LABELS, SERVICE_LABELS } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { CanDirective } from '../../shared/directives/can.directive';
 import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from './subject-form.dialog';
 
 /** Equipos y personal: registrarlos activa solas sus obligaciones. */
 @Component({
   selector: 'app-subjects',
   standalone: true,
-  imports: [MatCardModule, MatButtonModule, MatSnackBarModule],
+  imports: [MatCardModule, MatButtonModule, MatSnackBarModule, CanDirective],
   template: `
     <h1>Equipos y personal</h1>
     <p class="sub">Registra cada equipo y a cada persona: el sistema activa su control de calidad, mantenimiento, dosimetría, capacitación y cédula, y te avisa antes de que venzan.</p>
 
     <section>
-      <div class="head"><h2>Equipos</h2><button mat-flat-button color="primary" (click)="open({ kind: 'equipment' })">Registrar equipo</button></div>
+      <div class="head"><h2>Equipos</h2><button *appCan="'manage'" mat-flat-button color="primary" (click)="open({ kind: 'equipment' })">Registrar equipo</button></div>
       @if (equipment().length === 0) { <p class="empty">Sin equipos registrados.</p> }
       <div class="grid">
         @for (e of equipment(); track e.id) {
@@ -32,7 +33,7 @@ import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from '
               @if (e.manufacturer) { <dt>Marca</dt><dd>{{ e.manufacturer }}{{ e.model ? ' ' + e.model : '' }}</dd> }
               <dt>Número de serie</dt><dd class="mono">{{ e.serialNumber || '—' }}</dd>
             </dl>
-            <div class="tile-actions">
+            <div *appCan="'manage'" class="tile-actions">
               <button mat-button (click)="open({ kind: 'equipment', current: e })">Editar</button>
               <button mat-button color="warn" (click)="retireEquipment(e)">Dar de baja</button>
             </div>
@@ -42,7 +43,7 @@ import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from '
     </section>
 
     <section>
-      <div class="head"><h2>Personal</h2><button mat-flat-button color="primary" (click)="open({ kind: 'person' })">Registrar persona</button></div>
+      <div class="head"><h2>Personal</h2><button *appCan="'manage'" mat-flat-button color="primary" (click)="open({ kind: 'person' })">Registrar persona</button></div>
       @if (personnel().length === 0) { <p class="empty">Sin personal registrado.</p> }
       @for (p of personnel(); track p.id) {
         <mat-card class="row">
@@ -50,8 +51,10 @@ import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from '
             <div class="title">{{ p.fullName }} @if (p.occupationallyExposed) { <span class="tag">POE</span> }</div>
             <div class="meta">{{ role(p) }}{{ p.professionalLicense ? ' · cédula ' + p.professionalLicense : '' }}</div>
           </div>
-          <button mat-button (click)="open({ kind: 'person', current: p })">Editar</button>
-          <button mat-button (click)="retirePerson(p)">Dar de baja</button>
+          <ng-container *appCan="'manage'">
+            <button mat-button (click)="open({ kind: 'person', current: p })">Editar</button>
+            <button mat-button (click)="retirePerson(p)">Dar de baja</button>
+          </ng-container>
         </mat-card>
       }
     </section>
