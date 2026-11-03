@@ -8,23 +8,25 @@ import { EstablishmentStatus, EvaluatedObligation } from '../../core/models/faci
 import { FOLDER_SECTIONS, dueLabel } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { CanDirective, CanRecordDirective } from '../../shared/directives/can.directive';
 import { StatusChipComponent } from '../../shared/components/status-chip.component';
 import { EvidenceHistoryDialogComponent } from '../evidence/evidence-history.dialog';
 import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialog';
 import { ActivateObligationDialogComponent } from './activate-obligation.dialog';
+import { ResponsiblesDialogComponent } from './responsibles.dialog';
 
 /** Semáforo completo, por sección de la carpeta. */
 @Component({
   selector: 'app-obligations',
   standalone: true,
-  imports: [MatCardModule, MatButtonModule, MatIconModule, MatMenuModule, StatusChipComponent],
+  imports: [MatCardModule, MatButtonModule, MatIconModule, MatMenuModule, StatusChipComponent, CanDirective, CanRecordDirective],
   template: `
     <div class="head">
       <div>
         <h1>Obligaciones</h1>
         <p class="sub">Lo que el verificador revisa, en el orden de la visita. † = periodicidad de planeación pendiente de verificar.</p>
       </div>
-      <button mat-flat-button color="primary" (click)="activate()" [disabled]="!context.current()">Activar obligación</button>
+      <button *appCan="'manage'" mat-flat-button color="primary" (click)="activate()" [disabled]="!context.current()">Activar obligación</button>
     </div>
     @for (section of sections(); track section.order) {
       <h2>{{ section.title }}</h2>
@@ -36,11 +38,22 @@ import { ActivateObligationDialogComponent } from './activate-obligation.dialog'
               <div class="title">{{ o.title }}{{ o.verification === 'NV' ? ' †' : '' }}@if (o.subjectLabel) { <span class="subject"> · {{ o.subjectLabel }}</span> }</div>
               <div class="meta">{{ o.currentRecord ? due(o) : 'Sin registro' }} · {{ o.norms.join(' · ') }}</div>
             </div>
-            <button mat-button (click)="record(o)">Registrar</button>
-            <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Más acciones"><mat-icon>more_vert</mat-icon></button>
+            <div class="responsible">
+              <span class="label">Responsable</span>
+              @for (r of o.responsibles ?? []; track r.id) {
+                <span class="person" [class.invalid]="!r.valid">{{ r.name }}@if (!r.valid) { <span class="flag"> · Responsable inválido</span> }</span>
+              } @empty {
+                <span class="none">Sin asignar</span>
+              }
+            </div>
+            <div class="row-actions">
+              <button *appCanRecord="o" mat-button (click)="record(o)">Registrar</button>
+              <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Más acciones"><mat-icon>more_vert</mat-icon></button>
+            </div>
             <mat-menu #menu="matMenu">
               <button mat-menu-item (click)="history(o)">Historial</button>
-              <button mat-menu-item (click)="deactivate(o)">Desactivar</button>
+              <button *appCan="'manage'" mat-menu-item (click)="assign(o)">Asignar responsables</button>
+              <button *appCan="'manage'" mat-menu-item (click)="deactivate(o)">Desactivar</button>
             </mat-menu>
           </div>
         }
@@ -51,7 +64,16 @@ import { ActivateObligationDialogComponent } from './activate-obligation.dialog'
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
     h1 { margin: 0; } .sub { margin: 4px 0 16px; color: #64748b; font-size: 13px; }
     h2 { font-size: 15px; margin: 22px 0 8px; color: #1e3a8a; }
-    .row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
+    .row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; }
+    .responsible { display: flex; flex-direction: column; min-width: 160px; font-size: 13px; }
+    .responsible .label { font-size: 12px; color: #6b7684; }
+    .person.invalid { color: #b4232c; } .flag { font-weight: 600; } .none { color: #6b7684; }
+    .row-actions { display: flex; align-items: center; }
+    @media (max-width: 767.98px) {
+      .row { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: 'chip text text' 'resp resp actions'; row-gap: 4px; }
+      .row > app-status-chip { grid-area: chip; } .text { grid-area: text; min-width: 0; }
+      .responsible { grid-area: resp; min-width: 0; } .row-actions { grid-area: actions; }
+    }
     .row:last-child { border-bottom: 0; }
     .text { flex: 1; } .title { font-weight: 600; font-size: 14px; } .subject { font-weight: 400; color: #475569; }
     .meta { font-size: 12px; color: #64748b; }
@@ -100,6 +122,13 @@ export class ObligationsComponent {
   history(obligation: EvaluatedObligation): void {
     const ref = this.dialog.open(EvidenceHistoryDialogComponent, { width: '640px', data: { obligation, today: this.status()?.today } });
     ref.afterClosed().subscribe(() => ref.componentInstance.changed && this.reload());
+  }
+
+  assign(obligation: EvaluatedObligation): void {
+    this.dialog
+      .open(ResponsiblesDialogComponent, { width: '520px', data: { obligation } })
+      .afterClosed()
+      .subscribe((saved) => saved && this.reload());
   }
 
   deactivate(obligation: EvaluatedObligation): void {
