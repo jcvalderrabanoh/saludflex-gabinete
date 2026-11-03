@@ -50,3 +50,12 @@ export function presetLabel(permissions: readonly string[]): string {
 export function canOperate(member: TeamMember, currentUserId: string | null): boolean {
   return !member.isManager && member.id !== currentUserId;
 }
+
+/**
+ * Sin ningún `facility.*` (p. ej. alguien de la cuenta que solo usa lumen-view):
+ * se le puede dar acceso con un preajuste. Si conserva permisos y aun así está
+ * «Sin acceso», su cuenta está desactivada y eso no se arregla desde aquí.
+ */
+export function canGrantAccess(member: TeamMember): boolean {
+  return member.status === 'inactive' && member.permissions.length === 0;
+}

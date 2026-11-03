@@ -11,7 +11,7 @@ import { FacilityApiService } from '../../core/services/facility-api.service';
 import { PermissionsService } from '../../core/services/permissions.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { InviteMemberDialogComponent } from './invite-member.dialog';
-import { PRESETS, STATUS_LABELS, canOperate, presetLabel, presetOf } from './team.helpers';
+import { PRESETS, STATUS_LABELS, canGrantAccess, canOperate, presetLabel, presetOf } from './team.helpers';
 
 const SNACK_DURATION_MS = 5000;
 const INVITE_SENT = 'Le llegará un correo para entrar.';
@@ -42,7 +42,16 @@ const RESEND_NOT_SENT = 'No pudimos mandar el correo. Intenta de nuevo en unos m
             <div class="meta">{{ m.email }}</div>
             <div class="meta"><span class="chip" [class]="'chip ' + m.status">{{ status(m) }}</span> · {{ m.isManager ? 'Administra el gabinete' : preset(m) }}</div>
           </div>
-          @if (operable(m) && m.status !== 'inactive') {
+          @if (operable(m) && grantable(m)) {
+            <div class="actions">
+              <mat-form-field appearance="outline" class="preset grant" subscriptSizing="dynamic">
+                <mat-label>Dar acceso como</mat-label>
+                <mat-select (selectionChange)="changePreset(m, $event.value)" [attr.aria-label]="'Dar acceso al gabinete a ' + m.name">
+                  @for (p of presets; track p.value) { <mat-option [value]="p.value">{{ p.label }}</mat-option> }
+                </mat-select>
+              </mat-form-field>
+            </div>
+          } @else if (operable(m) && m.status !== 'inactive') {
             <div class="actions">
               <mat-form-field appearance="outline" class="preset" subscriptSizing="dynamic">
                 <mat-label>Puede</mat-label>
@@ -74,7 +83,7 @@ const RESEND_NOT_SENT = 'No pudimos mandar el correo. Intenta de nuevo en unos m
     .chip { border-radius: 8px; padding: 1px 8px; font-weight: 600; font-size: 12px; }
     .chip.active { background: #e7f6ef; color: #08764e; } .chip.invited { background: #fff3d6; color: #805800; } .chip.inactive { background: #f4f5f7; color: #3c4757; }
     .actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-    .preset { width: 170px; }
+    .preset { width: 170px; } .grant { width: 200px; }
     .legend { max-width: 900px; margin-top: 16px; font-size: 14px; color: #3c4757; }
     .legend p { margin: 2px 0; }
     .empty { color: #6b7684; } .error { color: #b4232c; }
@@ -93,6 +102,7 @@ export class TeamComponent implements OnInit {
   readonly preset = (m: TeamMember) => presetLabel(m.permissions);
   readonly presetValue = (m: TeamMember) => presetOf(m.permissions);
   readonly operable = (m: TeamMember) => canOperate(m, this.permissions.userId());
+  readonly grantable = (m: TeamMember) => canGrantAccess(m);
 
   ngOnInit(): void {
     this.load();
@@ -129,8 +139,13 @@ export class TeamComponent implements OnInit {
     });
   }
 
+  /** También da acceso a quien no tenía ningún permiso del gabinete: el backend usa el mismo PATCH. */
   changePreset(member: TeamMember, preset: TeamPreset): void {
-    this.run(this.api.changePreset(member.id, preset), `Listo: ${member.name} ahora es ${PRESETS.find((p) => p.value === preset)?.label.toLowerCase()}.`);
+    const label = PRESETS.find((p) => p.value === preset)?.label.toLowerCase();
+    const done = canGrantAccess(member)
+      ? `Listo: ${member.name} ya puede entrar al gabinete como ${label}.`
+      : `Listo: ${member.name} ahora es ${label}.`;
+    this.run(this.api.changePreset(member.id, preset), done);
   }
 
   remove(member: TeamMember): void {
