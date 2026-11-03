@@ -69,6 +69,7 @@ export interface SubjectFormResult {
   `,
   styles: [`
     .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; min-width: 480px; }
+    @media (max-width: 767.98px) { .form { grid-template-columns: 1fr; min-width: 0; } }
     .wide { grid-column: 1 / -1; margin-bottom: 8px; }
     .hint { font-size: 12px; color: #64748b; margin: 4px 0 0; }
     .error { color: #b91c1c; font-size: 13px; }

@@ -56,6 +56,7 @@ import { apiMessage } from '../evidence/record-evidence.dialog';
   `,
   styles: [`
     .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+    @media (max-width: 767.98px) { .form { grid-template-columns: 1fr; } }
     .wide { grid-column: 1 / -1; }
     .hint { font-size: 13px; color: #64748b; margin-top: 0; }
     .error { color: #b91c1c; font-size: 13px; }

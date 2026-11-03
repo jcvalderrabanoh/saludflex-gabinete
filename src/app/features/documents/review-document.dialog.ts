@@ -11,6 +11,7 @@ import { Observable, map, of, switchMap } from 'rxjs';
 import { EstablishmentStatus, FacilityDocument, ObligationDefinition } from '../../core/models/facility.models';
 import { AuthService } from '../../core/services/auth.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { PermissionsService } from '../../core/services/permissions.service';
 import { confidenceLevel } from '../evidence/analyze-document.helpers';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { CATALOG_PREFIX, obligationGroups } from './documents.helpers';
@@ -108,7 +109,7 @@ export interface ReviewDocumentData {
     .wide { grid-column: 1 / -1; }
     .trace { font-size: 12px; background: #fffbeb; border: 1px solid #fde68a; color: #78350f; border-radius: 10px; padding: 8px 12px; }
     .error { color: #b91c1c; font-size: 13px; } .muted { color: #64748b; font-size: 13px; }
-    @media (max-width: 640px) { .form { grid-template-columns: 1fr; } }
+    @media (max-width: 767.98px) { .form { grid-template-columns: 1fr; } }
   `],
 })
 export class ReviewDocumentDialogComponent implements OnDestroy {
@@ -123,7 +124,14 @@ export class ReviewDocumentDialogComponent implements OnDestroy {
   private changed = false;
 
   readonly current = computed(() => this.data.documents[this.index()] ?? null);
-  readonly groups = computed(() => obligationGroups(this.data.status.obligations, this.data.catalog));
+  private readonly permissions = inject(PermissionsService);
+  /** Con permiso asignado solo se liga a obligaciones propias (el backend responde 403 en las demás). */
+  readonly groups = computed(() =>
+    obligationGroups(
+      this.data.status.obligations.filter((o) => this.permissions.canRecord(o)),
+      this.data.catalog,
+    ),
+  );
   readonly level = confidenceLevel;
 
   readonly form = inject(FormBuilder).nonNullable.group({

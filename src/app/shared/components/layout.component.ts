@@ -1,5 +1,8 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
@@ -11,26 +14,44 @@ import { EstablishmentContextService } from '../../core/services/establishment-c
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { GoogleSignIn } from '../../core/services/google-sign-in';
 import { PlatformApiService } from '../../core/services/platform-api.service';
+import { FacilityAction, PermissionsService } from '../../core/services/permissions.service';
+import { CanDirective } from '../directives/can.directive';
 
-export const NAV_ITEMS = [
+interface NavItem {
+  path: string;
+  label: string;
+  icon: string;
+  /** Sin permiso, el menú no la ofrece (el backend igual la rechazaría). */
+  requires?: FacilityAction;
+}
+
+export const NAV_ITEMS: readonly NavItem[] = [
   { path: '/operacion/hoy', label: 'Hoy', icon: 'today' },
   { path: '/operacion/documentos', label: 'Documentos', icon: 'upload_file' },
   { path: '/operacion/obligaciones', label: 'Obligaciones', icon: 'fact_check' },
   { path: '/operacion/equipos-y-personal', label: 'Equipos y personal', icon: 'groups' },
-  { path: '/operacion/carpeta', label: 'Carpeta de inspección', icon: 'folder_shared' },
+  { path: '/operacion/carpeta', label: 'Carpeta de inspección', icon: 'folder_shared', requires: 'inspect' },
   { path: '/operacion/establecimientos', label: 'Establecimientos', icon: 'apartment' },
-] as const;
+  { path: '/operacion/equipo', label: 'Equipo', icon: 'group_add', requires: 'manage' },
+];
+
+/** Debajo de 768 px la barra lateral flota sobre el contenido y se abre con el botón de menú. */
+export const MOBILE_QUERY = '(max-width: 767.98px)';
+
+export function visibleNav(can: (action: FacilityAction) => boolean): NavItem[] {
+  return NAV_ITEMS.filter((item) => !item.requires || can(item.requires));
+}
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule, MatSidenavModule, MatListModule, MatIconModule, MatButtonModule, MatSelectModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule, MatSidenavModule, MatListModule, MatIconModule, MatButtonModule, MatSelectModule, CanDirective],
   template: `
     <mat-sidenav-container class="shell">
-      <mat-sidenav mode="side" opened class="nav">
+      <mat-sidenav [mode]="mobile() ? 'over' : 'side'" [opened]="!mobile() || menuOpen()" (closedStart)="menuOpen.set(false)" class="nav">
         <div class="brand"><span class="dot"></span> Sistema Integral de Gabinete</div>
         <mat-nav-list>
-          @for (item of nav; track item.path) {
+          @for (item of nav(); track item.path) {
             <a mat-list-item [routerLink]="item.path" routerLinkActive="active">
               <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
               <span matListItemTitle>{{ item.label }}</span>
@@ -44,12 +65,15 @@ export const NAV_ITEMS = [
           }
         </mat-nav-list>
         <div class="nav-footer">
-          <a mat-flat-button color="primary" class="folder-btn" routerLink="/operacion/carpeta"><mat-icon>download</mat-icon> Carpeta en 1 clic</a>
+          <a *appCan="'inspect'" mat-flat-button color="primary" class="folder-btn" routerLink="/operacion/carpeta"><mat-icon>download</mat-icon> Carpeta en 1 clic</a>
           <p>Organiza la evidencia. No emite certificados.</p>
         </div>
       </mat-sidenav>
       <mat-sidenav-content>
         <mat-toolbar class="bar">
+          @if (mobile()) {
+            <button mat-icon-button (click)="menuOpen.set(true)" aria-label="Abrir menú"><mat-icon>menu</mat-icon></button>
+          }
           @if (context.establishments().length > 0) {
             <mat-select class="selector" [value]="context.current()?.id" (selectionChange)="context.select($event.value)" aria-label="Establecimiento">
               @for (e of context.establishments(); track e.id) {
@@ -80,6 +104,12 @@ export const NAV_ITEMS = [
     .spacer { flex: 1; }
     .user { font-size: 14px; color: #475569; }
     .content { padding: 24px; max-width: 1180px; }
+    @media (max-width: 767.98px) {
+      .content { padding: 16px; }
+      .bar { gap: 4px; padding: 0 8px; }
+      .selector { max-width: 55vw; }
+      .user { display: none; }
+    }
   `],
 })
 export class LayoutComponent implements OnInit {
@@ -88,10 +118,18 @@ export class LayoutComponent implements OnInit {
   private readonly api = inject(FacilityApiService);
   private readonly router = inject(Router);
   private readonly google = inject(GoogleSignIn);
-  readonly nav = NAV_ITEMS;
+  private readonly permissions = inject(PermissionsService);
+  readonly nav = computed(() => visibleNav((action) => this.permissions.can(action)));
+  readonly mobile = toSignal(inject(BreakpointObserver).observe(MOBILE_QUERY).pipe(map((s) => s.matches)), { initialValue: false });
+  /** Solo cuenta en móvil: el menú flotante se cierra al navegar. */
+  readonly menuOpen = signal(false);
   private readonly platform = inject(PlatformApiService);
   /** «Plataforma» solo aparece para los admins de plataforma (lo decide el backend). */
   readonly platformAdmin = signal(false);
+
+  constructor() {
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd), takeUntilDestroyed()).subscribe(() => this.menuOpen.set(false));
+  }
 
   ngOnInit(): void {
     this.platform.isPlatformAdmin().subscribe((ok) => this.platformAdmin.set(ok));
