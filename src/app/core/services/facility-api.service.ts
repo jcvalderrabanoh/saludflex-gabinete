@@ -5,6 +5,10 @@ import { environment } from '../../../environments/environment';
 import {
   ExportFormat,
   ActivateObligationInput,
+  Appointment,
+  AppointmentInput,
+  AppointmentUpdate,
+  DateRange,
   Catalog,
   ChainVerification,
   Equipment,
@@ -195,6 +199,24 @@ export class FacilityApiService {
       params: { format },
       responseType: 'blob',
     });
+  }
+
+  appointments(establishmentId: string, range: DateRange): Observable<Appointment[]> {
+    return this.http.get<Appointment[]>(`${this.base}/establishments/${establishmentId}/appointments`, {
+      params: new HttpParams({ fromObject: { ...range } }),
+    });
+  }
+
+  scheduleAppointment(establishmentId: string, input: AppointmentInput): Observable<Appointment> {
+    return this.http.post<Appointment>(`${this.base}/establishments/${establishmentId}/appointments`, clean(input));
+  }
+
+  updateAppointment(id: string, input: AppointmentUpdate): Observable<Appointment> {
+    return this.http.patch<Appointment>(`${this.base}/appointments/${id}`, clean(input));
+  }
+
+  cancelAppointment(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/appointments/${id}`);
   }
 
   verifyChain(): Observable<ChainVerification> {

@@ -71,6 +71,20 @@
       "name": "Ligar documento sin obligación",
       "deviceType": "MOBILE",
       "prompt": "Pantalla móvil para un documento «Sin obligación». Tarjeta «La IA lo describe como: Póliza de responsabilidad civil (ejemplo ficticio)», fechas leídas y motivo «No coincide con ninguna obligación activa». Selector agrupado: «Vencidas o faltan», «Activas», «Del catálogo (no activas)»; las del catálogo muestran candado y el texto «Pedir al responsable sanitario» para quien no tiene permiso de administrar. Al elegir una del catálogo, panel que explica qué se activa (periodicidad y avisos) antes de confirmar. Acciones: «Ligar» (principal), «Guardar en archivo general», «Descartar». Pie: «Datos ficticios de ejemplo»."
+    },
+    {
+      "id": "F11",
+      "route": "/operacion/calendario",
+      "name": "Calendario",
+      "deviceType": "DESKTOP",
+      "prompt": "Calendario mensual de obligaciones y citas del establecimiento, con el mismo menú lateral (Hoy, Documentos, Obligaciones, Calendario, Municipal, Equipos y personal, Carpeta de inspección, Establecimientos). Encabezado «Calendario · UDIX Matriz», navegación «‹ noviembre de 2026 ›», botón «Hoy» y botón principal «Programar cita». Cuadrícula de lunes a domingo; en cada día, píldoras compactas de dos tipos que se distinguen por icono y texto, no solo por color: vencimientos (chip de estado «Vence · Licencia sanitaria de rayos X», «Vencido · Lectura de dosimetría») y citas programadas con hora («10:00 · Fumigación · Control de Plagas del Norte (ejemplo)», «Solicitud · Refrendo de licencia municipal de funcionamiento»). Al lado derecho, panel «Próximos 30 días» con la lista ordenada por fecha; cada cita con acciones «Marcar como hecha», «Editar» y «Cancelar»; una cita hecha ligada a una obligación ofrece «Registrar evidencia». En móvil la cuadrícula se vuelve lista por día. Pie: «Datos ficticios de ejemplo»."
+    },
+    {
+      "id": "F12",
+      "route": "/operacion/municipal",
+      "name": "Municipal",
+      "deviceType": "DESKTOP",
+      "prompt": "Apartado «Municipal» del establecimiento. Encabezado «Municipal · UDIX Matriz» y tarjeta con el municipio y estado del domicilio («Monterrey, Nuevo León») y enlace «Editar domicilio». Lista de trámites municipales con chip de estado, título, vigencia y botón «Registrar»: «Licencia municipal de funcionamiento (permiso de comercio o licencia de giro) · refrendo anual», «Licencia o constancia de uso de suelo», «Visto bueno de protección civil municipal». Los trámites aún no activos aparecen en gris con botón «Activar». Cada trámite tiene la acción «Programar solicitud», que abre el diálogo para agendar la fecha del trámite. Debajo, sección «Próximas citas municipales» con fecha, hora, lugar (p. ej. ventanilla de Desarrollo Urbano) y estado. Nota en gris: «Los requisitos y la vigencia cambian por municipio; confirma con tu ayuntamiento». Pie: «Datos ficticios de ejemplo»."
     }
   ]
 }

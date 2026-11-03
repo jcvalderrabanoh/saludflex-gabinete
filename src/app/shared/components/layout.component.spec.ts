@@ -12,8 +12,8 @@ describe('menú del layout', () => {
     expect(labels(allow('read', 'manage', 'inspect'))).toContain('Carpeta de inspección');
   });
 
-  it('Hoy, Documentos y Obligaciones están para todos', () => {
-    expect(visibleNav(allow()).map((i) => i.label)).toEqual(['Hoy', 'Documentos', 'Obligaciones', 'Equipos y personal', 'Establecimientos']);
+  it('Hoy, Documentos, Obligaciones, Calendario y Municipal están para todos', () => {
+    expect(visibleNav(allow()).map((i) => i.label)).toEqual(['Hoy', 'Documentos', 'Obligaciones', 'Calendario', 'Municipal', 'Equipos y personal', 'Establecimientos']);
   });
 
   it('en móvil (< 768 px) la barra lateral se vuelve flotante', () => {

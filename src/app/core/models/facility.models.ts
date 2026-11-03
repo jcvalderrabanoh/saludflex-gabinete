@@ -289,3 +289,37 @@ export interface InviteMemberInput {
   name: string;
   preset: TeamPreset;
 }
+
+export type AppointmentKind = 'service' | 'filing' | 'inspection' | 'other';
+export type AppointmentState = 'scheduled' | 'done';
+
+/** Cita del calendario (fumigación, solicitud de un permiso, visita). Cancelar la borra del calendario. */
+export interface Appointment {
+  id: string;
+  establishmentId: string;
+  obligationId: string | null;
+  kind: AppointmentKind;
+  title: string;
+  scheduledOn: string;
+  startTime: string | null;
+  location: string | null;
+  notes: string | null;
+  state: AppointmentState;
+}
+
+export interface AppointmentInput {
+  kind: AppointmentKind;
+  scheduledOn: string;
+  title?: string;
+  startTime?: string;
+  obligationId?: string;
+  location?: string;
+  notes?: string;
+}
+
+export type AppointmentUpdate = Partial<AppointmentInput> & { state?: AppointmentState };
+
+export interface DateRange {
+  from: string;
+  to: string;
+}

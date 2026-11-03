@@ -20,6 +20,12 @@ describe('permisos del gabinete', () => {
       expect(can(['facility.read'], 'record')).toBeFalse();
     });
 
+    it('programar citas solo con el permiso global de captura (la API de citas no acepta el asignado)', () => {
+      expect(can(['facility.record'], 'schedule')).toBeTrue();
+      expect(can(['facility.record.assigned'], 'schedule')).toBeFalse();
+      expect(can(['facility.manage'], 'schedule')).toBeFalse();
+    });
+
     it('la carpeta solo con facility.inspect', () => {
       expect(can(['facility.inspect'], 'inspect')).toBeTrue();
       expect(can(['facility.manage', 'facility.record'], 'inspect')).toBeFalse();

@@ -4,7 +4,7 @@ import { EvaluatedObligation } from '../models/facility.models';
 import { AuthService } from './auth.service';
 
 /** Lo que una pantalla puede ofrecer; cada acción se traduce a permisos `facility.*`. */
-export type FacilityAction = 'read' | 'record' | 'manage' | 'inspect';
+export type FacilityAction = 'read' | 'record' | 'schedule' | 'manage' | 'inspect';
 
 export const RECORD_ALL = 'facility.record';
 export const RECORD_ASSIGNED = 'facility.record.assigned';
@@ -12,6 +12,8 @@ export const RECORD_ASSIGNED = 'facility.record.assigned';
 const REQUIRED: Record<FacilityAction, readonly string[]> = {
   read: ['facility.read'],
   record: [RECORD_ALL, RECORD_ASSIGNED],
+  // Citas del calendario: jc-core exige el permiso global de captura.
+  schedule: [RECORD_ALL],
   manage: ['facility.manage'],
   inspect: ['facility.inspect'],
 };

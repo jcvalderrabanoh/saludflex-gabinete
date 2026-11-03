@@ -1,4 +1,4 @@
-import { EstablishmentType, ObligationStatus, ServiceType } from './facility.models';
+import { AppointmentKind, EstablishmentType, ObligationStatus, ServiceType } from './facility.models';
 
 export const STATUS_LABELS: Record<ObligationStatus, string> = {
   ok: 'Vigente',
@@ -85,3 +85,10 @@ export const MEXICAN_STATES: readonly string[] = [
 export function stateOptions(current: string | null | undefined): string[] {
   return current && !MEXICAN_STATES.includes(current) ? [current, ...MEXICAN_STATES] : [...MEXICAN_STATES];
 }
+
+export const APPOINTMENT_KIND_LABELS: Record<AppointmentKind, string> = {
+  service: 'Servicio de proveedor',
+  filing: 'Solicitud o trámite',
+  inspection: 'Visita de verificación',
+  other: 'Otra',
+};
