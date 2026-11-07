@@ -69,7 +69,7 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
                     <button mat-icon-button [matMenuTriggerFor]="menu" [attr.aria-label]="'Más acciones de ' + line.payment.name"><mat-icon>more_vert</mat-icon></button>
                     <mat-menu #menu="matMenu">
                       <button mat-menu-item (click)="edit(line.payment)"><mat-icon>edit</mat-icon> Editar</button>
-                      <button mat-menu-item (click)="stopFollowing(line.payment)"><mat-icon>notifications_off</mat-icon> Dejar de seguir</button>
+                      <button mat-menu-item (click)="stopFollowing(line.payment)"><mat-icon>remove_circle_outline</mat-icon> Dejar de seguir</button>
                     </mat-menu>
                   }
                 </li>

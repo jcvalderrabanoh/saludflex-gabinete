@@ -24,13 +24,24 @@ describe('Conexiones', () => {
     expect(open?.search).toBe('');
   });
 
-  it('sin contratar, pide información por correo y no promete activar ni precio', () => {
-    const el = render([{ app: 'lumen-view', state: 'active', trialEndsAt: null }, { app: 'attendance', state: 'not_contracted', trialEndsAt: null }]);
+  it('lumen-view sin contratar pide información por correo y no promete activar ni precio', () => {
+    const el = render([{ app: 'lumen-view', state: 'not_contracted', trialEndsAt: null }]);
     const ask = el.querySelector<HTMLAnchorElement>('a[href^="mailto:"]');
     expect(ask?.textContent).toContain('Pedir información');
-    expect(ask?.href).toContain('Asistencia');
+    expect(ask?.href).toContain('lumen-view');
     expect(el.textContent).toContain('No contratada');
     expect(el.textContent).not.toMatch(/activar|precio|\$/i);
+  });
+
+  it('Asistencia sin contratar muestra su estado y no se ofrece: la venta está congelada', () => {
+    const el = render([{ app: 'attendance', state: 'not_contracted', trialEndsAt: null }]);
+    expect(el.textContent).toContain('No contratada');
+    expect(el.querySelector('a')).toBeNull();
+  });
+
+  it('Asistencia contratada sí se abre', () => {
+    const el = render([{ app: 'attendance', state: 'active', trialEndsAt: null }]);
+    expect(el.querySelector<HTMLAnchorElement>('a')?.href).toBe('https://core.lumen-view.com/asistencia/');
   });
 
   it('la prueba vencida no ofrece abrir: la app ya no dejaría entrar', () => {

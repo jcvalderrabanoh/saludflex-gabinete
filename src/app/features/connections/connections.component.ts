@@ -9,11 +9,14 @@ interface AppCard {
   summary: string;
   icon: string;
   url: string;
+  /** Sin esto, quien no la tiene ve su estado pero no se le ofrece. */
+  offered: boolean;
 }
 
+// Asistencia: la venta sigue congelada hasta la revisión del 15-dic-2026 (ADR-5, enmienda del 6-nov).
 const APPS: Record<ConnectableApp, AppCard> = {
-  'lumen-view': { name: 'lumen-view', summary: 'Imagen médica, informes y entrega de resultados.', icon: 'radiology', url: 'https://app.lumen-view.com' },
-  attendance: { name: 'Asistencia', summary: 'Registro de entradas y salidas del personal.', icon: 'schedule', url: 'https://core.lumen-view.com/asistencia/' },
+  'lumen-view': { name: 'lumen-view', summary: 'Imagen médica, informes y entrega de resultados.', icon: 'radiology', url: 'https://app.lumen-view.com', offered: true },
+  attendance: { name: 'Asistencia', summary: 'Registro de entradas y salidas del personal.', icon: 'schedule', url: 'https://core.lumen-view.com/asistencia/', offered: false },
 };
 
 const STATE_LABELS: Record<ConnectedAppState, string> = {
@@ -47,7 +50,7 @@ const CONTACT_EMAIL = 'hola@salud-flex.com';
           </div>
           @if (canOpen(connection)) {
             <a mat-flat-button color="primary" [href]="card.url" target="_blank" rel="noopener noreferrer">Abrir {{ card.name }} <mat-icon iconPositionEnd>open_in_new</mat-icon></a>
-          } @else {
+          } @else if (card.offered) {
             <a mat-stroked-button [href]="contactHref(card)"><mat-icon>mail</mat-icon> Pedir información</a>
           }
         </li>
