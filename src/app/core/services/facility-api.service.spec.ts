@@ -26,6 +26,23 @@ describe('FacilityApiService', () => {
     expect(name).toBe('UDIX');
   });
 
+  it('pagos: marcar manda el periodo y desmarcar lo pone en la ruta', () => {
+    api.markPaymentPaid('p1', { dueOn: '2026-11-10', paidCents: 500 }).subscribe();
+    const mark = http.expectOne('http://localhost:3000/facility/recurring-payments/p1/paid');
+    expect(mark.request.method).toBe('POST');
+    expect(mark.request.body).toEqual({ dueOn: '2026-11-10', paidCents: 500 });
+    mark.flush(null);
+    api.unmarkPaymentPaid('p1', '2026-11-10').subscribe();
+    http.expectOne({ method: 'DELETE', url: 'http://localhost:3000/facility/recurring-payments/p1/paid/2026-11-10' }).flush(null);
+  });
+
+  it('al editar un pago, null viaja: así se borra el monto', () => {
+    api.updateRecurringPayment('p1', { amountMode: 'variable', amountCents: null }).subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/recurring-payments/p1');
+    expect(req.request.body).toEqual({ amountMode: 'variable', amountCents: null });
+    req.flush({});
+  });
+
   it('las citas se piden por rango de fechas del establecimiento', () => {
     api.appointments('e1', { from: '2026-11-01', to: '2026-11-30' }).subscribe();
     const req = http.expectOne('http://localhost:3000/facility/establishments/e1/appointments?from=2026-11-01&to=2026-11-30');

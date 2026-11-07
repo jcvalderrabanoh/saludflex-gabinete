@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+
+<html lang="es-MX"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SaludFlex - Pagos recurrentes (/operacion/pagos)</title>
+<!-- Inter Font -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-surface-variant": "#41484d",
+            "on-primary-fixed": "#001e2c",
+            "surface-variant": "#dae2fd",
+            "primary": "#00354a",
+            "surface-container-low": "#f2f3ff",
+            "on-secondary": "#ffffff",
+            "tertiary": "#003740",
+            "tertiary-fixed-dim": "#41d8f4",
+            "outline": "#71787d",
+            "primary-fixed": "#c3e8ff",
+            "tertiary-fixed": "#a7eeff",
+            "on-tertiary-fixed": "#001f25",
+            "error-container": "#ffdad6",
+            "on-primary-fixed-variant": "#084c67",
+            "secondary-fixed-dim": "#76d4e7",
+            "inverse-primary": "#98cded",
+            "on-secondary-container": "#006b7a",
+            "primary-fixed-dim": "#98cded",
+            "outline-variant": "#c0c7cd",
+            "on-primary-container": "#88bddc",
+            "surface-container-highest": "#dae2fd",
+            "surface-container": "#eaedff",
+            "secondary-fixed": "#a3eeff",
+            "on-secondary-fixed": "#001f25",
+            "inverse-surface": "#283044",
+            "surface-container-lowest": "#ffffff",
+            "on-surface": "#131b2e",
+            "tertiary-container": "#004f5c",
+            "surface": "#faf8ff",
+            "background": "#faf8ff",
+            "secondary-container": "#8debff",
+            "surface-tint": "#2c6480",
+            "surface-bright": "#faf8ff",
+            "secondary": "#006877",
+            "surface-dim": "#d2d9f4",
+            "on-tertiary": "#ffffff",
+            "on-error": "#ffffff",
+            "inverse-on-surface": "#eef0ff",
+            "primary-container": "#0a4d68",
+            "on-primary": "#ffffff",
+            "on-tertiary-fixed-variant": "#004e5b",
+            "surface-container-high": "#e2e7ff",
+            "on-secondary-fixed-variant": "#004e5a",
+            "on-tertiary-container": "#23c7e3",
+            "on-background": "#131b2e",
+            "on-error-container": "#93000a",
+            "error": "#ba1a1a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-lg": "1rem",
+            "space-2xl": "2rem",
+            "space-3xl": "3rem",
+            "margin-tablet": "1.5rem",
+            "margin-desktop": "2rem",
+            "space-sm": "0.5rem",
+            "space-xl": "1.5rem",
+            "gutter-tablet": "1.25rem",
+            "space-md": "0.75rem",
+            "margin": "1rem",
+            "space-xs": "0.25rem",
+            "gutter": "1rem",
+            "gutter-desktop": "1.5rem"
+          },
+          "fontFamily": {
+            "title-sm": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "headline-sm": ["Inter"],
+            "body-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "code-clinical": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-lg": ["Inter"],
+            "title-md": ["Inter"],
+            "display-lg-mobile": ["Inter"],
+            "display-lg": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-md": ["Inter"],
+            "body-sm": ["Inter"]
+          },
+          "fontSize": {
+            "title-sm": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "code-clinical": ["13px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "title-md": ["16px", { "lineHeight": "22px", "fontWeight": "600" }],
+            "display-lg-mobile": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+            "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #faf8ff;
+      color: #131b2e;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased flex h-screen overflow-hidden">
+<!-- ========================================================================= -->
+<!-- SIDE NAVIGATION (SideNavBar as specified in JSON & instructions)          -->
+<!-- ========================================================================= -->
+<aside class="w-64 h-screen flex flex-col justify-between p-4 border-r border-outline-variant dark:border-outline shrink-0 bg-surface-container-lowest dark:bg-inverse-surface shadow-sm dark:shadow-none select-none z-20">
+<!-- Top Header & Brand -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-2 py-1">
+<!-- SVG Isotipo SaludFlex exacto -->
+<svg aria-label="Isotipo SVG Teal SaludFlex" class="w-8 h-8 shrink-0" fill="none" viewbox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#0b7a75" height="32" rx="5" width="10" x="15" y="4"></rect>
+<rect fill="#0b7a75" height="10" rx="5" width="16" x="4" y="15"></rect>
+<path d="M20 20 H27 Q33 20 33 14 V11" opacity=".55" stroke="#0b7a75" stroke-linecap="round" stroke-width="10"></path>
+</svg>
+<div class="flex flex-col">
+<span class="text-headline-sm font-headline-sm font-bold text-primary dark:text-primary-fixed tracking-tight leading-none text-[#0d2427]">SaludFlex</span>
+<span class="text-label-sm font-label-sm text-outline dark:text-outline-variant mt-0.5">Sistema Integral de Gabinete</span>
+</div>
+</div>
+<!-- Navigation Hierarchy with Categorized Sub-headers -->
+<nav class="flex flex-col gap-1 overflow-y-auto pr-1 max-h-[calc(100vh-270px)]">
+<!-- Grupo «DÍA A DÍA» -->
+<div class="text-[10px] tracking-wider uppercase text-slate-500 font-semibold px-3 pt-2 pb-1">DÍA A DÍA</div>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-inverse-on-surface hover:text-on-surface font-body-sm hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]">dashboard</span>
+<span>Hoy</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-inverse-on-surface hover:text-on-surface font-body-sm hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span>Calendario</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-inverse-on-surface hover:text-on-surface font-body-sm hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]">description</span>
+<span>Documentos</span>
+</a>
+<!-- Grupo «EN REGLA» -->
+<div class="text-[10px] tracking-wider uppercase text-slate-500 font-semibold px-3 pt-3 pb-1">EN REGLA</div>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-inverse-on-surface hover:text-on-surface font-body-sm hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span>Obligaciones</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-inverse-on-surface hover:text-on-surface font-body-sm hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]">apartment</span>
+<span>Municipal</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-inverse-on-surface hover:text-on-surface font-body-sm hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]">folder_special</span>
+<span>Carpeta de inspección</span>
+</a>
+<!-- Grupo «MI GABINETE» -->
+<div class="text-[10px] tracking-wider uppercase text-slate-500 font-semibold px-3 pt-3 pb-1">MI GABINETE</div>
+<!-- ACTIVO: Pagos recurrentes -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container-low dark:bg-primary-container text-secondary dark:text-on-primary-container font-title-sm font-semibold border-l-4 border-secondary transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">payments</span>
+<span>Pagos recurrentes</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-inverse-on-surface hover:text-on-surface font-body-sm hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]">storefront</span>
+<span>Establecimientos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-inverse-on-surface hover:text-on-surface font-body-sm hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]">badge</span>
+<span>Equipos y personal</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-inverse-on-surface hover:text-on-surface font-body-sm hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]">vpn_key</span>
+<span>Accesos</span>
+</a>
+<!-- Separador al pie y Conexiones -->
+<div class="border-t border-outline-variant my-1"></div>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant dark:text-inverse-on-surface hover:text-on-surface font-body-sm hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[18px]">hub</span>
+<span>Conexiones</span>
+</a>
+</nav>
+</div>
+<!-- Bottom CTA: Carpeta en 1 clic -->
+<div class="pt-2 border-t border-outline-variant dark:border-outline">
+<div class="bg-surface-container p-3 rounded-xl border border-outline-variant/60 flex flex-col gap-2">
+<div class="flex items-center justify-between text-secondary">
+<span class="font-title-sm text-title-sm flex items-center gap-1.5 font-semibold">
+<span class="material-symbols-outlined text-base">cloud_download</span>
+            Carpeta en 1 clic
+          </span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">Listo</span>
+</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant leading-tight">Expediente integral para verificación sanitaria COFEPRIS (ZIP/PDF).</p>
+<button class="w-full h-8 text-label-md font-label-md bg-secondary hover:bg-primary text-white rounded-lg transition-colors flex items-center justify-center gap-1 shadow-sm">
+<span>Descargar paquete</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- ========================================================================= -->
+<!-- MAIN WORKSPACE                                                            -->
+<!-- ========================================================================= -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+<!-- TOP NAVIGATION (TopNavBar as specified in JSON) -->
+<header class="flex justify-between items-center h-16 px-6 w-full shrink-0 bg-surface-container-lowest dark:bg-inverse-surface border-b border-outline-variant dark:border-outline shadow-sm dark:shadow-none z-10">
+<!-- Left: Selector de cuenta y Régimen -->
+<div class="flex items-center gap-4">
+<!-- Selector UDIX Matriz -->
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[20px]">domain</span>
+<span class="font-title-sm text-title-sm font-bold">UDIX Matriz</span>
+<span class="material-symbols-outlined text-outline text-[18px]">expand_more</span>
+</button>
+<span class="h-4 w-px bg-outline-variant"></span>
+<!-- Pastilla de régimen RX -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container text-primary font-label-sm text-label-sm border border-outline-variant/60">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Régimen RX · Imagenología Dental y Maxilofacial</span>
+</div>
+</div>
+<!-- Right: Notificaciones + Dra. Claudia Varela (RS) -->
+<div class="flex items-center gap-3">
+<button aria-label="Notificaciones" class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors relative">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full ring-2 ring-white"></span>
+</button>
+<div class="h-6 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-3 pl-1">
+<div class="text-right">
+<p class="font-title-sm text-title-sm font-semibold text-on-surface leading-tight">Dra. Claudia Varela</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant leading-tight">Responsable Sanitaria (RS)</p>
+</div>
+<!-- Avatar Dra. Claudia Varela -->
+<div class="w-9 h-9 rounded-full bg-[#0b7a75] text-white flex items-center justify-center font-title-sm text-title-sm font-bold ring-2 ring-white shadow-sm">
+            CV
+          </div>
+</div>
+</div>
+</header>
+<!-- CONTENT SCROLLABLE CANVAS -->
+<main class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+<!-- BREADCRUMB & HEADER SECTION -->
+<section class="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-outline-variant/60 pb-6">
+<div>
+<!-- Breadcrumb -->
+<nav aria-label="Ruta de navegación" class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant mb-1">
+<span>Operación</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-secondary font-semibold">Pagos recurrentes</span>
+<span class="ml-2 font-mono text-[11px] bg-surface-container px-1.5 py-0.5 rounded text-outline">/operacion/pagos</span>
+</nav>
+<h1 class="text-headline-lg font-headline-lg text-primary tracking-tight">Pagos recurrentes · UDIX Matriz</h1>
+<p class="mt-1 text-body-sm font-body-sm text-on-surface-variant max-w-3xl leading-relaxed">
+            Registra lo que pagas cada periodo y consulta qué sigue. No paga, no cobra y no guarda datos bancarios; pagas directo a tu proveedor.
+          </p>
+</div>
+<!-- Botón de acción principal: Elegir servicios (>=48px área táctil) -->
+<div class="flex items-center gap-3 shrink-0">
+<button class="h-12 min-h-[48px] px-5 rounded-lg bg-[#4d7c0f] hover:bg-[#3f650c] text-white font-title-sm text-title-sm flex items-center gap-2 shadow-sm transition-all duration-150 cursor-pointer" id="btnToggleDrawer">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+<span>Elegir servicios</span>
+</button>
+</div>
+</section>
+<!-- SECCIÓN COLAPSABLE / DRAWER / MODAL: CONFIGURACIÓN DE CATÁLOGO (Casillas de verificación) -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm transition-all duration-200" id="drawerCatalog">
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant/40 mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[22px]">checklist</span>
+<h2 class="font-title-md text-title-md text-primary font-bold">Catálogo de Servicios Esenciales de Gabinete</h2>
+<span class="text-label-sm font-label-sm bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full ml-2">Selección activa</span>
+</div>
+<p class="text-label-sm font-label-sm text-outline hidden md:block">Active o desactive los insumos recurrentes que opera la sucursal.</p>
+</div>
+<!-- Grid de checkboxes accesibles con target >= 44x44px -->
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+<label class="flex items-center gap-3 p-3 rounded-lg border border-outline-variant/70 hover:bg-surface-container-low cursor-pointer transition-colors min-h-[48px]">
+<input checked="" class="w-5 h-5 text-primary rounded border-outline focus:ring-secondary cursor-pointer" type="checkbox"/>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">bolt</span>
+<span class="text-body-sm font-body-sm font-semibold">Luz (CFE)</span>
+</div>
+</label>
+<label class="flex items-center gap-3 p-3 rounded-lg border border-outline-variant/70 hover:bg-surface-container-low cursor-pointer transition-colors min-h-[48px]">
+<input checked="" class="w-5 h-5 text-primary rounded border-outline focus:ring-secondary cursor-pointer" type="checkbox"/>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">water_drop</span>
+<span class="text-body-sm font-body-sm font-semibold">Agua y Drenaje</span>
+</div>
+</label>
+<label class="flex items-center gap-3 p-3 rounded-lg border border-outline-variant/70 hover:bg-surface-container-low cursor-pointer transition-colors min-h-[48px]">
+<input checked="" class="w-5 h-5 text-primary rounded border-outline focus:ring-secondary cursor-pointer" type="checkbox"/>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">local_fire_department</span>
+<span class="text-body-sm font-body-sm font-semibold">Gas LP</span>
+</div>
+</label>
+<label class="flex items-center gap-3 p-3 rounded-lg border border-outline-variant/70 hover:bg-surface-container-low cursor-pointer transition-colors min-h-[48px]">
+<input checked="" class="w-5 h-5 text-primary rounded border-outline focus:ring-secondary cursor-pointer" type="checkbox"/>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">router</span>
+<span class="text-body-sm font-body-sm font-semibold">Teléfono e Internet</span>
+</div>
+</label>
+<label class="flex items-center gap-3 p-3 rounded-lg border border-outline-variant/70 hover:bg-surface-container-low cursor-pointer transition-colors min-h-[48px]">
+<input checked="" class="w-5 h-5 text-primary rounded border-outline focus:ring-secondary cursor-pointer" type="checkbox"/>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">domain</span>
+<span class="text-body-sm font-body-sm font-semibold">Predial Municipal</span>
+</div>
+</label>
+</div>
+</section>
+<!-- ===================================================================== -->
+<!-- TABLA/LISTA DENSA DE ALTA DENSIDAD SECUENCIAL (3 BLOQUES)               -->
+<!-- ===================================================================== -->
+<div class="space-y-6">
+<!-- =================================================================== -->
+<!-- BLOQUE A: VENCIDOS                                                  -->
+<!-- =================================================================== -->
+<section class="bg-surface-container-lowest rounded-xl border border-red-200 shadow-sm overflow-hidden">
+<!-- Encabezado de Bloque -->
+<div class="bg-red-50/80 px-5 py-3 border-b border-red-200 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+<h2 class="text-title-md font-title-md text-red-950 font-bold tracking-tight">Vencidos</h2>
+<span class="text-label-sm font-label-sm bg-red-200/80 text-red-900 px-2 py-0.5 rounded-full font-semibold">2 pendientes de regularizar</span>
+</div>
+<span class="text-label-sm font-label-sm text-red-800">Atención inmediata requerida</span>
+</div>
+<!-- Filas Densas -->
+<div class="divide-y divide-outline-variant/40">
+<!-- Fila A1: Luz CFE -->
+<div class="px-5 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-red-50/30 transition-colors">
+<div class="flex items-center gap-3.5 min-w-[280px]">
+<div class="w-10 h-10 rounded-lg bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">bolt</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm font-bold text-on-surface">Luz CFE</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Comisión Federal de Electricidad · Contrato #8921-A</p>
+</div>
+</div>
+<!-- Metadata en línea -->
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 items-center flex-1 max-w-xl">
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Periodicidad</span>
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Bimestral</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Vencimiento</span>
+<span class="font-body-sm text-body-sm font-medium text-red-700">Venció el 28 Oct 2026</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Monto</span>
+<span class="font-body-sm text-body-sm font-bold text-on-surface">$3,420 MXN</span>
+</div>
+</div>
+<!-- Estado + Botón Táctil >=48px -->
+<div class="flex items-center gap-3 shrink-0 self-end md:self-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-[#fee2e2] text-[#991B1B] border border-red-300">
+                  Vencido
+                </span>
+<button class="h-12 min-h-[48px] px-4 rounded-lg bg-surface-container-lowest hover:bg-red-50 text-red-900 border border-red-300 font-title-sm text-title-sm font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-base">check_circle</span>
+<span>Marcar como pagado</span>
+</button>
+</div>
+</div>
+<!-- Fila A2: Gas LP (Tanque estacionario) -->
+<div class="px-5 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-red-50/30 transition-colors">
+<div class="flex items-center gap-3.5 min-w-[280px]">
+<div class="w-10 h-10 rounded-lg bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">local_fire_department</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm font-bold text-on-surface">Gas LP (Tanque estacionario)</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Gas Express Nieto · Tanque 300L Gabinete</p>
+</div>
+</div>
+<!-- Metadata en línea -->
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 items-center flex-1 max-w-xl">
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Periodicidad</span>
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Bimestral</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Vencimiento</span>
+<span class="font-body-sm text-body-sm font-medium text-red-700">Venció el 25 Oct 2026</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Monto</span>
+<span class="font-body-sm text-body-sm font-medium text-on-surface-variant italic">Monto variable</span>
+</div>
+</div>
+<!-- Estado + Botón Táctil >=48px -->
+<div class="flex items-center gap-3 shrink-0 self-end md:self-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-[#fee2e2] text-[#991B1B] border border-red-300">
+                  Vencido
+                </span>
+<button class="h-12 min-h-[48px] px-4 rounded-lg bg-surface-container-lowest hover:bg-red-50 text-red-900 border border-red-300 font-title-sm text-title-sm font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-base">check_circle</span>
+<span>Marcar como pagado</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- =================================================================== -->
+<!-- BLOQUE B: PRÓXIMOS 30 DÍAS                                         -->
+<!-- =================================================================== -->
+<section class="bg-surface-container-lowest rounded-xl border border-amber-200 shadow-sm overflow-hidden">
+<!-- Encabezado de Bloque -->
+<div class="bg-amber-50/70 px-5 py-3 border-b border-amber-200 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+<h2 class="text-title-md font-title-md text-amber-950 font-bold tracking-tight">Próximos 30 días</h2>
+<span class="text-label-sm font-label-sm bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full font-semibold">3 programados</span>
+</div>
+<span class="text-label-sm font-label-sm text-amber-800">Vigilar fechas límite</span>
+</div>
+<!-- Filas Densas -->
+<div class="divide-y divide-outline-variant/40">
+<!-- Fila B1: Agua y Drenaje -->
+<div class="px-5 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-amber-50/20 transition-colors">
+<div class="flex items-center gap-3.5 min-w-[280px]">
+<div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">water_drop</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm font-bold text-on-surface">Agua y Drenaje</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Servicio de Agua Potable y Alcantarillado · Medidor Clínico</p>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 items-center flex-1 max-w-xl">
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Periodicidad</span>
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Bimestral</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Vencimiento</span>
+<span class="font-body-sm text-body-sm font-medium text-amber-900">Vence el 15 Nov 2026</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Monto</span>
+<span class="font-body-sm text-body-sm font-bold text-on-surface">$1,150 MXN</span>
+</div>
+</div>
+<div class="flex items-center gap-3 shrink-0 self-end md:self-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-[#fef3c7] text-[#92400E] border border-amber-300">
+                  Por pagar
+                </span>
+<button class="h-12 min-h-[48px] px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low text-primary border border-outline-variant font-title-sm text-title-sm font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-base">check_circle</span>
+<span>Marcar como pagado</span>
+</button>
+</div>
+</div>
+<!-- Fila B2: Internet y Telefonía Clínica -->
+<div class="px-5 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-amber-50/20 transition-colors">
+<div class="flex items-center gap-3.5 min-w-[280px]">
+<div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">router</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm font-bold text-on-surface">Internet y Telefonía Clínica</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Telmex Negocio Simétrico · Enlace PACS Dental</p>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 items-center flex-1 max-w-xl">
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Periodicidad</span>
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Mensual</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Vencimiento</span>
+<span class="font-body-sm text-body-sm font-medium text-amber-900">Vence el 18 Nov 2026</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Monto</span>
+<span class="font-body-sm text-body-sm font-bold text-on-surface">$1,850 MXN</span>
+</div>
+</div>
+<div class="flex items-center gap-3 shrink-0 self-end md:self-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-[#fef3c7] text-[#92400E] border border-amber-300">
+                  Por pagar
+                </span>
+<button class="h-12 min-h-[48px] px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low text-primary border border-outline-variant font-title-sm text-title-sm font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-base">check_circle</span>
+<span>Marcar como pagado</span>
+</button>
+</div>
+</div>
+<!-- Fila B3: Software contable y timbrado -->
+<div class="px-5 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-amber-50/20 transition-colors">
+<div class="flex items-center gap-3.5 min-w-[280px]">
+<div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">cloud_sync</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm font-bold text-on-surface">Software contable y timbrado</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">CFDI 4.0 Régimen Sanitario · Timbrado Ilimitado</p>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 items-center flex-1 max-w-xl">
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Periodicidad</span>
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Mensual</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Vencimiento</span>
+<span class="font-body-sm text-body-sm font-medium text-amber-900">Vence el 24 Nov 2026</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Monto</span>
+<span class="font-body-sm text-body-sm font-bold text-on-surface">$890 MXN</span>
+</div>
+</div>
+<div class="flex items-center gap-3 shrink-0 self-end md:self-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-[#fef3c7] text-[#92400E] border border-amber-300">
+                  Por pagar
+                </span>
+<button class="h-12 min-h-[48px] px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low text-primary border border-outline-variant font-title-sm text-title-sm font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-base">check_circle</span>
+<span>Marcar como pagado</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- =================================================================== -->
+<!-- BLOQUE C: MÁS ADELANTE                                              -->
+<!-- =================================================================== -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+<!-- Encabezado de Bloque -->
+<div class="bg-slate-100 px-5 py-3 border-b border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+<h2 class="text-title-md font-title-md text-on-surface font-bold tracking-tight">Más adelante</h2>
+<span class="text-label-sm font-label-sm bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-semibold">2 registros</span>
+</div>
+<span class="text-label-sm font-label-sm text-outline">Periodos futuros y regularizados</span>
+</div>
+<!-- Filas Densas -->
+<div class="divide-y divide-outline-variant/40">
+<!-- Fila C1: Predial Matriz 2027 -->
+<div class="px-5 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
+<div class="flex items-center gap-3.5 min-w-[280px]">
+<div class="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">apartment</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm font-bold text-on-surface">Predial Matriz 2027</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Tesorería Municipal · Clave Catastral #04-182-019</p>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 items-center flex-1 max-w-xl">
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Periodicidad</span>
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Anual</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Vencimiento</span>
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Vence el 31 Ene 2027</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Monto</span>
+<span class="font-body-sm text-body-sm font-medium text-on-surface-variant italic">Sin dato</span>
+</div>
+</div>
+<div class="flex items-center gap-3 shrink-0 self-end md:self-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-[#fef3c7] text-[#92400E] border border-amber-300">
+                  Por pagar
+                </span>
+<button class="h-12 min-h-[48px] px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low text-primary border border-outline-variant font-title-sm text-title-sm font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-base">check_circle</span>
+<span>Marcar como pagado</span>
+</button>
+</div>
+</div>
+<!-- Fila C2: Cuota mantenimiento edificio (PAGADO) -->
+<div class="px-5 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-emerald-50/20 hover:bg-emerald-50/40 transition-colors">
+<div class="flex items-center gap-3.5 min-w-[280px]">
+<div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">corporate_fare</span>
+</div>
+<div>
+<h3 class="font-title-sm text-title-sm font-bold text-on-surface">Cuota mantenimiento edificio</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Administración Condominio Médico Plaza Sol</p>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 items-center flex-1 max-w-xl">
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Periodicidad</span>
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Mensual</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Fecha de Pago</span>
+<span class="font-body-sm text-body-sm font-medium text-emerald-800">Pagado el 02 Nov 2026</span>
+</div>
+<div>
+<span class="block text-label-sm font-label-sm text-outline">Monto</span>
+<span class="font-body-sm text-body-sm font-bold text-on-surface">$2,500 MXN</span>
+</div>
+</div>
+<div class="flex items-center gap-3 shrink-0 self-end md:self-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-[#dcfce7] text-[#166534] border border-emerald-300">
+                  Pagado
+                </span>
+<button class="h-12 min-h-[48px] px-4 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-secondary border border-outline-variant font-title-sm text-title-sm font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-base">receipt_long</span>
+<span>Ver comprobante / Editar</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- BANNER DE RESPONSABILIDAD TÉCNICO-OPERATIVA -->
+<div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/60 flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-[22px] shrink-0 mt-0.5">info</span>
+<div class="text-body-sm font-body-sm text-on-surface-variant space-y-1">
+<p class="font-semibold text-on-surface">Control administrativo independiente para verificaciones sanitarias</p>
+<p>
+            Los comprobantes de servicios (especialmente luz continua para sistemas de refrigeración y generadores de RX, así como suministro ininterrumpido de agua y telecomunicaciones de reporte) forman parte de los expedientes anexos requeridos durante visitas de verificación ordinarias.
+          </p>
+</div>
+</div>
+</main>
+<!-- ========================================================================= -->
+<!-- FOOTER NORMATIVO (Cumpliendo con Footer del JSON & Leyendas solicitadas) -->
+<!-- ========================================================================= -->
+<footer class="w-full py-3 px-6 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-2 bg-surface-container-lowest dark:bg-inverse-surface border-t border-outline-variant dark:border-outline shrink-0 text-label-sm font-label-sm">
+<!-- Normativas en badge string -->
+<div class="flex flex-wrap items-center justify-center md:justify-start gap-2 text-on-surface-variant font-medium">
+<span class="font-semibold text-secondary">COFEPRIS</span>
+<span class="text-outline-variant">•</span>
+<span>Dosimetría Personal</span>
+<span class="text-outline-variant">•</span>
+<span>Control de Calidad Rayos X</span>
+<span class="text-outline-variant">•</span>
+<span>RPBI NOM-087</span>
+<span class="text-outline-variant">•</span>
+<span>Protección Civil</span>
+</div>
+<!-- Leyenda institucional estricta (no dice certificado ni garantiza cumplimiento) -->
+<div class="text-outline text-[11px] max-w-xl text-center md:text-right">
+        * El Sistema Integral de Gabinete organiza evidencia y bitácoras para inspección; no constituye certificación ni asesoría legal. Datos ficticios de ejemplo.
+      </div>
+</footer>
+</div>
+<!-- SCRIPT INTERACTIVO LIGERO PARA EL DRAWER / TOGGLE DE CATÁLOGO -->
+<script>
+    const btnToggle = document.getElementById('btnToggleDrawer');
+    const drawerCatalog = document.getElementById('drawerCatalog');
+
+    btnToggle.addEventListener('click', () => {
+      if (drawerCatalog.classList.contains('hidden')) {
+        drawerCatalog.classList.remove('hidden');
+        drawerCatalog.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        drawerCatalog.classList.add('hidden');
+      }
+    });
+  </script>
+</body></html>

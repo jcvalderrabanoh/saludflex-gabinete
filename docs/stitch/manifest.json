@@ -1,0 +1,20 @@
+{
+  "projectId": "9959578893517974265",
+  "screens": {
+    "F13": {
+      "name": "Pagos recurrentes",
+      "screen": "projects/9959578893517974265/screens/f10dc2285041422a8e561145d3144c38",
+      "generatedAt": "2026-11-07T02:12:24.511Z"
+    },
+    "F14": {
+      "name": "Elegir servicios y agregar otro",
+      "screen": "projects/9959578893517974265/screens/94ce13bd1f1e4785a024e476efb2e260",
+      "generatedAt": "2026-11-07T02:13:33.986Z"
+    },
+    "F15": {
+      "name": "Conexiones",
+      "screen": "projects/9959578893517974265/screens/07e247c541eb47bda0b4773c0736f74a",
+      "generatedAt": "2026-11-07T02:14:23.227Z"
+    }
+  }
+}

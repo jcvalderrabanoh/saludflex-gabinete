@@ -1,19 +1,36 @@
 import { FacilityAction } from '../../core/services/permissions.service';
-import { MOBILE_QUERY, visibleNav } from './layout.component';
+import { MOBILE_QUERY, visibleNavGroups } from './layout.component';
 
 const allow = (...actions: FacilityAction[]) => (a: FacilityAction) => actions.includes(a);
 
 describe('menú del layout', () => {
-  it('«Equipo» solo con facility.manage y «Carpeta» solo con facility.inspect', () => {
-    const labels = (can: (a: FacilityAction) => boolean) => visibleNav(can).map((i) => i.label);
-    expect(labels(allow('read', 'record'))).not.toContain('Equipo');
-    expect(labels(allow('read', 'record'))).not.toContain('Carpeta de inspección');
-    expect(labels(allow('read', 'manage', 'inspect'))).toContain('Equipo');
-    expect(labels(allow('read', 'manage', 'inspect'))).toContain('Carpeta de inspección');
+  const groups = (can: (a: FacilityAction) => boolean) => visibleNavGroups(can).map((g) => [g.label, g.items.map((i) => i.label)]);
+
+  it('agrupa por lo que la persona viene a hacer, con Conexiones al pie', () => {
+    expect(groups(allow('read', 'manage', 'inspect', 'payments'))).toEqual([
+      ['Día a día', ['Hoy', 'Calendario', 'Documentos']],
+      ['En regla', ['Obligaciones', 'Municipal', 'Carpeta de inspección']],
+      ['Mi gabinete', ['Pagos recurrentes', 'Establecimientos', 'Equipos y personal', 'Accesos']],
+      ['', ['Conexiones']],
+    ]);
   });
 
-  it('Hoy, Documentos, Obligaciones, Calendario y Municipal están para todos', () => {
-    expect(visibleNav(allow()).map((i) => i.label)).toEqual(['Hoy', 'Documentos', 'Obligaciones', 'Calendario', 'Municipal', 'Equipos y personal', 'Establecimientos']);
+  it('sin permisos oculta Carpeta, Pagos y Accesos y deja el resto', () => {
+    expect(groups(allow())).toEqual([
+      ['Día a día', ['Hoy', 'Calendario', 'Documentos']],
+      ['En regla', ['Obligaciones', 'Municipal']],
+      ['Mi gabinete', ['Establecimientos', 'Equipos y personal']],
+      ['', ['Conexiones']],
+    ]);
+  });
+
+  it('«Accesos» conserva la ruta de «Equipo»: los enlaces guardados siguen sirviendo', () => {
+    const items = visibleNavGroups(allow('manage')).flatMap((g) => g.items);
+    expect(items.find((i) => i.label === 'Accesos')?.path).toBe('/operacion/equipo');
+  });
+
+  it('un grupo que se queda sin entradas no deja su encabezado', () => {
+    expect(visibleNavGroups(allow(), [{ label: 'Vacío', items: [{ path: '/x', label: 'X', icon: 'x', requires: 'manage' }] }])).toEqual([]);
   });
 
   it('en móvil (< 768 px) la barra lateral se vuelve flotante', () => {

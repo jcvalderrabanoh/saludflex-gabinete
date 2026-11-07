@@ -27,7 +27,7 @@ const RESEND_NOT_SENT = 'No pudimos mandar el correo. Intenta de nuevo en unos m
   template: `
     <div class="head">
       <div>
-        <h1>Equipo</h1>
+        <h1>Accesos</h1>
         <p class="sub">Invita a quien registra la evidencia. A cada obligación le asignas su responsable en «Obligaciones».</p>
         <p class="unlimited">Usuarios ilimitados: el precio es por establecimiento.</p>
       </div>

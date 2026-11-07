@@ -346,3 +346,44 @@ export interface DateRange {
   from: string;
   to: string;
 }
+
+export type RecurringPaymentKind = 'service' | 'subscription';
+export type RecurringAmountMode = 'fixed' | 'variable';
+
+export interface RecurringPaymentInput {
+  name: string;
+  kind: RecurringPaymentKind;
+  amountMode: RecurringAmountMode;
+  /** MXN en centavos. `null` es sin dato, nunca cero. */
+  amountCents: number | null;
+  periodMonths: number;
+  firstDueOn: string;
+}
+
+export interface RecurringPayment extends RecurringPaymentInput {
+  id: string;
+  establishmentId: string;
+  overdue: string[];
+  next: string;
+  lastPaid: { dueOn: string; paidOn: string; paidCents: number | null } | null;
+}
+
+export interface RecurringPaymentsOverview {
+  today: string;
+  payments: RecurringPayment[];
+}
+
+export interface MarkPaidInput {
+  dueOn: string;
+  paidOn?: string;
+  paidCents?: number;
+}
+
+export type ConnectableApp = 'lumen-view' | 'attendance';
+export type ConnectedAppState = 'active' | 'trial' | 'trial_expired' | 'not_contracted';
+
+export interface ConnectedApp {
+  app: ConnectableApp;
+  state: ConnectedAppState;
+  trialEndsAt: string | null;
+}

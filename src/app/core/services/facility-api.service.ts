@@ -5,6 +5,11 @@ import { environment } from '../../../environments/environment';
 import {
   ExportFormat,
   ActivateObligationInput,
+  ConnectedApp,
+  MarkPaidInput,
+  RecurringPayment,
+  RecurringPaymentInput,
+  RecurringPaymentsOverview,
   Appointment,
   AppointmentInput,
   AppointmentUpdate,
@@ -232,6 +237,35 @@ export class FacilityApiService {
 
   verifyChain(): Observable<ChainVerification> {
     return this.http.get<ChainVerification>(`${this.base}/evidence-chain/verification`);
+  }
+
+  recurringPayments(establishmentId: string): Observable<RecurringPaymentsOverview> {
+    return this.http.get<RecurringPaymentsOverview>(`${this.base}/establishments/${establishmentId}/recurring-payments`);
+  }
+
+  createRecurringPayment(establishmentId: string, input: RecurringPaymentInput): Observable<RecurringPayment> {
+    return this.http.post<RecurringPayment>(`${this.base}/establishments/${establishmentId}/recurring-payments`, input);
+  }
+
+  /** Sin `clean`: `amountCents: null` es la forma de borrar el monto. */
+  updateRecurringPayment(id: string, input: Partial<RecurringPaymentInput>): Observable<RecurringPayment> {
+    return this.http.patch<RecurringPayment>(`${this.base}/recurring-payments/${id}`, input);
+  }
+
+  deleteRecurringPayment(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/recurring-payments/${id}`);
+  }
+
+  markPaymentPaid(id: string, input: MarkPaidInput): Observable<void> {
+    return this.http.post<void>(`${this.base}/recurring-payments/${id}/paid`, input);
+  }
+
+  unmarkPaymentPaid(id: string, dueOn: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/recurring-payments/${id}/paid/${dueOn}`);
+  }
+
+  connectedApps(): Observable<ConnectedApp[]> {
+    return this.http.get<ConnectedApp[]>(`${this.base}/connected-apps`);
   }
 }
 

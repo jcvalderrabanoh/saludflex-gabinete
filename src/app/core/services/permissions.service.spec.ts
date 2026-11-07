@@ -31,6 +31,13 @@ describe('permisos del gabinete', () => {
       expect(can(['facility.manage', 'facility.record'], 'inspect')).toBeFalse();
     });
 
+    it('los pagos (con montos) piden captura global o administrar', () => {
+      expect(can(['facility.record'], 'payments')).toBeTrue();
+      expect(can(['facility.manage'], 'payments')).toBeTrue();
+      expect(can(['facility.read'], 'payments')).toBeFalse();
+      expect(can(['facility.record.assigned'], 'payments')).toBeFalse();
+    });
+
     it('sin permisos no deja nada', () => {
       expect(can([], 'read')).toBeFalse();
       expect(can(undefined, 'record')).toBeFalse();
