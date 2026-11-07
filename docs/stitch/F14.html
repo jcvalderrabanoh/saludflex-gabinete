@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>F14 · Elegir servicios y agregar otro - SaludFlex</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Inter Google Font -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-fixed-dim": "#76d4e7",
+            "surface-variant": "#dae2fd",
+            "secondary": "#006877",
+            "on-tertiary-fixed": "#001f25",
+            "surface-dim": "#d2d9f4",
+            "on-error": "#ffffff",
+            "on-background": "#131b2e",
+            "tertiary": "#003740",
+            "secondary-container": "#8debff",
+            "outline-variant": "#c0c7cd",
+            "inverse-on-surface": "#eef0ff",
+            "surface-container-high": "#e2e7ff",
+            "on-tertiary": "#ffffff",
+            "inverse-surface": "#283044",
+            "surface-tint": "#2c6480",
+            "on-tertiary-fixed-variant": "#004e5b",
+            "on-surface": "#131b2e",
+            "on-primary-container": "#88bddc",
+            "surface-container-highest": "#dae2fd",
+            "on-secondary-fixed-variant": "#004e5a",
+            "on-tertiary-container": "#23c7e3",
+            "primary-fixed": "#c3e8ff",
+            "on-error-container": "#93000a",
+            "error-container": "#ffdad6",
+            "surface-container-low": "#f2f3ff",
+            "primary-container": "#0a4d68",
+            "tertiary-fixed-dim": "#41d8f4",
+            "on-primary-fixed": "#001e2c",
+            "primary-fixed-dim": "#98cded",
+            "surface-container-lowest": "#ffffff",
+            "primary": "#00354a",
+            "secondary-fixed": "#a3eeff",
+            "on-primary-fixed-variant": "#084c67",
+            "on-surface-variant": "#41484d",
+            "on-secondary-fixed": "#001f25",
+            "surface-bright": "#faf8ff",
+            "on-secondary": "#ffffff",
+            "on-secondary-container": "#006b7a",
+            "error": "#ba1a1a",
+            "on-primary": "#ffffff",
+            "inverse-primary": "#98cded",
+            "background": "#faf8ff",
+            "tertiary-fixed": "#a7eeff",
+            "surface": "#faf8ff",
+            "tertiary-container": "#004f5c",
+            "surface-container": "#eaedff",
+            "outline": "#71787d"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin-desktop": "2rem",
+            "gutter-tablet": "1.25rem",
+            "margin": "1rem",
+            "space-3xl": "3rem",
+            "space-xl": "1.5rem",
+            "gutter-desktop": "1.5rem",
+            "gutter": "1rem",
+            "space-2xl": "2rem",
+            "space-md": "0.75rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1rem",
+            "margin-tablet": "1.5rem",
+            "space-xs": "0.25rem"
+          },
+          "fontFamily": {
+            "display-lg": ["Inter"],
+            "display-lg-mobile": ["Inter"],
+            "title-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "title-sm": ["Inter"],
+            "headline-sm": ["Inter"],
+            "code-clinical": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "label-sm": ["Inter"]
+          },
+          "fontSize": {
+            "display-lg": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700" }],
+            "display-lg-mobile": ["30px", { lineHeight: "36px", letterSpacing: "-0.01em", fontWeight: "700" }],
+            "title-md": ["16px", { lineHeight: "22px", fontWeight: "600" }],
+            "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+            "headline-md": ["22px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "headline-lg": ["28px", { lineHeight: "34px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "body-sm": ["13px", { lineHeight: "18px", fontWeight: "400" }],
+            "title-sm": ["14px", { lineHeight: "20px", fontWeight: "600" }],
+            "headline-sm": ["18px", { lineHeight: "24px", fontWeight: "600" }],
+            "code-clinical": ["13px", { lineHeight: "16px", letterSpacing: "0.04em", fontWeight: "500" }],
+            "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "500" }],
+            "headline-lg-mobile": ["24px", { lineHeight: "30px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+            "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.02em", fontWeight: "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Custom scrollbar for clinical modal */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #F8FAFC;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+  </style>
+</head>
+<body class="h-full text-on-surface bg-background antialiased flex overflow-hidden font-body-md text-body-md select-none">
+<!-- ========================================================================= -->
+<!-- BACKGROUND LAYER: /operacion/pagos (DESKTOP SHELL + BACKGROUND DASHBOARD) -->
+<!-- ========================================================================= -->
+<!-- SideNavBar Component (Shared Anchor) -->
+<aside aria-label="Navegación principal" class="docked left-0 top-0 h-screen w-64 flex flex-col bg-surface-container-lowest border-r border-outline-variant shadow-sm shrink-0 z-10">
+<div class="p-4 border-b border-outline-variant flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-primary-fixed">
+<span class="material-symbols-outlined text-2xl" data-icon="health_and_safety">health_and_safety</span>
+</div>
+<div>
+<h1 class="text-headline-sm font-headline-sm font-bold text-primary">SaludFlex</h1>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Sistema Integral de Gabinete</p>
+</div>
+</div>
+<!-- Navigation tabs list -->
+<nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Hoy</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span>Calendario</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Documentos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="verified">verified</span>
+<span>Obligaciones</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="apartment">apartment</span>
+<span>Municipal</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="folder_special">folder_special</span>
+<span>Carpeta de inspección</span>
+</a>
+<!-- Active Tab: Pagos recurrentes -->
+<a aria-current="page" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container-low text-secondary font-title-sm font-semibold border-l-4 border-secondary" href="#">
+<span class="material-symbols-outlined" data-icon="payments" data-weight="fill" style="font-variation-settings: 'FILL' 1;">payments</span>
+<span>Pagos recurrentes</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="storefront">storefront</span>
+<span>Establecimientos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span>Equipos y personal</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="vpn_key">vpn_key</span>
+<span>Accesos</span>
+</a>
+</nav>
+<!-- SideNav Bottom Footer -->
+<div class="p-3 border-t border-outline-variant space-y-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="hub">hub</span>
+<span>Conexiones</span>
+</a>
+<div class="p-2.5 rounded-lg bg-surface-container text-on-surface-variant text-label-sm font-label-sm flex items-center justify-between">
+<span class="flex items-center gap-1.5 text-secondary font-semibold">
+<span class="material-symbols-outlined text-base" data-icon="archive">archive</span>
+          Carpeta en 1 clic (ZIP/PDF) Listo
+        </span>
+</div>
+</div>
+</aside>
+<!-- Main Content Layout (Background underneath backdrop) -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar Component (Shared Anchor) -->
+<header class="flex justify-between items-center h-16 px-6 w-full shrink-0 bg-surface-container-lowest border-b border-outline-variant shadow-sm z-10">
+<div class="flex items-center gap-3">
+<span class="text-title-md font-title-md font-bold text-on-surface">UDIX Matriz</span>
+<span class="text-label-sm font-label-sm px-2.5 py-0.5 rounded-full bg-surface-container text-secondary font-semibold">Clínica Ejemplo · Culiacán, Sin.</span>
+</div>
+<div class="flex items-center gap-4">
+<button aria-label="Notificaciones" class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors duration-150" type="button">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="h-6 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-title-sm text-sm font-semibold">
+            CV
+          </div>
+<div class="text-left hidden md:block">
+<p class="text-label-md font-label-md font-semibold text-on-surface">Dra. Claudia Varela · Responsable Sanitaria (RS)</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Régimen RX · Imagenología Dental y Maxilofacial</p>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface" type="button">
+<span class="material-symbols-outlined" data-icon="expand_more">expand_more</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Background Screen: Vista de Pagos recurrentes (desenfocada) -->
+<main aria-hidden="true" class="flex-1 overflow-y-auto p-6 bg-surface-bright space-y-6 opacity-60 filter blur-[1px] pointer-events-none">
+<div class="flex justify-between items-center">
+<div>
+<h2 class="text-headline-lg font-headline-lg text-primary">Gestión de Pagos Recurrentes</h2>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Seguimiento de gastos fijos y calendarización operativa del gabinete.</p>
+</div>
+<button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-title-sm">
+          + Elegir servicios
+        </button>
+</div>
+<!-- Bento mock cards in background -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant shadow-sm">
+<p class="text-label-sm text-on-surface-variant">Total presupuestado mes actual</p>
+<p class="text-headline-md font-bold text-primary mt-1">$14,850 MXN</p>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant shadow-sm">
+<p class="text-label-sm text-on-surface-variant">Próximo vencimiento</p>
+<p class="text-headline-md font-bold text-secondary mt-1">15 de Nov (CFE)</p>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant shadow-sm">
+<p class="text-label-sm text-on-surface-variant">Servicios activos en monitoreo</p>
+<p class="text-headline-md font-bold text-on-surface mt-1">4 conceptos</p>
+</div>
+</div>
+<!-- Table placeholder in background -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 h-96">
+<div class="h-8 bg-surface-container rounded mb-3 w-1/3"></div>
+<div class="space-y-2">
+<div class="h-12 bg-surface-container-low rounded"></div>
+<div class="h-12 bg-surface-container-low rounded"></div>
+<div class="h-12 bg-surface-container-low rounded"></div>
+</div>
+</div>
+</main>
+<!-- Background Legal Footer -->
+<footer class="w-full py-2 px-6 flex justify-between items-center text-xs text-on-surface-variant border-t border-outline-variant bg-surface-container-lowest shrink-0">
+<span>© SaludFlex. Datos clínicos de ejemplo y demostración técnica. Cumplimiento normativo sanitario conforme a los lineamientos y verificaciones COFEPRIS.</span>
+<div class="flex gap-4">
+<span>Marco Regulatorio COFEPRIS</span>
+<span>Términos Sanitarios</span>
+<span>Privacidad de Datos Clínicos</span>
+</div>
+</footer>
+</div>
+<!-- ========================================================================= -->
+<!-- MODAL OVERLAY & DIALOG: F14 · ELEGIR SERVICIOS Y AGREGAR OTRO             -->
+<!-- ========================================================================= -->
+<div aria-labelledby="modal-title" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-fade-in" role="dialog">
+<!-- Modal Card Container -->
+<div class="relative w-full max-w-3xl bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-2xl flex flex-col max-h-[942px] my-auto overflow-hidden">
+<!-- 1. Encabezado del diálogo -->
+<div class="px-6 py-5 border-b border-outline-variant flex items-start justify-between bg-surface-bright shrink-0">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary"></span>
+<h2 class="text-headline-md font-headline-md font-bold text-primary tracking-tight" id="modal-title">
+              Elegir servicios esenciales y recurrentes
+            </h2>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant max-w-xl">
+            Activa los servicios que tu gabinete paga por periodo para darles seguimiento y recibir alertas de vencimiento.
+          </p>
+</div>
+<button aria-label="Cerrar ventana" class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg p-1.5 transition-colors duration-150 inline-flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-2xl" data-icon="close">close</span>
+</button>
+</div>
+<!-- Modal Body (Scrollable with customized scrollbar) -->
+<div class="p-6 overflow-y-auto space-y-7 custom-scrollbar bg-surface-container-lowest">
+<!-- 2. Sección superior: Servicios sugeridos -->
+<section aria-labelledby="section-sugeridos" class="space-y-4">
+<div class="flex items-center justify-between border-b border-outline-variant pb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="checklist">checklist</span>
+<h3 class="text-title-sm font-title-sm font-bold text-on-surface uppercase tracking-wider" id="section-sugeridos">
+                Servicios sugeridos
+              </h3>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">2 seleccionados</span>
+</div>
+<div class="space-y-3">
+<!-- Item 1: Predial Municipal (No seleccionado) -->
+<div class="p-4 rounded-xl border border-outline-variant bg-surface-bright hover:border-outline transition-colors duration-150">
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="w-5 h-5 rounded border-outline text-primary-container focus:ring-secondary focus:ring-offset-2" type="checkbox"/>
+<div class="flex items-center gap-2 flex-1">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="apartment">apartment</span>
+<span class="text-title-sm font-title-sm font-semibold text-on-surface">Predial Municipal</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Impuesto catastral local</span>
+</label>
+</div>
+<!-- Item 2: Luz (CFE) (SELECCIONADO Y DESPLEGADO) -->
+<div class="p-4 rounded-xl border-2 border-secondary bg-surface-container-low/40 shadow-sm transition-all duration-150 space-y-4">
+<div class="flex items-center justify-between">
+<label class="flex items-center gap-3 cursor-pointer">
+<input checked="" class="w-5 h-5 rounded border-secondary text-secondary focus:ring-secondary focus:ring-offset-2" type="checkbox"/>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="bolt">bolt</span>
+<span class="text-title-sm font-title-sm font-bold text-primary">Luz (CFE)</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-secondary-container text-on-secondary-container font-semibold">Gasto crítico gabinete</span>
+</div>
+</label>
+<span class="text-label-sm font-label-sm text-secondary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="tune">tune</span> Configuración activa
+                </span>
+</div>
+<!-- Bloque integrado de configuración en línea -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-outline-variant/60 bg-surface-container-lowest p-3.5 rounded-lg border border-outline-variant/70">
+<!-- Periodicidad -->
+<div>
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">Periodicidad</label>
+<select class="w-full h-10 px-3 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary outline-none">
+<option>Mensual</option>
+<option selected="">Bimestral</option>
+<option>Trimestral</option>
+<option>Semestral</option>
+<option>Anual</option>
+</select>
+</div>
+<!-- Día de pago / Fecha límite -->
+<div>
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">Día límite de pago</label>
+<div class="relative">
+<input class="w-full h-10 px-3 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary outline-none" type="text" value="Día 15 de cada periodo"/>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 text-on-surface-variant pointer-events-none text-lg" data-icon="calendar_month">calendar_month</span>
+</div>
+</div>
+<!-- Tipo de monto -->
+<div>
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">Tipo de monto</label>
+<div class="flex items-center gap-2 mb-1.5">
+<label class="inline-flex items-center gap-1 text-label-sm font-label-sm cursor-pointer">
+<input class="text-secondary focus:ring-secondary" name="monto_cfe" type="radio"/> Fijo
+                    </label>
+<label class="inline-flex items-center gap-1 text-label-sm font-label-sm cursor-pointer">
+<input checked="" class="text-secondary focus:ring-secondary" name="monto_cfe" type="radio"/> Varía cada periodo
+                    </label>
+</div>
+<input class="w-full h-8 px-2.5 text-body-sm font-body-sm bg-surface-container-low border border-outline-variant rounded-md text-on-surface-variant" placeholder="Estimado: $3,420 MXN" type="text" value="$3,420 MXN (estimado)"/>
+</div>
+</div>
+</div>
+<!-- Item 3: Gas LP (No seleccionado) -->
+<div class="p-4 rounded-xl border border-outline-variant bg-surface-bright hover:border-outline transition-colors duration-150">
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="w-5 h-5 rounded border-outline text-primary-container focus:ring-secondary focus:ring-offset-2" type="checkbox"/>
+<div class="flex items-center gap-2 flex-1">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="propane_tank">propane_tank</span>
+<span class="text-title-sm font-title-sm font-semibold text-on-surface">Gas LP</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Esterilización o caldereta</span>
+</label>
+</div>
+<!-- Item 4: Agua y Drenaje (SELECCIONADO Y DESPLEGADO) -->
+<div class="p-4 rounded-xl border-2 border-secondary bg-surface-container-low/40 shadow-sm transition-all duration-150 space-y-4">
+<div class="flex items-center justify-between">
+<label class="flex items-center gap-3 cursor-pointer">
+<input checked="" class="w-5 h-5 rounded border-secondary text-secondary focus:ring-secondary focus:ring-offset-2" type="checkbox"/>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="water_drop">water_drop</span>
+<span class="text-title-sm font-title-sm font-bold text-primary">Agua y Drenaje</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-container text-on-surface-variant font-medium">Suministro red clínica</span>
+</div>
+</label>
+<span class="text-label-sm font-label-sm text-secondary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="tune">tune</span> Configuración activa
+                </span>
+</div>
+<!-- Bloque integrado de configuración en línea -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-outline-variant/60 bg-surface-container-lowest p-3.5 rounded-lg border border-outline-variant/70">
+<!-- Periodicidad radio pills -->
+<div>
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">Periodicidad</label>
+<select class="w-full h-10 px-3 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary outline-none">
+<option selected="">Mensual</option>
+<option>Bimestral</option>
+<option>Trimestral</option>
+<option>Semestral</option>
+<option>Anual</option>
+</select>
+</div>
+<!-- Día de pago / Fecha límite -->
+<div>
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">Día de pago o corte</label>
+<div class="relative">
+<input class="w-full h-10 px-3 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary outline-none" type="text" value="Día 05 de cada mes"/>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 text-on-surface-variant pointer-events-none text-lg" data-icon="event">event</span>
+</div>
+</div>
+<!-- Tipo de monto -->
+<div>
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">Tipo de monto</label>
+<div class="flex items-center gap-2 mb-1.5">
+<label class="inline-flex items-center gap-1 text-label-sm font-label-sm cursor-pointer">
+<input checked="" class="text-secondary focus:ring-secondary" name="monto_agua" type="radio"/> Monto fijo
+                    </label>
+<label class="inline-flex items-center gap-1 text-label-sm font-label-sm cursor-pointer">
+<input class="text-secondary focus:ring-secondary" name="monto_agua" type="radio"/> Varía
+                    </label>
+</div>
+<input class="w-full h-8 px-2.5 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-md font-semibold text-on-surface" type="text" value="$850.00 MXN"/>
+</div>
+</div>
+</div>
+<!-- Item 5: Teléfono e Internet (No seleccionado) -->
+<div class="p-4 rounded-xl border border-outline-variant bg-surface-bright hover:border-outline transition-colors duration-150">
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="w-5 h-5 rounded border-outline text-primary-container focus:ring-secondary focus:ring-offset-2" type="checkbox"/>
+<div class="flex items-center gap-2 flex-1">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="wifi">wifi</span>
+<span class="text-title-sm font-title-sm font-semibold text-on-surface">Teléfono e Internet</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Conectividad gabinete y terminales</span>
+</label>
+</div>
+</div>
+</section>
+<!-- 3. Sección inferior: Agregar otro servicio o suscripción -->
+<section aria-labelledby="section-agregar-otro" class="space-y-4 pt-3 border-t border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="add_circle">add_circle</span>
+<h3 class="text-title-sm font-title-sm font-bold text-on-surface uppercase tracking-wider" id="section-agregar-otro">
+              Agregar otro servicio o suscripción
+            </h3>
+</div>
+<!-- Formulario modular para alta personalizada -->
+<div class="p-5 rounded-xl border border-outline-variant bg-surface-container-low/60 space-y-4">
+<!-- Campo de nombre libre -->
+<div>
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">
+                Nombre del concepto o servicio <span class="text-error">*</span>
+</label>
+<input class="w-full h-11 px-3.5 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-lg focus:border-secondary focus:ring-2 focus:ring-secondary-fixed-dim outline-none placeholder:text-outline" placeholder="Nombre del servicio o concepto (ej. Internet simétrico, Renta de local, Software PACS/DICOM, Licencia antivirus)" type="text"/>
+</div>
+<!-- Fila: Tipo de concepto, periodicidad, día límite y monto -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end">
+<!-- Tipo de gasto / concepto (Chips / Radios) -->
+<div class="md:col-span-4">
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">Tipo de concepto</label>
+<div class="grid grid-cols-2 gap-2">
+<label class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-secondary bg-surface-container-lowest text-secondary font-title-sm text-xs cursor-pointer shadow-xs">
+<input checked="" class="sr-only" name="tipo_concepto" type="radio"/>
+<span class="material-symbols-outlined text-sm" data-icon="dns">dns</span>
+<span>Operativo</span>
+</label>
+<label class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-body-sm text-xs hover:border-outline cursor-pointer">
+<input class="sr-only" name="tipo_concepto" type="radio"/>
+<span class="material-symbols-outlined text-sm" data-icon="cloud">cloud</span>
+<span>Software</span>
+</label>
+</div>
+</div>
+<!-- Periodicidad -->
+<div class="md:col-span-3">
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">Periodicidad</label>
+<select class="w-full h-10 px-3 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary outline-none">
+<option>Mensual</option>
+<option>Bimestral</option>
+<option>Trimestral</option>
+<option>Semestral</option>
+<option>Anual</option>
+</select>
+</div>
+<!-- Día límite -->
+<div class="md:col-span-2">
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">Día corte</label>
+<input class="w-full h-10 px-3 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary outline-none" placeholder="Ej. Día 28" type="text"/>
+</div>
+<!-- Monto -->
+<div class="md:col-span-3">
+<label class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">Monto (MXN)</label>
+<input class="w-full h-10 px-3 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary outline-none" placeholder="$0.00 MXN o Varía" type="text"/>
+</div>
+</div>
+<!-- Botón secundario para agregar a lista temporal -->
+<div class="flex justify-end pt-1">
+<button class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-outline text-primary font-title-sm text-sm rounded-lg hover:bg-surface-container transition-colors duration-150 shadow-xs" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="add">add</span>
+<span>+ Agregar a la lista</span>
+</button>
+</div>
+</div>
+<!-- Banner de Aviso de Seguridad / Privacidad Normativo -->
+<div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-3">
+<span class="material-symbols-outlined text-amber-700 text-xl shrink-0 mt-0.5" data-icon="shield">shield</span>
+<div class="space-y-0.5">
+<p class="text-label-md font-label-md font-bold text-amber-950">Aviso de seguridad y privacidad clínica:</p>
+<p class="text-body-sm font-body-sm text-amber-900 leading-snug">
+                No escribas número de cuenta, CLABE interbancaria, tarjeta bancaria ni RFC. SaludFlex no procesa cobros ni almacena datos bancarios; pagas directo a tu proveedor.
+              </p>
+</div>
+</div>
+</section>
+</div>
+<!-- 4. Acciones del diálogo (Footer modal accesible) -->
+<div class="px-6 py-4 border-t border-outline-variant bg-surface-bright flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+<span class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1.5 order-2 sm:order-1">
+<span class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
+          Datos ficticios de ejemplo · Entorno demostrativo de gabinete
+        </span>
+<div class="flex items-center gap-3 w-full sm:w-auto justify-end order-1 sm:order-2">
+<!-- Botón Cancelar (min-height 48px) -->
+<button class="h-12 min-h-[48px] px-6 rounded-lg border border-outline text-on-surface-variant font-title-sm text-sm hover:bg-surface-container hover:text-on-surface transition-colors duration-150 inline-flex items-center justify-center" type="button">
+            Cancelar
+          </button>
+<!-- Botón Guardar servicios (#4d7c0f con hover #3f660c, texto blanco, min-height 48px) -->
+<button class="h-12 min-h-[48px] px-8 rounded-lg text-white font-title-sm text-sm font-semibold shadow-md transition-colors duration-150 inline-flex items-center justify-center gap-2" onmouseout="this.style.backgroundColor='#4d7c0f'" onmouseover="this.style.backgroundColor='#3f660c'" style="background-color: #4d7c0f;" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="check_circle">check_circle</span>
+            Guardar servicios
+          </button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

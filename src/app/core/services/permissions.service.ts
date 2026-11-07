@@ -4,7 +4,7 @@ import { EvaluatedObligation } from '../models/facility.models';
 import { AuthService } from './auth.service';
 
 /** Lo que una pantalla puede ofrecer; cada acción se traduce a permisos `facility.*`. */
-export type FacilityAction = 'read' | 'record' | 'schedule' | 'manage' | 'inspect';
+export type FacilityAction = 'read' | 'record' | 'schedule' | 'manage' | 'inspect' | 'payments';
 
 export const RECORD_ALL = 'facility.record';
 export const RECORD_ASSIGNED = 'facility.record.assigned';
@@ -16,6 +16,8 @@ const REQUIRED: Record<FacilityAction, readonly string[]> = {
   schedule: [RECORD_ALL],
   manage: ['facility.manage'],
   inspect: ['facility.inspect'],
+  // Montos: jc-core no los abre con facility.read ni con la captura acotada.
+  payments: [RECORD_ALL, 'facility.manage'],
 };
 
 /** ¿Alguno de los permisos deja hacer la acción? (para registrar basta el global o el asignado). */

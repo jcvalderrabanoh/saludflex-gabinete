@@ -34,7 +34,7 @@ describe('AppComponent', () => {
   it('las pantallas de operación cuelgan de /operacion y requieren sesión', () => {
     const operacion = routes.find((r) => r.path === 'operacion');
     expect(operacion?.canActivate?.length).toBe(1);
-    expect(operacion?.children?.map((c) => c.path)).toEqual(['hoy', 'documentos', 'obligaciones', 'calendario', 'municipal', 'equipos-y-personal', 'carpeta', 'establecimientos', 'equipo', 'plataforma', '']);
+    expect(operacion?.children?.map((c) => c.path)).toEqual(['hoy', 'documentos', 'obligaciones', 'calendario', 'municipal', 'pagos', 'conexiones', 'equipos-y-personal', 'carpeta', 'establecimientos', 'equipo', 'plataforma', '']);
   });
 
   describe('guards por permiso', () => {
@@ -56,6 +56,14 @@ describe('AppComponent', () => {
       const asked: string[] = [];
       expect(runGuard('carpeta', (a) => (asked.push(a), a === 'inspect'))).toBeTrue();
       expect(asked).toEqual(['inspect']);
+    });
+
+    it('«Pagos recurrentes» pide captura global o administrar, porque muestra montos', () => {
+      expect(runGuard('pagos', (a) => a === 'payments')).toBeTrue();
+    });
+
+    it('«Pagos recurrentes» con solo lectura regresa a Hoy', () => {
+      expect(runGuard('pagos', (a) => a === 'read') instanceof UrlTree).toBeTrue();
     });
 
     it('«Equipo» pide el permiso de administrar', () => {

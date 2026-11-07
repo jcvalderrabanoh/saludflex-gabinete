@@ -21,6 +21,8 @@ export const routes: Routes = [
       { path: 'obligaciones', loadComponent: () => import('./features/obligations/obligations.component').then((m) => m.ObligationsComponent) },
       { path: 'calendario', loadComponent: () => import('./features/calendar/calendar.component').then((m) => m.CalendarComponent) },
       { path: 'municipal', loadComponent: () => import('./features/municipal/municipal.component').then((m) => m.MunicipalComponent) },
+      { path: 'pagos', canActivate: [permissionGuard('payments')], loadComponent: () => import('./features/payments/payments.component').then((m) => m.PaymentsComponent) },
+      { path: 'conexiones', loadComponent: () => import('./features/connections/connections.component').then((m) => m.ConnectionsComponent) },
       { path: 'equipos-y-personal', loadComponent: () => import('./features/subjects/subjects.component').then((m) => m.SubjectsComponent) },
       { path: 'carpeta', canActivate: [permissionGuard('inspect')], loadComponent: () => import('./features/inspection/inspection.component').then((m) => m.InspectionComponent) },
       { path: 'establecimientos', loadComponent: () => import('./features/establishments/establishments.component').then((m) => m.EstablishmentsComponent) },

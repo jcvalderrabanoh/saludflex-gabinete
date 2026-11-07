@@ -85,6 +85,27 @@
       "name": "Municipal",
       "deviceType": "DESKTOP",
       "prompt": "Apartado «Municipal» del establecimiento. Encabezado «Municipal · UDIX Matriz» y tarjeta con el municipio y estado del domicilio («Monterrey, Nuevo León») y enlace «Editar domicilio». Lista de trámites municipales con chip de estado, título, vigencia y botón «Registrar»: «Licencia municipal de funcionamiento (permiso de comercio o licencia de giro) · refrendo anual», «Licencia o constancia de uso de suelo», «Visto bueno de protección civil municipal». Los trámites aún no activos aparecen en gris con botón «Activar». Cada trámite tiene la acción «Programar solicitud», que abre el diálogo para agendar la fecha del trámite. Debajo, sección «Próximas citas municipales» con fecha, hora, lugar (p. ej. ventanilla de Desarrollo Urbano) y estado. Nota en gris: «Los requisitos y la vigencia cambian por municipio; confirma con tu ayuntamiento». Pie: «Datos ficticios de ejemplo»."
+    },
+    {
+      "id": "F13",
+      "route": "/operacion/pagos",
+      "name": "Pagos recurrentes",
+      "deviceType": "DESKTOP",
+      "prompt": "Menú lateral agrupado con encabezados discretos: «Día a día» (Hoy, Calendario, Documentos), «En regla» (Obligaciones, Municipal, Carpeta de inspección), «Mi gabinete» (Pagos recurrentes, Establecimientos, Equipos y personal, Accesos). Al pie del menú, separada, la entrada «Conexiones». Barra superior con selector de establecimiento («UDIX Matriz») y usuario. «Pagos recurrentes» activo. Encabezado «Pagos recurrentes · UDIX Matriz», subtítulo «Registra lo que pagas cada periodo y consulta qué sigue. No paga, no cobra y no guarda datos bancarios; pagas directo a tu proveedor.» y botón principal «Elegir servicios». Lista densa, no tarjetas grandes, agrupada en «Vencidos», «Próximos 30 días» y «Más adelante». Cada fila: icono lineal, nombre (Luz CFE, Agua, Gas, Teléfono, Predial, Software contable), periodicidad (mensual, bimestral, anual), fecha de pago, monto («$1,850 MXN» si es fijo; «Monto variable» o «Sin dato» si no se capturó, nunca $0), chip de estado con texto (Vencido, Por pagar, Pagado) y botón «Marcar como pagado». Sin totales ni gráficas. Estado vacío: lista de Predial, Luz, Gas, Agua y Teléfono con casillas para elegir. Pie: «Datos ficticios de ejemplo»."
+    },
+    {
+      "id": "F14",
+      "route": "diálogo en /operacion/pagos",
+      "name": "Elegir servicios y agregar otro",
+      "deviceType": "DESKTOP",
+      "prompt": "Diálogo «Elegir servicios». Arriba, servicios sugeridos con casilla: Predial, Luz, Gas, Agua, Teléfono. Al marcar uno se despliegan en línea: periodicidad (mensual, bimestral, trimestral, semestral, anual), día de pago y monto: fijo con campo en MXN o «varía cada periodo» con monto opcional. Debajo «Agregar otro servicio o suscripción» con nombre libre (ejemplos: internet, renta, software) y tipo (servicio o suscripción). Texto de ayuda: «No escribas número de cuenta, CLABE, tarjeta ni RFC». Acciones «Guardar servicios» y «Cancelar». Pie: «Datos ficticios de ejemplo»."
+    },
+    {
+      "id": "F15",
+      "route": "/operacion/conexiones",
+      "name": "Conexiones",
+      "deviceType": "DESKTOP",
+      "prompt": "Menú lateral agrupado con encabezados discretos: «Día a día» (Hoy, Calendario, Documentos), «En regla» (Obligaciones, Municipal, Carpeta de inspección), «Mi gabinete» (Pagos recurrentes, Establecimientos, Equipos y personal, Accesos). Al pie del menú, separada, la entrada «Conexiones». Barra superior con selector de establecimiento («UDIX Matriz») y usuario. «Conexiones» activo. Encabezado «Conexiones», subtítulo «Otras apps de SaludFlex para tu cuenta. Cada una se abre aparte, con su propio acceso.» Dos filas anchas, no una rejilla de tarjetas: «lumen-view: imagen médica, informes y entrega de resultados», con estado «Contratada» y botón «Abrir lumen-view»; «Asistencia: registro de entradas y salidas del personal», con estado «No contratada» y botón «Pedir información». Nota: «Aquí no se ven expedientes ni asistencia». Pie: «Datos ficticios de ejemplo»."
     }
   ]
 }
