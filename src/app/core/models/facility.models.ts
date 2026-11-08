@@ -349,6 +349,7 @@ export interface DateRange {
 
 export type RecurringPaymentKind = 'service' | 'subscription';
 export type RecurringAmountMode = 'fixed' | 'variable';
+export type ExpenseCategory = 'rent' | 'utilities' | 'payroll' | 'supplies' | 'equipment' | 'maintenance' | 'software' | 'platform' | 'taxes' | 'professional_fees' | 'other';
 
 export interface RecurringPaymentInput {
   name: string;
@@ -358,14 +359,27 @@ export interface RecurringPaymentInput {
   amountCents: number | null;
   periodMonths: number;
   firstDueOn: string;
+  category?: ExpenseCategory;
+  endsOn?: string | null;
+}
+
+export interface PaidPeriod {
+  dueOn: string;
+  paidOn: string;
+  paidCents: number | null;
 }
 
 export interface RecurringPayment extends RecurringPaymentInput {
   id: string;
   establishmentId: string;
+  category: ExpenseCategory;
+  endsOn: string | null;
   overdue: string[];
-  next: string;
-  lastPaid: { dueOn: string; paidOn: string; paidCents: number | null } | null;
+  /** `null` cuando el servicio ya terminó. */
+  next: string | null;
+  skipped: string[];
+  paid: PaidPeriod[];
+  lastPaid: PaidPeriod | null;
 }
 
 export interface RecurringPaymentsOverview {
@@ -377,6 +391,46 @@ export interface MarkPaidInput {
   dueOn: string;
   paidOn?: string;
   paidCents?: number;
+}
+
+export interface ExpenseInput {
+  name: string;
+  category: ExpenseCategory;
+  amountCents: number;
+  dueOn: string;
+}
+
+export interface Expense extends ExpenseInput {
+  id: string;
+  establishmentId: string;
+  paidOn: string | null;
+}
+
+export interface ExpensesList {
+  today: string;
+  expenses: Expense[];
+}
+
+export type CommitmentCertainty = 'known' | 'estimated' | 'unknown';
+
+export interface CommitmentItem {
+  source: 'recurring' | 'expense';
+  sourceId: string;
+  name: string;
+  category: ExpenseCategory;
+  dueOn: string;
+  overdue: boolean;
+  /** `null` es sin dato: no suma y nunca se muestra como cero. */
+  amountCents: number | null;
+  certainty: CommitmentCertainty;
+}
+
+export interface CommitmentPlan {
+  today: string;
+  until: string;
+  items: CommitmentItem[];
+  days: { dueOn: string; dayCents: number; cumulativeCents: number; cumulativeEstimatedCents: number; unknownCount: number }[];
+  totals: { totalCents: number; estimatedCents: number; overdueCents: number; unknownCount: number };
 }
 
 export type ConnectableApp = 'lumen-view' | 'attendance';
