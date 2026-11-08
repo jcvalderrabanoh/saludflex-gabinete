@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-slate-50" lang="es-MX"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SaludFlex · Maqueta de Saldo (F18)</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Inter Font -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-tertiary-fixed": "#001f25",
+            "on-primary-fixed-variant": "#084c67",
+            "error-container": "#ffdad6",
+            "on-error": "#ffffff",
+            "surface-container-high": "#e2e7ff",
+            "surface": "#faf8ff",
+            "on-surface": "#131b2e",
+            "tertiary-fixed": "#a7eeff",
+            "outline-variant": "#c0c7cd",
+            "on-secondary-fixed": "#001f25",
+            "tertiary-fixed-dim": "#41d8f4",
+            "secondary-fixed": "#a3eeff",
+            "primary-container": "#0a4d68",
+            "surface-container-low": "#f2f3ff",
+            "on-error-container": "#93000a",
+            "inverse-primary": "#98cded",
+            "on-primary": "#ffffff",
+            "tertiary-container": "#004f5c",
+            "surface-bright": "#faf8ff",
+            "error": "#ba1a1a",
+            "secondary": "#006877",
+            "on-secondary": "#ffffff",
+            "primary-fixed": "#c3e8ff",
+            "surface-variant": "#dae2fd",
+            "surface-container": "#eaedff",
+            "on-tertiary-container": "#23c7e3",
+            "on-primary-container": "#88bddc",
+            "on-secondary-fixed-variant": "#004e5a",
+            "surface-tint": "#2c6480",
+            "on-background": "#131b2e",
+            "secondary-container": "#8debff",
+            "inverse-on-surface": "#eef0ff",
+            "secondary-fixed-dim": "#76d4e7",
+            "on-tertiary": "#ffffff",
+            "on-secondary-container": "#006b7a",
+            "on-primary-fixed": "#001e2c",
+            "inverse-surface": "#283044",
+            "surface-container-lowest": "#ffffff",
+            "on-tertiary-fixed-variant": "#004e5b",
+            "tertiary": "#003740",
+            "surface-dim": "#d2d9f4",
+            "on-surface-variant": "#41484d",
+            "outline": "#71787d",
+            "background": "#faf8ff",
+            "surface-container-highest": "#dae2fd",
+            "primary-fixed-dim": "#98cded",
+            "primary": "#00354a"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "gutter-desktop": "1.5rem",
+            "space-2xl": "2rem",
+            "space-lg": "1rem",
+            "space-md": "0.75rem",
+            "space-xs": "0.25rem",
+            "margin": "1rem",
+            "gutter": "1rem",
+            "space-3xl": "3rem",
+            "space-xl": "1.5rem",
+            "gutter-tablet": "1.25rem",
+            "margin-tablet": "1.5rem",
+            "margin-desktop": "2rem",
+            "space-sm": "0.5rem"
+          },
+          fontFamily: {
+            "body-lg": ["Inter", "sans-serif"],
+            "headline-lg-mobile": ["Inter", "sans-serif"],
+            "body-sm": ["Inter", "sans-serif"],
+            "title-sm": ["Inter", "sans-serif"],
+            "headline-md": ["Inter", "sans-serif"],
+            "display-lg": ["Inter", "sans-serif"],
+            "label-md": ["Inter", "sans-serif"],
+            "title-md": ["Inter", "sans-serif"],
+            "display-lg-mobile": ["Inter", "sans-serif"],
+            "body-md": ["Inter", "sans-serif"],
+            "label-sm": ["Inter", "sans-serif"],
+            "code-clinical": ["Inter", "sans-serif"],
+            "headline-lg": ["Inter", "sans-serif"],
+            "headline-sm": ["Inter", "sans-serif"]
+          },
+          fontSize: {
+            "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+            "headline-lg-mobile": ["24px", { lineHeight: "30px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "body-sm": ["13px", { lineHeight: "18px", fontWeight: "400" }],
+            "title-sm": ["14px", { lineHeight: "20px", fontWeight: "600" }],
+            "headline-md": ["22px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "display-lg": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700" }],
+            "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "500" }],
+            "title-md": ["16px", { lineHeight: "22px", fontWeight: "600" }],
+            "display-lg-mobile": ["30px", { lineHeight: "36px", letterSpacing: "-0.01em", fontWeight: "700" }],
+            "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+            "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.02em", fontWeight: "600" }],
+            "code-clinical": ["13px", { lineHeight: "16px", letterSpacing: "0.04em", fontWeight: "500" }],
+            "headline-lg": ["28px", { lineHeight: "34px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "headline-sm": ["18px", { lineHeight: "24px", fontWeight: "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .num-tabular {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="h-full flex overflow-hidden text-slate-800 antialiased font-body-md text-body-md bg-slate-50 selection:bg-blue-100 selection:text-blue-900">
+<!-- Side Navigation Bar (Mandatory Shared Component Blueprint) -->
+<aside class="w-64 h-screen flex flex-col justify-between p-4 border-r border-slate-200 bg-white shrink-0 shadow-sm z-20">
+<div class="flex flex-col h-full overflow-y-auto pr-1">
+<!-- Brand Header -->
+<div class="flex items-center gap-3 px-2 py-3 mb-3 border-b border-slate-100">
+<div class="w-9 h-9 rounded-lg bg-[#2563C9] flex items-center justify-center text-white font-bold text-title-md shadow-sm">
+          SF
+        </div>
+<div class="flex flex-col">
+<span class="font-bold text-slate-900 text-title-md leading-tight">SaludFlex</span>
+<span class="text-slate-500 font-label-sm text-label-sm">Sistema Integral de Gabinete</span>
+</div>
+</div>
+<!-- Navigation Hierarchy with discreet section labels -->
+<nav class="flex flex-col space-y-4">
+<!-- Grupo 1: DÍA A DÍA -->
+<div>
+<div class="px-3 pb-1.5 text-[11px] font-semibold text-slate-400 tracking-wider">DÍA A DÍA</div>
+<div class="space-y-0.5">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors font-body-sm text-body-sm min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-slate-500" data-icon="dashboard">dashboard</span>
+<span>Hoy</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors font-body-sm text-body-sm min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-slate-500" data-icon="calendar_today">calendar_today</span>
+<span>Calendario</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors font-body-sm text-body-sm min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-slate-500" data-icon="description">description</span>
+<span>Documentos</span>
+</a>
+</div>
+</div>
+<!-- Grupo 2: EN REGLA -->
+<div>
+<div class="px-3 pb-1.5 text-[11px] font-semibold text-slate-400 tracking-wider">EN REGLA</div>
+<div class="space-y-0.5">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors font-body-sm text-body-sm min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-slate-500" data-icon="verified">verified</span>
+<span>Obligaciones</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors font-body-sm text-body-sm min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-slate-500" data-icon="apartment">apartment</span>
+<span>Municipal</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors font-body-sm text-body-sm min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-slate-500" data-icon="folder_special">folder_special</span>
+<span>Carpeta de inspección</span>
+</a>
+</div>
+</div>
+<!-- Grupo 3: MI GABINETE -->
+<div>
+<div class="px-3 pb-1.5 text-[11px] font-semibold text-slate-400 tracking-wider">MI GABINETE</div>
+<div class="space-y-0.5">
+<!-- Item ACTIVO: Saldo / Pagos recurrentes / Gastos -->
+<a aria-current="page" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 text-[#2563C9] font-title-sm text-title-sm font-semibold border-l-4 border-[#2563C9] min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-[#2563C9]" data-icon="payments">payments</span>
+<span>Gastos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors font-body-sm text-body-sm min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-slate-500" data-icon="storefront">storefront</span>
+<span>Establecimientos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors font-body-sm text-body-sm min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-slate-500" data-icon="badge">badge</span>
+<span>Equipos y personal</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors font-body-sm text-body-sm min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-slate-500" data-icon="vpn_key">vpn_key</span>
+<span>Accesos</span>
+</a>
+</div>
+</div>
+<!-- Separador discreto y Conexiones -->
+<div class="pt-2 border-t border-slate-100">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors font-body-sm text-body-sm min-h-[38px]" href="#">
+<span class="material-symbols-outlined text-slate-500" data-icon="hub">hub</span>
+<span>Conexiones</span>
+</a>
+</div>
+</nav>
+</div>
+<!-- CTA Caja al pie del menú lateral -->
+<div class="pt-3 border-t border-slate-200 mt-2">
+<div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-left">
+<div class="flex items-center gap-2 mb-1.5 text-slate-700">
+<span class="material-symbols-outlined text-slate-600 text-[18px]" data-icon="folder_zip">folder_zip</span>
+<span class="font-title-sm text-title-sm font-semibold text-slate-900 leading-none">Descarga central</span>
+</div>
+<button class="w-full text-left py-2 px-2.5 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-label-sm font-label-sm font-semibold transition-colors flex items-center justify-between">
+<span>Carpeta en 1 clic (ZIP/PDF) Listo</span>
+<span class="material-symbols-outlined text-slate-500 text-[16px]" data-icon="download">download</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Contenedor Derecho Principal: Barra Superior + Contenido + Pie -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar -->
+<header class="h-16 px-6 bg-white border-b border-slate-200 flex justify-between items-center shrink-0 z-10">
+<!-- Selector de Establecimiento y Régimen -->
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white text-slate-900 font-title-md text-title-md font-bold transition-colors min-h-[44px]">
+<span>UDIX Matriz</span>
+<span class="material-symbols-outlined text-slate-500" data-icon="expand_more">expand_more</span>
+</button>
+<span class="hidden md:inline-block h-4 w-px bg-slate-200"></span>
+<span class="hidden md:inline-block text-slate-500 font-body-sm text-body-sm">
+          Régimen RX · Imagenología Dental y Maxilofacial
+        </span>
+</div>
+<!-- Trailing Actions: Notificaciones y Usuario -->
+<div class="flex items-center gap-4">
+<button aria-label="Notificaciones" class="w-10 h-10 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-50 flex items-center justify-center transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="w-2 h-2 rounded-full bg-[#2563C9] absolute top-2 right-2 ring-2 ring-white"></span>
+</button>
+<div class="flex items-center gap-3 pl-2 border-l border-slate-200">
+<div class="w-9 h-9 rounded-full bg-slate-200 text-slate-700 font-title-sm text-title-sm font-semibold flex items-center justify-center">
+            CV
+          </div>
+<div class="flex flex-col text-left">
+<span class="text-slate-900 font-title-sm text-title-sm font-medium leading-snug">Dra. Claudia Varela</span>
+<span class="text-slate-500 text-label-sm font-label-sm">Responsable Sanitaria (RS)</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Banda fija de advertencia (Banner Ámbar Obligatorio) -->
+<div class="bg-amber-100 border-b border-amber-300 text-amber-900 px-6 py-2.5 flex items-center gap-3 text-sm font-semibold shrink-0">
+<span class="material-symbols-outlined text-amber-800" data-icon="info">info</span>
+<span>Maqueta para conversar. Esta pantalla no existe en el producto. Datos ficticios de ejemplo</span>
+</div>
+<!-- Canvas Principal con Scroll -->
+<main class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+<!-- 1. Encabezado de Página -->
+<section class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+<div>
+<h1 class="font-headline-lg text-headline-lg font-bold text-slate-900 tracking-tight">Saldo por fecha · UDIX Matriz</h1>
+<p class="text-slate-600 font-body-md text-body-md mt-0.5">Con lo que tú capturas. Registro interno; no es contabilidad ni comprobante fiscal.</p>
+</div>
+<div>
+<button class="bg-[#2563C9] text-white px-5 py-2.5 rounded-lg font-medium shadow-sm hover:bg-blue-700 min-h-[48px] flex items-center justify-center gap-2 transition-colors active:bg-blue-800 cursor-pointer">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span>Capturar saldo</span>
+</button>
+</div>
+</section>
+<!-- 2. Fila de 4 cifras clave (Alta densidad, sobria, sin tarjetas decorativas ni degradados) -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Métrica 1 -->
+<div class="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between">
+<div class="text-slate-500 font-label-md text-label-md">Saldo capturado</div>
+<div class="mt-2 text-[26px] font-bold text-slate-900 num-tabular tracking-tight leading-none">$68,400 MXN</div>
+<div class="mt-2 text-slate-500 font-label-sm text-label-sm flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-slate-400"></span>
+            Actualizado al 8 nov 2026
+          </div>
+</div>
+<!-- Métrica 2 -->
+<div class="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between">
+<div class="text-slate-500 font-label-md text-label-md">Punto más bajo</div>
+<div class="mt-2 text-[26px] font-bold text-[#991B1B] num-tabular tracking-tight leading-none">-$27,359 MXN</div>
+<div class="mt-2 text-slate-500 font-label-sm text-label-sm">30 nov 2026, sin contar cobros futuros</div>
+</div>
+<!-- Métrica 3 -->
+<div class="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between">
+<div class="text-slate-500 font-label-md text-label-md">Tu colchón</div>
+<div class="mt-2 text-[26px] font-bold text-slate-900 num-tabular tracking-tight leading-none">$20,000 MXN</div>
+<div class="mt-2 text-slate-500 font-label-sm text-label-sm">Lo defines tú</div>
+</div>
+<!-- Métrica 4 -->
+<div class="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between">
+<div class="text-slate-500 font-label-md text-label-md">Faltarían</div>
+<div class="mt-2 text-[26px] font-bold text-[#92400E] num-tabular tracking-tight leading-none">$47,359 MXN</div>
+<div class="mt-2 text-slate-500 font-label-sm text-label-sm">para mantener tu colchón</div>
+</div>
+</section>
+<!-- 3. Sección de Gráfica de Saldo por Fecha -->
+<section class="bg-white border border-slate-200 rounded-lg p-5">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-slate-100 gap-3">
+<div>
+<h2 class="font-title-md text-title-md font-bold text-slate-900">Proyección de saldo acumulado</h2>
+<p class="font-body-sm text-body-sm text-slate-500">Estimación lineal escalonada de salidas programadas y registros capturados</p>
+</div>
+<!-- Conmutador selector de rango -->
+<div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 self-start sm:self-auto">
+<button class="px-3.5 py-1.5 rounded-md bg-[#2563C9] text-white font-title-sm text-title-sm font-semibold shadow-xs transition-colors min-h-[34px] flex items-center">
+              30 días
+            </button>
+<button class="px-3.5 py-1.5 rounded-md text-slate-600 hover:text-slate-900 font-title-sm text-title-sm font-medium transition-colors min-h-[34px] flex items-center">
+              90 días
+            </button>
+</div>
+</div>
+<!-- Gráfica SVG Stepped Line Chart nítida y sobria -->
+<div class="w-full overflow-x-auto">
+<div class="min-w-[680px] h-[310px] relative">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 800 280">
+<!-- Guías Horizontales del Eje Y -->
+<!-- $80,000 MXN -->
+<line stroke="#E2E8F0" stroke-width="1" x1="80" x2="770" y1="25" y2="25"></line>
+<text class="text-[11px] fill-slate-400 font-mono num-tabular" text-anchor="end" x="70" y="29">$80,000</text>
+<!-- $40,000 MXN -->
+<line stroke="#E2E8F0" stroke-width="1" x1="80" x2="770" y1="85" y2="85"></line>
+<text class="text-[11px] fill-slate-400 font-mono num-tabular" text-anchor="end" x="70" y="89">$40,000</text>
+<!-- Línea Horizontal Punteada: Tu Colchón $20,000 MXN -->
+<line stroke="#D97706" stroke-dasharray="4 4" stroke-width="1.5" x1="80" x2="770" y1="115" y2="115"></line>
+<text class="text-[11px] fill-[#B45309] font-semibold num-tabular" text-anchor="end" x="770" y="110">Colchón $20,000 MXN</text>
+<!-- Línea Horizontal de Cero ($0 MXN) bien marcada -->
+<line stroke="#475569" stroke-dasharray="2 2" stroke-width="1.5" x1="80" x2="770" y1="145" y2="145"></line>
+<text class="text-[11px] fill-slate-700 font-bold font-mono num-tabular" text-anchor="end" x="70" y="149">$0 MXN</text>
+<!-- -$30,000 MXN -->
+<line stroke="#E2E8F0" stroke-width="1" x1="80" x2="770" y1="190" y2="190"></line>
+<text class="text-[11px] fill-slate-400 font-mono num-tabular" text-anchor="end" x="70" y="194">-$30,000</text>
+<!-- Stepped Line Chart (Azul Sólido #2563C9, sin degradado de relleno) -->
+<!-- 
+                Coordenadas proyectadas de X:
+                8 nov: 120
+                15 nov: 260
+                22 nov: 400
+                29 nov: 540
+                30 nov: 680
+
+                Coordenadas Y (0 en y=145, factor ~ 1.5px/mil):
+                8 nov: $63,830  -> y = 145 - (63.83 * 1.5) = 49
+                15 nov: $45,331 -> y = 145 - (45.33 * 1.5) = 77
+                22 nov: $41,141 -> y = 145 - (41.14 * 1.5) = 83
+                29 nov: $34,641 -> y = 145 - (34.64 * 1.5) = 93
+                30 nov: -$27,359 -> y = 145 + (27.36 * 1.5) = 186
+              -->
+<path d="M 120 49 
+                       L 260 49 
+                       L 260 77 
+                       L 400 77 
+                       L 400 83 
+                       L 540 83 
+                       L 540 93 
+                       L 680 93 
+                       L 680 186" fill="none" stroke="#2563C9" stroke-linecap="round" stroke-linejoin="miter" stroke-width="2.5"></path>
+<!-- Puntos de datos y Rótulos Explícitos -->
+<!-- Punto 1: 8 nov: $63,830 MXN -->
+<circle cx="120" cy="49" fill="#2563C9" r="4.5" stroke="#FFFFFF" stroke-width="2"></circle>
+<rect fill="#FFFFFF" height="20" rx="4" stroke="#CBD5E1" stroke-width="1" width="90" x="75" y="17"></rect>
+<text class="text-[11px] font-semibold fill-slate-800 font-mono num-tabular" text-anchor="middle" x="120" y="31">$63,830 MXN</text>
+<!-- Punto 2: 15 nov: $45,331 MXN -->
+<circle cx="260" cy="77" fill="#2563C9" r="4.5" stroke="#FFFFFF" stroke-width="2"></circle>
+<rect fill="#FFFFFF" height="20" rx="4" stroke="#CBD5E1" stroke-width="1" width="90" x="215" y="47"></rect>
+<text class="text-[11px] font-semibold fill-slate-800 font-mono num-tabular" text-anchor="middle" x="260" y="61">$45,331 MXN</text>
+<!-- Punto 3: 22 nov: $41,141 MXN -->
+<circle cx="400" cy="83" fill="#2563C9" r="4.5" stroke="#FFFFFF" stroke-width="2"></circle>
+<rect fill="#FFFFFF" height="20" rx="4" stroke="#CBD5E1" stroke-width="1" width="90" x="355" y="55"></rect>
+<text class="text-[11px] font-semibold fill-slate-800 font-mono num-tabular" text-anchor="middle" x="400" y="69">$41,141 MXN</text>
+<!-- Punto 4: 29 nov: $34,641 MXN -->
+<circle cx="540" cy="93" fill="#2563C9" r="4.5" stroke="#FFFFFF" stroke-width="2"></circle>
+<rect fill="#FFFFFF" height="20" rx="4" stroke="#CBD5E1" stroke-width="1" width="90" x="495" y="65"></rect>
+<text class="text-[11px] font-semibold fill-slate-800 font-mono num-tabular" text-anchor="middle" x="540" y="79">$34,641 MXN</text>
+<!-- Punto 5: 30 nov: -$27,359 MXN (punto crítico) -->
+<circle cx="680" cy="186" fill="#991B1B" r="5" stroke="#FFFFFF" stroke-width="2"></circle>
+<rect fill="#FEF2F2" height="20" rx="4" stroke="#FECACA" stroke-width="1" width="100" x="630" y="198"></rect>
+<text class="text-[11px] font-bold fill-[#991B1B] font-mono num-tabular" text-anchor="middle" x="680" y="212">-$27,359 MXN</text>
+<!-- Eje X: Fechas rotuladas -->
+<line stroke="#CBD5E1" stroke-width="1" x1="80" x2="770" y1="230" y2="230"></line>
+<text class="text-[12px] fill-slate-600 font-medium" text-anchor="middle" x="120" y="248">8 nov</text>
+<text class="text-[12px] fill-slate-600 font-medium" text-anchor="middle" x="260" y="248">15 nov</text>
+<text class="text-[12px] fill-slate-600 font-medium" text-anchor="middle" x="400" y="248">22 nov</text>
+<text class="text-[12px] fill-slate-600 font-medium" text-anchor="middle" x="540" y="248">29 nov</text>
+<text class="text-[12px] fill-slate-900 font-bold" text-anchor="middle" x="680" y="248">30 nov</text>
+</svg>
+</div>
+</div>
+<div class="mt-2 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 gap-2">
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1.5">
+<span class="w-3 h-0.5 bg-[#2563C9] inline-block"></span> Trayectoria neta
+            </span>
+<span class="flex items-center gap-1.5">
+<span class="w-3 h-0.5 border-t border-amber-600 border-dashed inline-block"></span> Umbral de colchón ($20,000 MXN)
+            </span>
+<span class="flex items-center gap-1.5">
+<span class="w-3 h-0.5 border-t border-slate-600 border-dashed inline-block"></span> Saldo cero
+            </span>
+</div>
+<span class="text-slate-400">Escala de saldos proyectados sin devengos fiscales</span>
+</div>
+</section>
+<!-- 4. Dos listas lado a lado (Cuentas y Cobros capturados) -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
+<!-- Columna Izquierda: Cuentas -->
+<div class="bg-white border border-slate-200 rounded-lg p-5 flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-baseline pb-2 border-b border-slate-200">
+<h2 class="font-title-md text-title-md font-bold text-slate-900">Cuentas</h2>
+<span class="text-slate-500 font-label-sm text-label-sm">Solo apodos, sin datos bancarios</span>
+</div>
+<table class="w-full mt-3 text-left border-collapse">
+<thead>
+<tr class="border-b border-slate-100 text-slate-400 font-label-sm text-label-sm">
+<th class="py-2 font-medium">Apodo de cuenta</th>
+<th class="py-2 text-right font-medium">Saldo disponible</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 font-body-sm text-body-sm text-slate-800">
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="py-3 font-medium text-slate-900">Banco principal</td>
+<td class="py-3 text-right font-mono font-semibold num-tabular text-slate-900">$61,900 MXN</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="py-3 font-medium text-slate-900">Efectivo</td>
+<td class="py-3 text-right font-mono font-semibold num-tabular text-slate-900">$6,500 MXN</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Resumen Totalizador Cuentas -->
+<div class="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center bg-slate-50 p-3 rounded-lg">
+<span class="font-title-sm text-title-sm font-bold text-slate-900">Total capturado</span>
+<span class="font-mono text-title-md text-title-md font-bold text-slate-900 num-tabular">$68,400 MXN</span>
+</div>
+</div>
+<!-- Columna Derecha: Cobros capturados -->
+<div class="bg-white border border-slate-200 rounded-lg p-5 flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-baseline pb-2 border-b border-slate-200">
+<h2 class="font-title-md text-title-md font-bold text-slate-900">Cobros capturados</h2>
+<span class="text-slate-500 font-label-sm text-label-sm">Agregados por día y forma</span>
+</div>
+<table class="w-full mt-3 text-left border-collapse">
+<thead>
+<tr class="border-b border-slate-100 text-slate-400 font-label-sm text-label-sm">
+<th class="py-2 font-medium">Registro</th>
+<th class="py-2 font-medium">Modalidad</th>
+<th class="py-2 text-right font-medium">Monto</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 font-body-sm text-body-sm text-slate-800">
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="py-3 text-slate-600">7 nov</td>
+<td class="py-3 font-medium text-slate-900">Tarjeta</td>
+<td class="py-3 text-right font-mono font-semibold num-tabular text-slate-900">$12,300 MXN</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="py-3 text-slate-600">7 nov</td>
+<td class="py-3 font-medium text-slate-900">Transferencia</td>
+<td class="py-3 text-right font-mono font-semibold num-tabular text-slate-900">$8,400 MXN</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="py-3 text-slate-600">7 nov</td>
+<td class="py-3 font-medium text-slate-900">Efectivo</td>
+<td class="py-3 text-right font-mono font-semibold num-tabular text-slate-900">$2,150 MXN</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Total Agregado Reciente -->
+<div class="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center bg-slate-50 p-3 rounded-lg">
+<span class="font-title-sm text-title-sm font-medium text-slate-700">Subtotal 7 nov</span>
+<span class="font-mono text-title-md text-title-md font-bold text-slate-900 num-tabular">$22,850 MXN</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Sobrio (Shared Component Blueprint) -->
+<footer class="w-full py-3 px-6 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-2 shrink-0 text-slate-500 font-body-sm text-body-sm">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+<span>© SaludFlex. Datos ficticios de ejemplo. Registro interno; no es contabilidad ni comprobante fiscal.</span>
+</div>
+<div class="flex items-center gap-4 font-label-sm text-label-sm">
+<a class="text-slate-600 hover:text-slate-900 hover:underline transition-colors" href="#">Marco Regulatorio COFEPRIS</a>
+<span class="text-slate-300">·</span>
+<a class="text-slate-600 hover:text-slate-900 hover:underline transition-colors" href="#">Términos Sanitarios</a>
+<span class="text-slate-300">·</span>
+<a class="text-slate-600 hover:text-slate-900 hover:underline transition-colors" href="#">Privacidad de Datos Clínicos</a>
+</div>
+</footer>
+</div>
+</body></html>

@@ -2,8 +2,8 @@ import { RecurringPayment } from '../../core/models/facility.models';
 import { amountLabel, paymentSections, periodLabel, toCents, toPaymentInput, unusedSuggestions } from './payments.helpers';
 
 const payment = (over: Partial<RecurringPayment>): RecurringPayment => ({
-  id: 'p', establishmentId: 'e', name: 'Luz', kind: 'service', amountMode: 'variable', amountCents: null,
-  periodMonths: 2, firstDueOn: '2026-01-10', overdue: [], next: '2026-11-10', lastPaid: null, ...over,
+  id: 'p', establishmentId: 'e', name: 'Luz', kind: 'service', category: 'other', amountMode: 'variable', amountCents: null,
+  periodMonths: 2, firstDueOn: '2026-01-10', endsOn: null, overdue: [], next: '2026-11-10', skipped: [], lastPaid: null, ...over,
 });
 
 describe('pagos recurrentes: ayudantes', () => {
