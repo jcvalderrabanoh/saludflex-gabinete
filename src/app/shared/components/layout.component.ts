@@ -56,6 +56,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { path: '/operacion/pagos', label: 'Pagos recurrentes', icon: 'event_repeat', requires: 'payments', whenExpenses: false },
       { path: '/operacion/gastos', label: 'Gastos', icon: 'payments', requires: 'payments', whenExpenses: true },
+      { path: '/operacion/inventario', label: 'Inventario', icon: 'inventory_2', requires: 'read' },
       { path: '/operacion/establecimientos', label: 'Establecimientos', icon: 'apartment' },
       { path: '/operacion/equipos-y-personal', label: 'Equipos y personal', icon: 'groups' },
       { path: '/operacion/equipo', label: 'Accesos', icon: 'group_add', requires: 'manage' },

@@ -441,3 +441,119 @@ export interface ConnectedApp {
   state: ConnectedAppState;
   trialEndsAt: string | null;
 }
+
+export type InventoryCategory = 'clinical' | 'cleaning' | 'other';
+export type InventoryStockStatus = 'ok' | 'on_order' | 'reorder' | 'out' | 'no_data';
+export type InventoryMovementKind = 'purchase' | 'waste';
+export type InventoryOrderStatus = 'draft' | 'approved' | 'received' | 'cancelled';
+
+export interface InventorySupplier {
+  id: string;
+  name: string;
+  contact: string | null;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: InventoryCategory;
+  baseUnit: string;
+  supplierId: string | null;
+  packSize: number;
+  minOrderPacks: number;
+  leadTimeDays: number;
+  safetyDays: number;
+  minQuantity: number | null;
+  maxQuantity: number | null;
+}
+
+export type InventoryItemInput = Omit<InventoryItem, 'id' | 'supplierId' | 'minQuantity' | 'maxQuantity'> &
+  Partial<Pick<InventoryItem, 'supplierId' | 'minQuantity' | 'maxQuantity'>>;
+
+export interface InventoryLine {
+  itemId: string;
+  quantity: number;
+}
+
+export interface InventoryTask {
+  id: string;
+  name: string;
+  kind: 'service' | 'recurring';
+  catalogStudyId: string | null;
+  categoryId: string | null;
+  periodDays: number | null;
+  lines: InventoryLine[];
+}
+
+export interface InventoryTaskInput {
+  name: string;
+  kind: InventoryTask['kind'];
+  catalogStudyId?: string;
+  categoryId?: string;
+  periodDays?: number;
+  lines: InventoryLine[];
+}
+
+export interface InventoryCatalog {
+  suppliers: InventorySupplier[];
+  items: InventoryItem[];
+  tasks: InventoryTask[];
+}
+
+export interface InventoryServiceOptions {
+  categories: { id: string; name: string }[];
+  studies: { id: string; name: string; categoryId: string }[];
+}
+
+export interface InventoryOverviewRow {
+  id: string;
+  name: string;
+  category: InventoryCategory;
+  baseUnit: string;
+  supplierId: string | null;
+  packSize: number;
+  minQuantity: number | null;
+  maxQuantity: number | null;
+  onHand: number;
+  onOrder: number;
+  lastCountedAt: string | null;
+  status: InventoryStockStatus;
+  dailyDemand: number;
+  coverageDays: number | null;
+  reorderPoint: number | null;
+  suggestedPacks: number;
+  suggestedQuantity: number;
+}
+
+export interface InventoryOrderSuggestion {
+  supplierId: string | null;
+  supplierName: string | null;
+  lines: { itemId: string; name: string; packs: number; packSize: number; quantity: number }[];
+}
+
+export interface InventoryOrder {
+  id: string;
+  supplierId: string;
+  status: InventoryOrderStatus;
+  createdAt: string;
+  lines: { id: string; itemId: string; packs: number; packSize: number }[];
+}
+
+export interface InventoryMovementInput {
+  requestId: string;
+  itemId: string;
+  kind: InventoryMovementKind;
+  quantity: number;
+  reason?: string;
+}
+
+export interface InventoryCountInput {
+  requestId: string;
+  lines: { itemId: string; countedQuantity: number; reason?: string }[];
+}
+
+export interface InventoryOrderInput {
+  requestId: string;
+  supplierId: string;
+  lines: { itemId: string; packs: number }[];
+}

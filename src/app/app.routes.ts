@@ -24,6 +24,7 @@ export const routes: Routes = [
       { path: 'municipal', loadComponent: () => import('./features/municipal/municipal.component').then((m) => m.MunicipalComponent) },
       { path: 'pagos', canActivate: [permissionGuard('payments'), expensesRouteGuard(false, '/operacion/gastos')], loadComponent: () => import('./features/payments/payments.component').then((m) => m.PaymentsComponent) },
       { path: 'gastos', canActivate: [permissionGuard('payments'), expensesRouteGuard(true, '/operacion/pagos')], loadComponent: () => import('./features/expenses/expenses.component').then((m) => m.ExpensesComponent) },
+      { path: 'inventario', canActivate: [permissionGuard('read')], loadComponent: () => import('./features/inventory/inventory.component').then((m) => m.InventoryComponent) },
       { path: 'conexiones', loadComponent: () => import('./features/connections/connections.component').then((m) => m.ConnectionsComponent) },
       { path: 'equipos-y-personal', loadComponent: () => import('./features/subjects/subjects.component').then((m) => m.SubjectsComponent) },
       { path: 'carpeta', canActivate: [permissionGuard('inspect')], loadComponent: () => import('./features/inspection/inspection.component').then((m) => m.InspectionComponent) },

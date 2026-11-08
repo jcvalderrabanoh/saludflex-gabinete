@@ -10,7 +10,7 @@ describe('menú del layout', () => {
     expect(groups(allow('read', 'manage', 'inspect', 'payments'))).toEqual([
       ['Día a día', ['Hoy', 'Calendario', 'Documentos']],
       ['En regla', ['Obligaciones', 'Municipal', 'Carpeta de inspección']],
-      ['Mi gabinete', ['Pagos recurrentes', 'Establecimientos', 'Equipos y personal', 'Accesos']],
+      ['Mi gabinete', ['Pagos recurrentes', 'Inventario', 'Establecimientos', 'Equipos y personal', 'Accesos']],
       ['', ['Conexiones']],
     ]);
   });
