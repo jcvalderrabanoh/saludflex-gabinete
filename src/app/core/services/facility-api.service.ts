@@ -3,6 +3,19 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  InventoryCatalog,
+  InventoryCountInput,
+  InventoryItem,
+  InventoryItemInput,
+  InventoryMovementInput,
+  InventoryOrder,
+  InventoryOrderInput,
+  InventoryOrderSuggestion,
+  InventoryOverviewRow,
+  InventoryServiceOptions,
+  InventorySupplier,
+  InventoryTask,
+  InventoryTaskInput,
   ExportFormat,
   ActivateObligationInput,
   ConnectedApp,
@@ -262,6 +275,78 @@ export class FacilityApiService {
 
   unmarkPaymentPaid(id: string, dueOn: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/recurring-payments/${id}/paid/${dueOn}`);
+  }
+
+  inventoryOverview(establishmentId: string): Observable<{ items: InventoryOverviewRow[] }> {
+    return this.http.get<{ items: InventoryOverviewRow[] }>(`${this.base}/establishments/${establishmentId}/inventory`);
+  }
+
+  inventoryCatalog(establishmentId: string): Observable<InventoryCatalog> {
+    return this.http.get<InventoryCatalog>(`${this.base}/establishments/${establishmentId}/inventory/catalog`);
+  }
+
+  inventoryServiceOptions(establishmentId: string): Observable<InventoryServiceOptions> {
+    return this.http.get<InventoryServiceOptions>(`${this.base}/establishments/${establishmentId}/inventory/service-options`);
+  }
+
+  createInventorySupplier(establishmentId: string, input: { name: string; contact?: string }): Observable<InventorySupplier> {
+    return this.http.post<InventorySupplier>(`${this.base}/establishments/${establishmentId}/inventory/suppliers`, input);
+  }
+
+  createInventoryItem(establishmentId: string, input: InventoryItemInput): Observable<InventoryItem> {
+    return this.http.post<InventoryItem>(`${this.base}/establishments/${establishmentId}/inventory/items`, input);
+  }
+
+  updateInventoryItem(id: string, input: Partial<InventoryItemInput>): Observable<InventoryItem> {
+    return this.http.patch<InventoryItem>(`${this.base}/inventory/items/${id}`, input);
+  }
+
+  deleteInventoryItem(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/inventory/items/${id}`);
+  }
+
+  createInventoryTask(establishmentId: string, input: InventoryTaskInput): Observable<InventoryTask> {
+    return this.http.post<InventoryTask>(`${this.base}/establishments/${establishmentId}/inventory/tasks`, input);
+  }
+
+  updateInventoryTask(id: string, input: InventoryTaskInput): Observable<InventoryTask> {
+    return this.http.put<InventoryTask>(`${this.base}/inventory/tasks/${id}`, input);
+  }
+
+  deleteInventoryTask(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/inventory/tasks/${id}`);
+  }
+
+  recordInventoryMovement(establishmentId: string, input: InventoryMovementInput): Observable<void> {
+    return this.http.post<void>(`${this.base}/establishments/${establishmentId}/inventory/movements`, input);
+  }
+
+  countInventory(establishmentId: string, input: InventoryCountInput): Observable<void> {
+    return this.http.post<void>(`${this.base}/establishments/${establishmentId}/inventory/counts`, input);
+  }
+
+  inventoryOrderSuggestions(establishmentId: string): Observable<InventoryOrderSuggestion[]> {
+    return this.http.get<InventoryOrderSuggestion[]>(`${this.base}/establishments/${establishmentId}/inventory/order-suggestions`);
+  }
+
+  inventoryOrders(establishmentId: string): Observable<InventoryOrder[]> {
+    return this.http.get<InventoryOrder[]>(`${this.base}/establishments/${establishmentId}/inventory/orders`);
+  }
+
+  createInventoryOrder(establishmentId: string, input: InventoryOrderInput): Observable<InventoryOrder> {
+    return this.http.post<InventoryOrder>(`${this.base}/establishments/${establishmentId}/inventory/orders`, input);
+  }
+
+  approveInventoryOrder(id: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/inventory/orders/${id}/approve`, {});
+  }
+
+  receiveInventoryOrder(id: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/inventory/orders/${id}/receive`, {});
+  }
+
+  cancelInventoryOrder(id: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/inventory/orders/${id}/cancel`, {});
   }
 
   connectedApps(): Observable<ConnectedApp[]> {

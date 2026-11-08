@@ -53,6 +53,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     label: 'Mi gabinete',
     items: [
       { path: '/operacion/pagos', label: 'Pagos recurrentes', icon: 'event_repeat', requires: 'payments' },
+      { path: '/operacion/inventario', label: 'Inventario', icon: 'inventory_2', requires: 'read' },
       { path: '/operacion/establecimientos', label: 'Establecimientos', icon: 'apartment' },
       { path: '/operacion/equipos-y-personal', label: 'Equipos y personal', icon: 'groups' },
       { path: '/operacion/equipo', label: 'Accesos', icon: 'group_add', requires: 'manage' },
