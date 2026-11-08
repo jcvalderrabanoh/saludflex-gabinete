@@ -8,6 +8,7 @@ import {
   RecurringAmountMode,
   RecurringPayment,
   RecurringPaymentInput,
+  RecurringPaymentKind,
   RecurringPaymentsOverview,
 } from '../../core/models/facility.models';
 import { formatMoney, periodLabel, toCents } from '../payments/payments.helpers';
@@ -163,8 +164,8 @@ function expenseLine(expense: Expense, status: ExpenseLineStatus, dueOn: string)
   };
 }
 
-function recurringLine(payment: RecurringPayment, line: Pick<ExpenseLine, 'dueOn' | 'amountCents' | 'certainty' | 'status'>): ExpenseLine {
-  return { ...line, key: `recurring:${payment.id}:${line.dueOn}`, source: 'recurring', sourceId: payment.id, name: payment.name, detail: recurringDetail(payment) };
+function recurringLine(payment: RecurringPayment, line: Pick<ExpenseLine, 'dueOn' | 'amountCents' | 'certainty' | 'status' | 'period'>): ExpenseLine {
+  return { ...line, key: `recurring:${payment.id}:${line.period ?? line.dueOn}`, source: 'recurring', sourceId: payment.id, name: payment.name, detail: recurringDetail(payment) };
 }
 
 function referenceCertainty(payment: RecurringPayment): CommitmentCertainty {
@@ -185,12 +186,12 @@ function doneLines({ plan, overview, expenses }: ExpensesData): ExpenseLine[] {
   const since = addDays(plan.today, -RECENT_DAYS);
   const paidExpenses = expenses.filter((e) => e.paidOn !== null && e.paidOn >= since).map((e) => expenseLine(e, 'paid', e.paidOn as string));
   const paidPayments = overview.payments.flatMap((p) =>
-    p.lastPaid?.paidOn && p.lastPaid.paidOn >= since
-      ? [{ ...recurringLine(p, { dueOn: p.lastPaid.paidOn, amountCents: p.lastPaid.paidCents, certainty: p.lastPaid.paidCents === null ? 'unknown' : 'known', status: 'paid' }), period: p.lastPaid.dueOn }]
-      : [],
+    p.paid
+      .filter((r) => r.paidOn >= since)
+      .map((r) => recurringLine(p, { dueOn: r.paidOn, period: r.dueOn, amountCents: r.paidCents, certainty: r.paidCents === null ? 'unknown' : 'known', status: 'paid' })),
   );
   const skipped = overview.payments.flatMap((p) =>
-    p.skipped.filter((dueOn) => dueOn >= since).map((dueOn) => ({ ...recurringLine(p, { dueOn, amountCents: null, certainty: 'unknown', status: 'skipped' }), period: dueOn })),
+    p.skipped.filter((dueOn) => dueOn >= since).map((dueOn) => recurringLine(p, { dueOn, amountCents: null, certainty: 'unknown', status: 'skipped' })),
   );
   return [...paidExpenses, ...paidPayments, ...skipped].sort((a, b) => b.dueOn.localeCompare(a.dueOn));
 }
@@ -238,10 +239,11 @@ export function toExpenseInput(value: ExpenseFormValue): ExpenseInput {
 
 const SUBSCRIPTION_CATEGORIES: readonly ExpenseCategory[] = ['software', 'platform'];
 
-export function toRecurringInput(value: ExpenseFormValue): RecurringPaymentInput {
+/** `kind` solo viene al editar: lo que ya era suscripción sigue siéndolo. */
+export function toRecurringInput(value: ExpenseFormValue, kind?: RecurringPaymentKind): RecurringPaymentInput {
   return {
     name: value.name.trim(),
-    kind: SUBSCRIPTION_CATEGORIES.includes(value.category) ? 'subscription' : 'service',
+    kind: kind ?? (SUBSCRIPTION_CATEGORIES.includes(value.category) ? 'subscription' : 'service'),
     category: value.category,
     amountMode: value.amountMode,
     amountCents: toCents(value.amount),

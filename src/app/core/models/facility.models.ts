@@ -363,6 +363,12 @@ export interface RecurringPaymentInput {
   endsOn?: string | null;
 }
 
+export interface PaidPeriod {
+  dueOn: string;
+  paidOn: string;
+  paidCents: number | null;
+}
+
 export interface RecurringPayment extends RecurringPaymentInput {
   id: string;
   establishmentId: string;
@@ -372,7 +378,8 @@ export interface RecurringPayment extends RecurringPaymentInput {
   /** `null` cuando el servicio ya terminó. */
   next: string | null;
   skipped: string[];
-  lastPaid: { dueOn: string; paidOn: string; paidCents: number | null } | null;
+  paid: PaidPeriod[];
+  lastPaid: PaidPeriod | null;
 }
 
 export interface RecurringPaymentsOverview {

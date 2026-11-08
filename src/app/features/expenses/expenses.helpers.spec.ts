@@ -1,5 +1,5 @@
 import { CommitmentItem, CommitmentPlan, Expense, RecurringPayment, RecurringPaymentsOverview } from '../../core/models/facility.models';
-import { commitmentCuts, expenseSections, personalDataError, summaryNote, toExpenseInput, toRecurringInput } from './expenses.helpers';
+import { commitmentCuts, expenseSections, periodOf, personalDataError, summaryNote, toExpenseInput, toRecurringInput } from './expenses.helpers';
 
 const item = (over: Partial<CommitmentItem>): CommitmentItem => ({
   source: 'recurring',
@@ -36,6 +36,7 @@ const payment = (over: Partial<RecurringPayment>): RecurringPayment => ({
   overdue: [],
   next: '2026-11-10',
   skipped: [],
+  paid: [],
   lastPaid: null,
   ...over,
 });
@@ -124,12 +125,23 @@ describe('expenseSections', () => {
   it('junta pagados y omitidos recientes; lo de hace más de 30 días ya no', () => {
     const sections = expenseSections({
       plan: plan([]),
-      overview: overview([payment({ next: null, skipped: ['2026-11-01', '2026-01-01'], lastPaid: { dueOn: '2026-11-02', paidOn: '2026-11-03', paidCents: 900 } })]),
+      overview: overview([payment({ next: null, skipped: ['2026-11-01', '2026-01-01'], paid: [{ dueOn: '2026-11-02', paidOn: '2026-11-03', paidCents: 900 }] })]),
       expenses: [expense({ paidOn: '2026-11-05', dueOn: '2026-11-05' }), expense({ id: 'x9', paidOn: '2026-08-01', dueOn: '2026-08-01' })],
     }, 'all');
     expect(titles(sections)).toEqual(['Pagados y omitidos']);
     expect(sections[0].lines.map((l) => l.status)).toEqual(['paid', 'paid', 'skipped']);
     expect(sections[0].lines[1].amountCents).toBe(900);
+  });
+
+  it('cada periodo pagado tiene su renglón, aunque se paguen el mismo día', () => {
+    const sections = expenseSections({
+      plan: plan([]),
+      overview: overview([payment({ next: null, paid: [{ dueOn: '2026-10-10', paidOn: '2026-11-03', paidCents: 1 }, { dueOn: '2026-11-10', paidOn: '2026-11-03', paidCents: 2 }] })]),
+      expenses: [],
+    }, 'all');
+    const lines = sections[0].lines;
+    expect(lines.map((l) => periodOf(l))).toEqual(jasmine.arrayWithExactContents(['2026-10-10', '2026-11-10']));
+    expect(new Set(lines.map((l) => l.key)).size).toBe(2);
   });
 
   it('filtra por una sola vez o por lo que se repite', () => {
@@ -166,6 +178,10 @@ describe('entradas del formulario', () => {
   it('un recurrente sin término manda null, y software o plataforma son suscripción', () => {
     expect(toRecurringInput(base)).toEqual({ name: 'Renta', kind: 'service', category: 'rent', amountMode: 'fixed', amountCents: 1800000, periodMonths: 1, firstDueOn: '2026-11-10', endsOn: null });
     expect(toRecurringInput({ ...base, category: 'platform', endsOn: '2027-01-01' })).toEqual(jasmine.objectContaining({ kind: 'subscription', endsOn: '2027-01-01' }));
+  });
+
+  it('al editar conserva el tipo que ya tenía', () => {
+    expect(toRecurringInput({ ...base, category: 'other' }, 'subscription').kind).toBe('subscription');
   });
 
   it('un monto variable vacío queda sin dato, no en cero', () => {

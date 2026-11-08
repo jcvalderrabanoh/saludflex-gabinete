@@ -24,26 +24,27 @@ const PLAN: CommitmentPlan = {
 
 const payment = (id: string, name: string, over: object = {}) => ({
   id, establishmentId: 'e1', name, kind: 'service', category: 'utilities', amountMode: 'variable', amountCents: null,
-  periodMonths: 2, firstDueOn: '2026-08-28', endsOn: null, overdue: [], next: '2026-12-28', skipped: [], lastPaid: null, ...over,
+  periodMonths: 2, firstDueOn: '2026-08-28', endsOn: null, overdue: [], next: '2026-12-28', skipped: [], paid: [], lastPaid: null, ...over,
 });
 
 const EXPENSE = { id: 'x1', establishmentId: 'e1', name: 'Gel y papel', category: 'supplies', amountCents: 234000, dueOn: '2026-11-18', paidOn: null };
 
 function setup(permissions: string[] = ['facility.manage']) {
+  const current = signal({ id: 'e1', name: 'UDIX Matriz' });
   TestBed.configureTestingModule({
     imports: [ExpensesComponent],
     providers: [
       provideHttpClient(),
       provideHttpClientTesting(),
       provideNoopAnimations(),
-      { provide: EstablishmentContextService, useValue: { current: signal({ id: 'e1', name: 'UDIX Matriz' }) } },
+      { provide: EstablishmentContextService, useValue: { current } },
       { provide: PermissionsService, useValue: { can: (a: string) => a !== 'manage' || permissions.includes('facility.manage') } },
     ],
   });
   const fixture = TestBed.createComponent(ExpensesComponent);
   const http = TestBed.inject(HttpTestingController);
   fixture.detectChanges();
-  return { fixture, http, el: fixture.nativeElement as HTMLElement };
+  return { fixture, http, current, el: fixture.nativeElement as HTMLElement };
 }
 
 function flushAll(http: HttpTestingController, plan: CommitmentPlan = PLAN) {
@@ -98,7 +99,7 @@ describe('Gastos', () => {
     http.expectOne(`${API}/establishments/e1/commitments`).flush(PLAN);
     http.expectOne(`${API}/establishments/e1/recurring-payments`).flush({
       today: PLAN.today,
-      payments: [payment('p3', 'Renta', { lastPaid: { dueOn: '2026-11-01', paidOn: '2026-11-03', paidCents: 100 } })],
+      payments: [payment('p3', 'Renta', { paid: [{ dueOn: '2026-11-01', paidOn: '2026-11-03', paidCents: 100 }] })],
     });
     http.expectOne((r) => r.url === `${API}/establishments/e1/expenses`).flush({ today: PLAN.today, expenses: [] });
     fixture.detectChanges();
@@ -123,6 +124,24 @@ describe('Gastos', () => {
     fixture.detectChanges();
     expect(el.querySelector('.empty')?.textContent).toContain('Agrega tu primer gasto');
     expect(el.querySelector('.summary')).toBeNull();
+  });
+
+  it('un corte que solo tiene conceptos sin dato no dice «Nada en este corte»', () => {
+    const { fixture, http, el } = setup();
+    const onlyUnknown = { ...PLAN, items: [PLAN.items[2]], totals: { totalCents: 0, estimatedCents: 0, overdueCents: 0, unknownCount: 1 } };
+    flushAll(http, onlyUnknown);
+    fixture.detectChanges();
+    const cut = [...el.querySelectorAll('.cut')].find((c) => c.textContent?.includes('1 sin dato'));
+    expect(cut?.textContent).not.toContain('Nada en este corte');
+  });
+
+  it('al cambiar de establecimiento cancela la carga anterior', () => {
+    const { fixture, http, current } = setup();
+    const first = http.expectOne(`${API}/establishments/e1/commitments`);
+    current.set({ id: 'e2', name: 'Sucursal' });
+    fixture.detectChanges();
+    expect(first.cancelled).toBeTrue();
+    http.expectOne(`${API}/establishments/e2/commitments`);
   });
 
   it('un error dice qué pasó', () => {

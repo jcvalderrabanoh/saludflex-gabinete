@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, forkJoin, map, switchMap } from 'rxjs';
+import { Observable, Subscription, forkJoin, map, switchMap } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -65,7 +65,11 @@ function yearsFrom(today: string, years: number): string {
                 <div class="cut" [class.late]="cut.overdue">
                   <span class="cut-label">{{ cut.label }}</span>
                   <strong class="cumulative">{{ money(cut.cumulativeCents) }}</strong>
-                  <span class="cut-detail">{{ cut.cutCents > 0 ? 'En este corte ' + money(cut.cutCents) : 'Nada en este corte' }}</span>
+                  @if (cut.cutCents > 0) {
+                    <span class="cut-detail">En este corte {{ money(cut.cutCents) }}</span>
+                  } @else if (cut.unknownCount === 0) {
+                    <span class="cut-detail">Nada en este corte</span>
+                  }
                   @if (cut.estimatedCents > 0) { <span class="cut-detail">{{ money(cut.estimatedCents) }} estimado</span> }
                   @if (cut.unknownCount > 0) { <span class="cut-detail gap">{{ cut.unknownCount }} sin dato</span> }
                 </div>
@@ -189,6 +193,8 @@ export class ExpensesComponent {
   readonly error = signal<string | null>(null);
   readonly busy = signal(false);
   readonly filter = signal<ExpenseFilter>('all');
+  /** Cambiar de establecimiento cancela la carga anterior. */
+  private loading?: Subscription;
 
   readonly filterOptions = FILTERS;
   readonly certainty = CERTAINTY_LABEL;
@@ -220,7 +226,8 @@ export class ExpensesComponent {
   }
 
   private load(id: string): void {
-    this.api
+    this.loading?.unsubscribe();
+    this.loading = this.api
       .commitments(id)
       .pipe(
         switchMap((plan) =>
@@ -255,8 +262,9 @@ export class ExpensesComponent {
   edit(line: ExpenseLine): void {
     const d = this.data();
     if (!d) return;
-    if (line.source === 'expense') this.openDialog({ expense: d.expenses.find((e) => e.id === line.sourceId) });
-    else this.openDialog({ payment: d.overview.payments.find((p) => p.id === line.sourceId) });
+    const expense = d.expenses.find((e) => e.id === line.sourceId);
+    const payment = d.overview.payments.find((p) => p.id === line.sourceId);
+    if (expense || payment) this.openDialog({ expense, payment });
   }
 
   private openDialog(editing: Pick<ExpenseDialogData, 'expense' | 'payment'>): void {

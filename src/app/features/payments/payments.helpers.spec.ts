@@ -3,7 +3,7 @@ import { amountLabel, paymentSections, periodLabel, toCents, toPaymentInput, unu
 
 const payment = (over: Partial<RecurringPayment>): RecurringPayment => ({
   id: 'p', establishmentId: 'e', name: 'Luz', kind: 'service', category: 'other', amountMode: 'variable', amountCents: null,
-  periodMonths: 2, firstDueOn: '2026-01-10', endsOn: null, overdue: [], next: '2026-11-10', skipped: [], lastPaid: null, ...over,
+  periodMonths: 2, firstDueOn: '2026-01-10', endsOn: null, overdue: [], next: '2026-11-10', skipped: [], paid: [], lastPaid: null, ...over,
 });
 
 describe('pagos recurrentes: ayudantes', () => {

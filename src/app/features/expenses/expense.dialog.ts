@@ -14,7 +14,9 @@ import { apiMessage } from '../evidence/record-evidence.dialog';
 import { PERIOD_OPTIONS } from '../payments/payments.helpers';
 import { CATEGORY_OPTIONS, ExpenseFormValue, personalDataError, toExpenseInput, toRecurringInput } from './expenses.helpers';
 
-const NAME_MAX_LENGTH = 80;
+/** Los recurrentes admiten nombres más largos que un gasto único. */
+const EXPENSE_NAME_MAX_LENGTH = 80;
+const RECURRING_NAME_MAX_LENGTH = 120;
 
 export interface ExpenseDialogData {
   establishmentId: string;
@@ -115,7 +117,6 @@ export class ExpenseDialogComponent {
   private readonly api = inject(FacilityApiService);
   private readonly ref = inject(MatDialogRef<ExpenseDialogComponent>);
 
-  readonly nameMax = NAME_MAX_LENGTH;
   readonly categories = CATEGORY_OPTIONS;
   readonly periods = PERIOD_OPTIONS;
   readonly editing = !!(this.data.expense || this.data.payment);
@@ -125,7 +126,7 @@ export class ExpenseDialogComponent {
   readonly form = inject(FormBuilder).nonNullable.group(
     {
       repeats: [!!this.data.payment],
-      name: [this.data.expense?.name ?? this.data.payment?.name ?? '', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(NAME_MAX_LENGTH), safeName]],
+      name: [this.data.expense?.name ?? this.data.payment?.name ?? '', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(RECURRING_NAME_MAX_LENGTH), safeName]],
       category: [(this.data.expense?.category ?? this.data.payment?.category ?? 'other') as ExpenseCategory, Validators.required],
       amountMode: [(this.data.payment?.amountMode ?? 'fixed') as RecurringAmountMode],
       amount: [this.initialAmount() as number | string | null],
@@ -138,6 +139,10 @@ export class ExpenseDialogComponent {
 
   get repeats(): boolean {
     return this.form.controls.repeats.value;
+  }
+
+  get nameMax(): number {
+    return this.repeats ? RECURRING_NAME_MAX_LENGTH : EXPENSE_NAME_MAX_LENGTH;
   }
 
   private initialAmount(): number | null {
@@ -162,7 +167,7 @@ export class ExpenseDialogComponent {
   private request(value: ExpenseFormValue): Observable<unknown> {
     const { expense, payment, establishmentId } = this.data;
     if (expense) return this.api.updateExpense(expense.id, toExpenseInput(value));
-    if (payment) return this.api.updateRecurringPayment(payment.id, toRecurringInput(value));
+    if (payment) return this.api.updateRecurringPayment(payment.id, toRecurringInput(value, payment.kind));
     return this.repeats ? this.api.createRecurringPayment(establishmentId, toRecurringInput(value)) : this.api.createExpense(establishmentId, toExpenseInput(value));
   }
 }
