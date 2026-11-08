@@ -15,6 +15,21 @@
       "name": "Conexiones",
       "screen": "projects/9959578893517974265/screens/07e247c541eb47bda0b4773c0736f74a",
       "generatedAt": "2026-11-07T02:14:23.227Z"
+    },
+    "F16": {
+      "name": "Gastos",
+      "screen": "projects/9959578893517974265/screens/8d3172472a624f0db4d95ba7305eee50",
+      "generatedAt": "2026-11-08T16:49:28.002Z"
+    },
+    "F17": {
+      "name": "Agregar gasto",
+      "screen": "projects/9959578893517974265/screens/66bf55d6f67040a28e23019b1cb01fb4",
+      "generatedAt": "2026-11-08T16:50:26.510Z"
+    },
+    "F18": {
+      "name": "Maqueta de saldo",
+      "screen": "projects/9959578893517974265/screens/b51e660fdd9549cc8a756622c576a4ad",
+      "generatedAt": "2026-11-08T16:51:24.621Z"
     }
   }
 }

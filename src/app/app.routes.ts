@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
 import { authGuard } from './auth/guards/auth.guard';
+import { expensesRouteGuard } from './auth/guards/expenses.guard';
 import { permissionGuard } from './auth/guards/permission.guard';
 import { LoginComponent } from './auth/components/login.component';
 import { LayoutComponent } from './shared/components/layout.component';
@@ -21,7 +22,8 @@ export const routes: Routes = [
       { path: 'obligaciones', loadComponent: () => import('./features/obligations/obligations.component').then((m) => m.ObligationsComponent) },
       { path: 'calendario', loadComponent: () => import('./features/calendar/calendar.component').then((m) => m.CalendarComponent) },
       { path: 'municipal', loadComponent: () => import('./features/municipal/municipal.component').then((m) => m.MunicipalComponent) },
-      { path: 'pagos', canActivate: [permissionGuard('payments')], loadComponent: () => import('./features/payments/payments.component').then((m) => m.PaymentsComponent) },
+      { path: 'pagos', canActivate: [permissionGuard('payments'), expensesRouteGuard(false, '/operacion/gastos')], loadComponent: () => import('./features/payments/payments.component').then((m) => m.PaymentsComponent) },
+      { path: 'gastos', canActivate: [permissionGuard('payments'), expensesRouteGuard(true, '/operacion/pagos')], loadComponent: () => import('./features/expenses/expenses.component').then((m) => m.ExpensesComponent) },
       { path: 'inventario', canActivate: [permissionGuard('read')], loadComponent: () => import('./features/inventory/inventory.component').then((m) => m.InventoryComponent) },
       { path: 'conexiones', loadComponent: () => import('./features/connections/connections.component').then((m) => m.ConnectionsComponent) },
       { path: 'equipos-y-personal', loadComponent: () => import('./features/subjects/subjects.component').then((m) => m.SubjectsComponent) },

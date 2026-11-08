@@ -34,7 +34,7 @@ describe('AppComponent', () => {
   it('las pantallas de operación cuelgan de /operacion y requieren sesión', () => {
     const operacion = routes.find((r) => r.path === 'operacion');
     expect(operacion?.canActivate?.length).toBe(1);
-    expect(operacion?.children?.map((c) => c.path)).toEqual(['hoy', 'documentos', 'obligaciones', 'calendario', 'municipal', 'pagos', 'inventario', 'conexiones', 'equipos-y-personal', 'carpeta', 'establecimientos', 'equipo', 'plataforma', '']);
+    expect(operacion?.children?.map((c) => c.path)).toEqual(['hoy', 'documentos', 'obligaciones', 'calendario', 'municipal', 'pagos', 'gastos', 'inventario', 'conexiones', 'equipos-y-personal', 'carpeta', 'establecimientos', 'equipo', 'plataforma', '']);
   });
 
   describe('guards por permiso', () => {

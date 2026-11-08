@@ -24,6 +24,8 @@ interface NavItem {
   icon: string;
   /** Sin permiso, el menú no la ofrece (el backend igual la rechazaría). */
   requires?: FacilityAction;
+  /** Solo con Gastos encendido (true) o apagado (false) para la cuenta. */
+  whenExpenses?: boolean;
 }
 
 interface NavGroup {
@@ -52,7 +54,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: 'Mi gabinete',
     items: [
-      { path: '/operacion/pagos', label: 'Pagos recurrentes', icon: 'event_repeat', requires: 'payments' },
+      { path: '/operacion/pagos', label: 'Pagos recurrentes', icon: 'event_repeat', requires: 'payments', whenExpenses: false },
+      { path: '/operacion/gastos', label: 'Gastos', icon: 'payments', requires: 'payments', whenExpenses: true },
       { path: '/operacion/inventario', label: 'Inventario', icon: 'inventory_2', requires: 'read' },
       { path: '/operacion/establecimientos', label: 'Establecimientos', icon: 'apartment' },
       { path: '/operacion/equipos-y-personal', label: 'Equipos y personal', icon: 'groups' },
@@ -65,9 +68,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 /** Debajo de 768 px la barra lateral flota sobre el contenido y se abre con el botón de menú. */
 export const MOBILE_QUERY = '(max-width: 767.98px)';
 
-export function visibleNavGroups(can: (action: FacilityAction) => boolean, groups: readonly NavGroup[] = NAV_GROUPS): NavGroup[] {
+export function visibleNavGroups(can: (action: FacilityAction) => boolean, groups: readonly NavGroup[] = NAV_GROUPS, expensesEnabled = false): NavGroup[] {
+  const shown = (item: NavItem) => (!item.requires || can(item.requires)) && (item.whenExpenses === undefined || item.whenExpenses === expensesEnabled);
   return groups
-    .map((group) => ({ ...group, items: group.items.filter((item) => !item.requires || can(item.requires)) }))
+    .map((group) => ({ ...group, items: group.items.filter(shown) }))
     .filter((group) => group.items.length > 0);
 }
 
@@ -158,7 +162,8 @@ export class LayoutComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly google = inject(GoogleSignIn);
   private readonly permissions = inject(PermissionsService);
-  readonly nav = computed(() => visibleNavGroups((action) => this.permissions.can(action)));
+  private readonly expensesEnabled = signal(false);
+  readonly nav = computed(() => visibleNavGroups((action) => this.permissions.can(action), NAV_GROUPS, this.expensesEnabled()));
   readonly mobile = toSignal(inject(BreakpointObserver).observe(MOBILE_QUERY).pipe(map((s) => s.matches)), { initialValue: false });
   /** Solo cuenta en móvil: el menú flotante se cierra al navegar. */
   readonly menuOpen = signal(false);
@@ -172,6 +177,7 @@ export class LayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.platform.isPlatformAdmin().subscribe((ok) => this.platformAdmin.set(ok));
+    this.api.expensesEnabled().subscribe((enabled) => this.expensesEnabled.set(enabled));
     this.api.establishments().subscribe({
       next: (list) => {
         this.context.setEstablishments(list);

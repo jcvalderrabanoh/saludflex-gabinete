@@ -44,7 +44,7 @@ const dayNumber = (date: string) => Date.parse(`${date}T00:00:00Z`) / MS_PER_DAY
 
 /** Un renglón por cada periodo vencido y uno por el próximo pago de cada servicio. */
 export function paymentSections(payments: readonly RecurringPayment[], today: string): PaymentSections {
-  const nextLines = payments.map((payment) => ({ payment, dueOn: payment.next }));
+  const nextLines = payments.flatMap((payment) => (payment.next ? [{ payment, dueOn: payment.next }] : []));
   const isSoon = (line: PaymentLine) => dayNumber(line.dueOn) - dayNumber(today) <= SOON_DAYS;
   return {
     overdue: payments.flatMap((payment) => payment.overdue.map((dueOn) => ({ payment, dueOn }))).sort(byDue),

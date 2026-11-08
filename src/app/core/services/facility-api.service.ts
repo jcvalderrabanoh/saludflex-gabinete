@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   InventoryCatalog,
@@ -18,7 +18,11 @@ import {
   InventoryTaskInput,
   ExportFormat,
   ActivateObligationInput,
+  CommitmentPlan,
   ConnectedApp,
+  Expense,
+  ExpenseInput,
+  ExpensesList,
   MarkPaidInput,
   RecurringPayment,
   RecurringPaymentInput,
@@ -275,6 +279,46 @@ export class FacilityApiService {
 
   unmarkPaymentPaid(id: string, dueOn: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/recurring-payments/${id}/paid/${dueOn}`);
+  }
+
+  skipPaymentPeriod(id: string, dueOn: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/recurring-payments/${id}/skip`, { dueOn });
+  }
+
+  /** Si falla, Gastos se queda apagado: «Pagos recurrentes» sigue disponible. */
+  expensesEnabled(): Observable<boolean> {
+    return this.http.get<{ enabled: boolean }>(`${this.base}/expenses/availability`).pipe(
+      map((r) => r.enabled),
+      catchError(() => of(false)),
+    );
+  }
+
+  commitments(establishmentId: string): Observable<CommitmentPlan> {
+    return this.http.get<CommitmentPlan>(`${this.base}/establishments/${establishmentId}/commitments`);
+  }
+
+  expenses(establishmentId: string, from: string, to: string): Observable<ExpensesList> {
+    return this.http.get<ExpensesList>(`${this.base}/establishments/${establishmentId}/expenses`, { params: { from, to } });
+  }
+
+  createExpense(establishmentId: string, input: ExpenseInput): Observable<Expense> {
+    return this.http.post<Expense>(`${this.base}/establishments/${establishmentId}/expenses`, input);
+  }
+
+  updateExpense(id: string, input: Partial<ExpenseInput>): Observable<Expense> {
+    return this.http.patch<Expense>(`${this.base}/expenses/${id}`, input);
+  }
+
+  voidExpense(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/expenses/${id}`);
+  }
+
+  markExpensePaid(id: string, input: { paidOn?: string }): Observable<void> {
+    return this.http.post<void>(`${this.base}/expenses/${id}/paid`, input);
+  }
+
+  unmarkExpensePaid(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/expenses/${id}/paid`);
   }
 
   inventoryOverview(establishmentId: string): Observable<{ items: InventoryOverviewRow[] }> {

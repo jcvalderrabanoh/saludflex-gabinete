@@ -15,6 +15,12 @@ describe('menú del layout', () => {
     ]);
   });
 
+  it('con Gastos encendido, «Gastos» reemplaza a «Pagos recurrentes»', () => {
+    const labels = visibleNavGroups(allow('payments'), undefined, true).flatMap((g) => g.items.map((i) => i.label));
+    expect(labels).toContain('Gastos');
+    expect(labels).not.toContain('Pagos recurrentes');
+  });
+
   it('sin permisos oculta Carpeta, Pagos y Accesos y deja el resto', () => {
     expect(groups(allow())).toEqual([
       ['Día a día', ['Hoy', 'Calendario', 'Documentos']],
