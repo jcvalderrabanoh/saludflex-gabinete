@@ -20,6 +20,7 @@ import {
   ExpenseLine,
   ExpensesData,
   STATUS_LABEL,
+  billedLabel,
   commitmentCuts,
   expenseSections,
   periodOf,
@@ -134,7 +135,7 @@ function yearsFrom(today: string, years: number): string {
                           <button type="button" class="tag" [matMenuTriggerFor]="files" [attr.aria-label]="'Soportes de ' + line.name"><mat-icon aria-hidden="true">attach_file</mat-icon>{{ line.attachments.length }}</button>
                           <mat-menu #files="matMenu">
                             @for (f of line.attachments; track f.id) {
-                              <button mat-menu-item (click)="openAttachment(f.id)">Ver soporte{{ f.references.length ? ' · ' + f.references.join(', ') : '' }}</button>
+                              <button mat-menu-item (click)="openAttachment(f.id)">Ver recibo{{ f.references.length ? ' · ' + f.references.join(', ') : '' }}{{ billed(f) ? ' · ' + billed(f) : '' }}</button>
                             }
                           </mat-menu>
                         }
@@ -271,6 +272,7 @@ export class ExpensesComponent implements OnDestroy {
   readonly certainty = CERTAINTY_LABEL;
   readonly status = STATUS_LABEL;
   readonly money = formatMoney;
+  readonly billed = billedLabel;
 
   readonly cuts = computed(() => {
     const d = this.data();

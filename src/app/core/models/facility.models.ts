@@ -425,6 +425,9 @@ export interface AttachmentSummary {
   id: string;
   contentType: string;
   references: string[];
+  /** Periodo facturado o de consumo del recibo. */
+  billedFrom?: string | null;
+  billedTo?: string | null;
   createdAt: string;
 }
 
@@ -443,6 +446,9 @@ export interface ExpenseSuggestion {
   paidOn: string | null;
   paidOnConfidence: number;
   dueOn: string | null;
+  /** Periodo facturado o de consumo que leyó la IA. */
+  billedFrom?: string | null;
+  billedTo?: string | null;
   supplierName: string | null;
   supplierConfidence: number;
   supplierId: string | null;
@@ -475,7 +481,13 @@ export interface PaymentAttachment {
   possibleDuplicates?: PaymentTarget[];
 }
 
-export interface RegisterAttachmentInput {
+/** Periodo facturado o de consumo del recibo (los dos o ninguno). */
+export interface BilledPeriod {
+  billedFrom?: string;
+  billedTo?: string;
+}
+
+export interface RegisterAttachmentInput extends BilledPeriod {
   name: string;
   category: ExpenseCategory;
   amountCents: number;
@@ -484,7 +496,7 @@ export interface RegisterAttachmentInput {
   references?: string[];
 }
 
-export interface AttachAttachmentInput extends PaymentTarget {
+export interface AttachAttachmentInput extends PaymentTarget, BilledPeriod {
   /** false: solo adjunta el recibo (por pagar) sin marcar el pago. */
   markPaid?: boolean;
   paidOn?: string;

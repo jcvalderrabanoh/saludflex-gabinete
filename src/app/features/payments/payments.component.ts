@@ -6,6 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { PaymentAttachment, RecurringPayment, RecurringPaymentsOverview } from '../../core/models/facility.models';
+import { billedLabel } from '../expenses/expenses.helpers';
 import { PaymentUploadsComponent, openAttachmentFile } from '../expenses/payment-uploads.component';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
@@ -77,12 +78,16 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
                           <button class="undo" type="button" (click)="openAttachment(f.id)">Ver{{ f.references.length ? ' ' + f.references.join(', ') : '' }}</button>
                         }
                       </span>
+                      @for (f of periodAttachments(line); track f.id) {
+                        @if (billed(f)) { <span class="meta">{{ billed(f) }}</span> }
+                      }
                     }
                     <span class="meta">{{ period(line.payment.periodMonths) }} · {{ line.payment.kind === 'subscription' ? 'Suscripción' : 'Servicio' }}</span>
                     @if (line.dueOn === line.payment.next && line.payment.lastPaid; as last) {
                       <span class="meta">Último pago {{ date(last.paidOn) }}@if (last.paidCents !== null) { · {{ money(last.paidCents) }} }
                         <button class="undo" type="button" [disabled]="busy()" (click)="undo(line.payment)">Deshacer</button>
                         @for (f of last.attachments ?? []; track f.id) {
+                          @if (billed(f)) { <span class="period">{{ billed(f) }}</span> }
                           <button class="undo" type="button" (click)="openAttachment(f.id)">Ver soporte{{ f.references.length ? ' ' + f.references.join(', ') : '' }}</button>
                         }
                         <button class="undo" type="button" [disabled]="busy()" (click)="pickAttachment(line.payment.id, last.dueOn)">Adjuntar recibo del último pago</button>
@@ -129,6 +134,7 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
     .chip { justify-self: start; font-size: 12px; font-weight: 600; border-radius: 12px; padding: 2px 10px; background: #fef3c7; color: #92400e; white-space: nowrap; }
     .chip.overdue { background: #fee2e2; color: #991b1b; }
     .undo { border: 0; background: none; padding: 0 0 0 4px; font: inherit; color: #1d4ed8; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+    .period { display: block; }
     .undo:disabled { color: #64748b; cursor: default; }
     .empty { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-top: 16px; }
     .empty p { max-width: 65ch; color: #475569; font-size: 14px; }
@@ -203,6 +209,7 @@ export class PaymentsComponent implements OnDestroy {
     return DATE.format(new Date(`${value}T00:00:00Z`)).replaceAll('.', '');
   }
   period = periodLabel;
+  billed = billedLabel;
   amount = amountLabel;
   money = formatMoney;
 

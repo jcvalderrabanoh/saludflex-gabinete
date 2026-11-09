@@ -412,3 +412,98 @@ export function mergeNeedsChoice(source: Pick<Expense, 'amountCents' | 'paidOn'>
   const dateDiffers = target.paidOn !== null && source.paidOn !== null && target.paidOn !== source.paidOn;
   return amountDiffers || dateDiffers;
 }
+
+/** Lo mínimo para dar de alta un servicio a partir de un recibo. */
+export interface ServiceDefaults {
+  name: string;
+  periodMonths: number;
+  /** Un número de servicio o medidor que traiga el recibo (solo dígitos). */
+  reference: string;
+}
+
+const KNOWN_SERVICES: readonly { pattern: RegExp; name: string; periodMonths: number }[] = [
+  { pattern: /\bluz\b|\bcfe\b|electric/i, name: 'Luz', periodMonths: 2 },
+  { pattern: /\bagua\b|sacmex|siapa|conagua/i, name: 'Agua', periodMonths: 2 },
+  { pattern: /\bgas\b/i, name: 'Gas', periodMonths: 1 },
+  { pattern: /tel[eé]fono|internet|telmex|izzi|totalplay|megacable/i, name: 'Teléfono e internet', periodMonths: 1 },
+  { pattern: /predial/i, name: 'Predial', periodMonths: 12 },
+  { pattern: /renta|arrendamiento/i, name: 'Renta', periodMonths: 1 },
+];
+
+export function serviceDefaults(suggestion: ExpenseSuggestion | null | undefined, references: readonly string[]): ServiceDefaults {
+  const text = [suggestion?.documentType, suggestion?.supplierName, suggestion?.name].filter(Boolean).join(' ');
+  const known = KNOWN_SERVICES.find((s) => s.pattern.test(text));
+  const candidates = [...references, ...(suggestion?.references ?? [])];
+  const reference = candidates.map((r) => r.replace(/[\s-]/g, '')).find((r) => /^\d{8,14}$/.test(r)) ?? '';
+  return {
+    name: known?.name ?? suggestion?.supplierName ?? suggestion?.name ?? '',
+    periodMonths: known?.periodMonths ?? 1,
+    reference,
+  };
+}
+
+/** Prefijo de las opciones «dar de alta este servicio» en la lista de pagos. */
+export const NEW_SERVICE = 'new:';
+
+export interface NewServiceOption {
+  key: string;
+  label: string;
+  name: string;
+  periodMonths: number;
+}
+
+const COMMON_SERVICES: readonly { name: string; periodMonths: number }[] = [
+  { name: 'Luz', periodMonths: 2 },
+  { name: 'Agua', periodMonths: 2 },
+  { name: 'Gas', periodMonths: 1 },
+  { name: 'Teléfono e internet', periodMonths: 1 },
+  { name: 'Renta', periodMonths: 1 },
+  { name: 'Predial', periodMonths: 12 },
+];
+
+/** Servicios comunes para dar de alta; el que reconoció la IA va primero. */
+export function newServiceOptions(defaults: ServiceDefaults): NewServiceOption[] {
+  const common = COMMON_SERVICES.map((s) => ({ key: `${NEW_SERVICE}${s.name}`, label: `${s.name} (nuevo)`, ...s }));
+  const detected = common.find((o) => o.name === defaults.name);
+  const other: NewServiceOption = {
+    key: `${NEW_SERVICE}otro`,
+    label: detected || !defaults.name ? 'Otro servicio (nuevo)' : `${defaults.name} (nuevo)`,
+    name: detected ? '' : defaults.name,
+    periodMonths: defaults.periodMonths,
+  };
+  const rest = common.filter((o) => o !== detected);
+  return [...(detected ? [{ ...detected, label: `★ ${detected.label}` }] : []), ...(detected || !defaults.name ? [] : [{ ...other, label: `★ ${other.label}` }]), ...rest, ...(detected || !defaults.name ? [other] : [])];
+}
+
+const plain = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').trim().toLowerCase();
+
+/**
+ * Lo que queda elegido al abrir: el que reconoció la IA; si no, el único
+ * servicio registrado con ese nombre («Luz»); si no hay, darlo de alta.
+ */
+export function initialTarget(options: readonly TargetOption[], sources: PaymentSources, defaults: ServiceDefaults, canManage: boolean): string {
+  const likely = options.find((o) => o.likely);
+  if (likely) return likely.key;
+  if (defaults.name) {
+    const named = sources.overview.payments.filter((p) => plain(p.name).startsWith(plain(defaults.name)));
+    if (named.length === 1) {
+      const period = options.find((o) => o.target.recurringPaymentId === named[0].id && !o.paidOn);
+      if (period) return period.key;
+    }
+  }
+  if (!canManage) return '';
+  const fresh = newServiceOptions(defaults)[0];
+  return defaults.name && fresh ? fresh.key : '';
+}
+
+const SHORT_MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+function shortDate(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return `${d} ${SHORT_MONTHS[m - 1]} ${y}`;
+}
+
+/** «Periodo facturado 5 sep 2026 – 5 nov 2026», o vacío si el recibo no lo trae. */
+export function billedLabel(period: { billedFrom?: string | null; billedTo?: string | null }): string {
+  return period.billedFrom && period.billedTo ? `Periodo facturado ${shortDate(period.billedFrom)} – ${shortDate(period.billedTo)}` : '';
+}
