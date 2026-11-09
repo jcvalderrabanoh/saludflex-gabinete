@@ -37,7 +37,7 @@ export function openAttachmentFile(api: FacilityApiService, id: string, onError:
       <div class="top">
         <div>
           <h2 id="uploads-title">Recibos y comprobantes de pago @if (pending.length > 0) { <span class="count">{{ pending.length }} por validar</span> }</h2>
-          <p class="reading">Sube recibos pagados o por pagar (luz, agua, renta, facturas, transferencias). La IA los lee y propone a qué pago y periodo van; tú confirmas. Para pegarlo directo a un pago, usa «Adjuntar recibo» en su renglón.</p>
+          <p class="reading">Sube recibos pagados o por pagar (luz, agua, renta, facturas, transferencias). La IA los lee y propone a qué pago y periodo van; tú confirmas. Si la IA no lo encuentra, elige tú el pago al validarlo, o usa «Adjuntar recibo o comprobante» en el renglón del pago.</p>
         </div>
         <input #files type="file" hidden multiple accept="application/pdf,image/*" (change)="upload(files.files); files.value = ''" />
         <button mat-flat-button color="primary" class="upload" [disabled]="uploading()" (click)="files.click()"><mat-icon>upload_file</mat-icon> {{ uploading() ? 'Subiendo…' : 'Subir recibos o comprobantes' }}</button>
@@ -59,6 +59,9 @@ export function openAttachmentFile(api: FacilityApiService, id: string, onError:
               <button mat-button (click)="open(a.id)">Ver</button>
               @if (a.state === 'review' || a.state === 'failed' || a.state === 'validating') {
                 <button mat-stroked-button (click)="validate(a)">Validar</button>
+              }
+              @if (a.state === 'review' || a.state === 'failed') {
+                <button mat-button [disabled]="rereading() === a.id" (click)="reread(a)" title="Si la IA no encontró algún dato (periodo, monto, servicio)">{{ rereading() === a.id ? 'Leyendo…' : 'Volver a leer' }}</button>
               }
             </li>
           }
@@ -140,6 +143,24 @@ export class PaymentUploadsComponent {
         if (failed.length) this.error.set(failed.join(' · '));
         this.changed.emit();
       });
+  }
+
+  readonly rereading = signal<string | null>(null);
+
+  reread(attachment: PaymentAttachment): void {
+    this.rereading.set(attachment.id);
+    this.error.set(null);
+    this.api.rereadPaymentAttachment(attachment.id).subscribe({
+      next: () => {
+        this.rereading.set(null);
+        this.notice.set('La IA está volviendo a leer el recibo; aparecerá aquí en unos segundos.');
+        this.changed.emit();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.rereading.set(null);
+        this.error.set(apiMessage(err));
+      },
+    });
   }
 
   open(id: string): void {

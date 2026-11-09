@@ -369,6 +369,11 @@ export class FacilityApiService {
     return this.http.patch<PaymentAttachment>(`${this.base}/payment-attachments/${id}/references`, { references });
   }
 
+  /** La IA vuelve a leer un soporte en revisión o que falló. */
+  rereadPaymentAttachment(id: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/payment-attachments/${id}/reread`, {});
+  }
+
   removePaymentAttachment(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/payment-attachments/${id}`);
   }
