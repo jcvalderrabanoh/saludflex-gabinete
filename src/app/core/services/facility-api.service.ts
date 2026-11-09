@@ -23,6 +23,12 @@ import {
   Expense,
   ExpenseInput,
   ExpensesList,
+  ExpenseMerge,
+  AttachAttachmentInput,
+  MergeKeep,
+  PaymentAttachment,
+  PaymentTarget,
+  RegisterAttachmentInput,
   MarkPaidInput,
   RecurringPayment,
   RecurringPaymentInput,
@@ -319,6 +325,65 @@ export class FacilityApiService {
 
   unmarkExpensePaid(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/expenses/${id}/paid`);
+  }
+
+  /** Une un gasto duplicado con el pago que se conserva (lo anula y le pasa sus soportes). */
+  mergeExpense(id: string, target: PaymentTarget, keep?: MergeKeep): Observable<{ merge: ExpenseMerge; movedAttachments: number }> {
+    return this.http.post<{ merge: ExpenseMerge; movedAttachments: number }>(`${this.base}/expenses/${id}/merge`, clean({ ...target, keep }));
+  }
+
+  undoExpenseMerge(mergeId: string): Observable<ExpenseMerge> {
+    return this.http.post<ExpenseMerge>(`${this.base}/expense-merges/${mergeId}/undo`, {});
+  }
+
+  /** Sube UN soporte. Con pago queda adjunto; sin pago, la IA propone el registro. */
+  uploadPaymentAttachment(
+    establishmentId: string,
+    file: File,
+    target: PaymentTarget = {},
+    references: string[] = [],
+  ): Observable<{ attachment: PaymentAttachment; duplicate: boolean }> {
+    const form = new FormData();
+    for (const [key, value] of Object.entries(target)) if (value) form.append(key, value);
+    if (references.length) form.append('references', JSON.stringify(references));
+    form.append('file', file, file.name);
+    return this.http.post<{ attachment: PaymentAttachment; duplicate: boolean }>(
+      `${this.base}/establishments/${establishmentId}/payment-attachments`,
+      form,
+    );
+  }
+
+  pendingPaymentAttachments(establishmentId: string): Observable<PaymentAttachment[]> {
+    return this.http.get<PaymentAttachment[]>(`${this.base}/establishments/${establishmentId}/payment-attachments/pending`);
+  }
+
+  registerAttachmentExpense(id: string, input: RegisterAttachmentInput): Observable<PaymentAttachment> {
+    return this.http.post<PaymentAttachment>(`${this.base}/payment-attachments/${id}/expense`, clean(input));
+  }
+
+  attachToPayment(id: string, input: AttachAttachmentInput): Observable<PaymentAttachment> {
+    return this.http.post<PaymentAttachment>(`${this.base}/payment-attachments/${id}/attach`, clean(input));
+  }
+
+  updateAttachmentReferences(id: string, references: string[]): Observable<PaymentAttachment> {
+    return this.http.patch<PaymentAttachment>(`${this.base}/payment-attachments/${id}/references`, { references });
+  }
+
+  removePaymentAttachment(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/payment-attachments/${id}`);
+  }
+
+  paymentAttachmentFile(id: string): Observable<Blob> {
+    return this.http.get(`${this.base}/payment-attachments/${id}/file`, { responseType: 'blob' });
+  }
+
+  /** El catálogo de proveedores de Inventario, visto desde Pagos y Gastos. */
+  paymentSuppliers(establishmentId: string): Observable<InventorySupplier[]> {
+    return this.http.get<InventorySupplier[]>(`${this.base}/establishments/${establishmentId}/payment-suppliers`);
+  }
+
+  createPaymentSupplier(establishmentId: string, input: { name: string; contact?: string }): Observable<InventorySupplier> {
+    return this.http.post<InventorySupplier>(`${this.base}/establishments/${establishmentId}/payment-suppliers`, input);
   }
 
   inventoryOverview(establishmentId: string): Observable<{ items: InventoryOverviewRow[] }> {

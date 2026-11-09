@@ -1,5 +1,20 @@
 import { CommitmentItem, CommitmentPlan, Expense, RecurringPayment, RecurringPaymentsOverview } from '../../core/models/facility.models';
-import { commitmentCuts, expenseSections, periodOf, personalDataError, summaryNote, toExpenseInput, toRecurringInput } from './expenses.helpers';
+import {
+  ExpensesData,
+  commitmentCuts,
+  expenseSections,
+  isSafeReference,
+  mergeNeedsChoice,
+  parseReferences,
+  periodOf,
+  personalDataError,
+  referencesError,
+  suggestionSummary,
+  summaryNote,
+  targetOptions,
+  toExpenseInput,
+  toRecurringInput,
+} from './expenses.helpers';
 
 const item = (over: Partial<CommitmentItem>): CommitmentItem => ({
   source: 'recurring',
@@ -172,11 +187,11 @@ describe('entradas del formulario', () => {
   const base = { name: '  Renta ', category: 'rent' as const, amountMode: 'fixed' as const, amount: '18000', dueOn: '2026-11-10', periodMonths: 1, endsOn: '' };
 
   it('un gasto pasa pesos a centavos y limpia el nombre', () => {
-    expect(toExpenseInput(base)).toEqual({ name: 'Renta', category: 'rent', amountCents: 1800000, dueOn: '2026-11-10' });
+    expect(toExpenseInput(base)).toEqual({ name: 'Renta', category: 'rent', amountCents: 1800000, dueOn: '2026-11-10', supplierId: null });
   });
 
   it('un recurrente sin término manda null, y software o plataforma son suscripción', () => {
-    expect(toRecurringInput(base)).toEqual({ name: 'Renta', kind: 'service', category: 'rent', amountMode: 'fixed', amountCents: 1800000, periodMonths: 1, firstDueOn: '2026-11-10', endsOn: null });
+    expect(toRecurringInput(base)).toEqual({ name: 'Renta', kind: 'service', category: 'rent', amountMode: 'fixed', amountCents: 1800000, periodMonths: 1, firstDueOn: '2026-11-10', endsOn: null, supplierId: null });
     expect(toRecurringInput({ ...base, category: 'platform', endsOn: '2027-01-01' })).toEqual(jasmine.objectContaining({ kind: 'subscription', endsOn: '2027-01-01' }));
   });
 
@@ -186,5 +201,63 @@ describe('entradas del formulario', () => {
 
   it('un monto variable vacío queda sin dato, no en cero', () => {
     expect(toRecurringInput({ ...base, amountMode: 'variable', amount: '' }).amountCents).toBeNull();
+  });
+});
+
+describe('soportes de pago y duplicados', () => {
+  const data = (): ExpensesData => ({
+    plan: { today: '2026-11-08', until: '2026-12-08', items: [], days: [], totals: { totalCents: 0, estimatedCents: 0, overdueCents: 0, unknownCount: 0 } },
+    overview: {
+      today: '2026-11-08',
+      payments: [
+        {
+          id: 'p1', establishmentId: 'e1', name: 'Luz', kind: 'service', category: 'utilities', amountMode: 'fixed', amountCents: 1000,
+          periodMonths: 1, firstDueOn: '2026-09-10', endsOn: null, overdue: ['2026-10-10'], next: '2026-11-10', skipped: [],
+          paid: [{ dueOn: '2026-09-10', paidOn: '2026-09-11', paidCents: 1000 }], lastPaid: null,
+        },
+      ],
+    },
+    expenses: [
+      { id: 'x1', establishmentId: 'e1', name: 'Renta', category: 'rent', amountCents: 5000, dueOn: '2026-11-01', paidOn: null },
+      { id: 'x2', establishmentId: 'e1', name: 'Renta', category: 'rent', amountCents: 5000, dueOn: '2026-11-02', paidOn: '2026-11-02' },
+    ],
+  });
+
+  it('referencias: separa por coma o renglón y rechaza tarjeta, CLABE, RFC y CURP', () => {
+    expect(parseReferences('F-1, F-2\nF-1')).toEqual(['F-1', 'F-2']);
+    expect(referencesError(['F-1', 'Rastreo 0841230011'])).toBeNull();
+    expect(referencesError(['012180001234567891'])).toContain('CLABE');
+    expect(referencesError(['GOMA800101ABC'])).toContain('RFC');
+    expect(isSafeReference('4152 3138 1234 5678')).toBeFalse();
+  });
+
+  it('opciones para unir: los probables primero, sin el propio gasto, con periodos recurrentes', () => {
+    const options = targetOptions(data(), [{ expenseId: 'x2' }], 'x1');
+    expect(options[0]).toEqual(jasmine.objectContaining({ key: 'e:x2', likely: true }));
+    expect(options.map((o) => o.key)).not.toContain('e:x1');
+    expect(options.map((o) => o.key)).toEqual(jasmine.arrayContaining(['r:p1:2026-10-10', 'r:p1:2026-11-10', 'r:p1:2026-09-10']));
+  });
+
+  it('pide elegir solo si monto o fecha no coinciden', () => {
+    expect(mergeNeedsChoice({ amountCents: 5000, paidOn: '2026-11-02' }, { amountCents: 5000, paidOn: null })).toBeFalse();
+    expect(mergeNeedsChoice({ amountCents: 5000, paidOn: null }, { amountCents: 4900, paidOn: null })).toBeTrue();
+    expect(mergeNeedsChoice({ amountCents: 5000, paidOn: '2026-11-02' }, { amountCents: 5000, paidOn: '2026-11-03' })).toBeTrue();
+  });
+
+  it('cada renglón trae sus soportes y posibles duplicados', () => {
+    const d = data();
+    d.expenses[1] = { ...d.expenses[1], attachments: [{ id: 'f1', contentType: 'application/pdf', references: [], createdAt: '' }], possibleDuplicateIds: ['x1'] };
+    const done = expenseSections(d, 'all').find((s) => s.key === 'done');
+    expect(done?.lines[0]).toEqual(jasmine.objectContaining({ sourceId: 'x2', duplicateIds: ['x1'] }));
+    expect(done?.lines[0].attachments.length).toBe(1);
+  });
+
+  it('el resumen de la propuesta dice nombre, monto, fecha y proveedor', () => {
+    expect(
+      suggestionSummary({
+        documentType: 'Recibo', isPaymentDocument: true, name: 'Luz', category: 'utilities', categoryConfidence: 1, amountCents: 123450,
+        currency: 'MXN', amountConfidence: 1, paidOn: '2026-11-03', paidOnConfidence: 1, dueOn: null, supplierName: 'CFE', supplierConfidence: 1, supplierId: null, references: [],
+      }),
+    ).toBe('Luz · $1,234.50 MXN · pagado el 2026-11-03 · CFE');
   });
 });

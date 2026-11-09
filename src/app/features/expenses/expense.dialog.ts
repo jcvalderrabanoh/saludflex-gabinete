@@ -8,11 +8,12 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { Expense, ExpenseCategory, RecurringAmountMode, RecurringPayment } from '../../core/models/facility.models';
+import { Expense, ExpenseCategory, InventorySupplier, RecurringAmountMode, RecurringPayment } from '../../core/models/facility.models';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { PERIOD_OPTIONS } from '../payments/payments.helpers';
 import { CATEGORY_OPTIONS, ExpenseFormValue, personalDataError, toExpenseInput, toRecurringInput } from './expenses.helpers';
+import { SupplierFieldComponent } from './supplier-field.component';
 
 /** Los recurrentes admiten nombres más largos que un gasto único. */
 const EXPENSE_NAME_MAX_LENGTH = 80;
@@ -24,6 +25,8 @@ export interface ExpenseDialogData {
   /** Si viene uno, se edita en vez de agregar. */
   expense?: Expense;
   payment?: RecurringPayment;
+  /** Catálogo de proveedores (el de Inventario). */
+  suppliers?: InventorySupplier[];
 }
 
 function safeName(control: AbstractControl): ValidationErrors | null {
@@ -40,7 +43,7 @@ function amountRequired(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-expense-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, MatSelectModule],
+  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, MatSelectModule, SupplierFieldComponent],
   template: `
     <h2 mat-dialog-title>{{ editing ? 'Editar gasto' : 'Agregar gasto' }}</h2>
     <mat-dialog-content>
@@ -65,6 +68,7 @@ function amountRequired(group: AbstractControl): ValidationErrors | null {
             @for (c of categories; track c.value) { <mat-option [value]="c.value">{{ c.label }}</mat-option> }
           </mat-select>
         </mat-form-field>
+        <app-supplier-field [establishmentId]="data.establishmentId" [suppliers]="suppliers()" [canCreate]="true" [control]="form.controls.supplierId" (created)="addSupplier($event)" />
         @if (repeats) {
           <mat-button-toggle-group formControlName="amountMode" aria-label="Tipo de monto" class="toggle" hideSingleSelectionIndicator>
             <mat-button-toggle value="fixed">Monto exacto</mat-button-toggle>
@@ -122,12 +126,14 @@ export class ExpenseDialogComponent {
   readonly editing = !!(this.data.expense || this.data.payment);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
+  readonly suppliers = signal(this.data.suppliers ?? []);
 
   readonly form = inject(FormBuilder).nonNullable.group(
     {
       repeats: [!!this.data.payment],
       name: [this.data.expense?.name ?? this.data.payment?.name ?? '', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(RECURRING_NAME_MAX_LENGTH), safeName]],
       category: [(this.data.expense?.category ?? this.data.payment?.category ?? 'other') as ExpenseCategory, Validators.required],
+      supplierId: [this.data.expense?.supplierId ?? this.data.payment?.supplierId ?? ''],
       amountMode: [(this.data.payment?.amountMode ?? 'fixed') as RecurringAmountMode],
       amount: [this.initialAmount() as number | string | null],
       dueOn: [this.data.expense?.dueOn ?? this.data.payment?.firstDueOn ?? this.data.today, Validators.required],
@@ -136,6 +142,11 @@ export class ExpenseDialogComponent {
     },
     { validators: amountRequired },
   );
+
+  addSupplier(supplier: InventorySupplier): void {
+    this.suppliers.update((list) => [...list, supplier].sort((a, b) => a.name.localeCompare(b.name)));
+    this.form.controls.supplierId.setValue(supplier.id);
+  }
 
   get repeats(): boolean {
     return this.form.controls.repeats.value;
