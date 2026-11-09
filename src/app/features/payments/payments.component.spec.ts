@@ -62,7 +62,7 @@ describe('Pagos recurrentes', () => {
         id: 'a1', establishmentId: 'e1', state: 'review', expenseId: null, recurringPaymentId: null, dueOn: null, contentType: 'application/pdf',
         references: [], lastError: null, hasFile: true, createdAt: '',
         suggestion: { documentType: 'Recibo CFE', isPaymentDocument: true, name: 'Luz', category: 'utilities', categoryConfidence: 1, amountCents: 215000, currency: 'MXN', amountConfidence: 1, paidOn: null, paidOnConfidence: 0, dueOn: '2026-11-18', supplierName: 'CFE', supplierConfidence: 1, supplierId: null, references: [], suggestedTarget: { recurringPaymentId: 'p2', dueOn: '2026-11-20' } },
-        possibleDuplicates: [{ recurringPaymentId: 'p2', dueOn: '2026-11-20' }],
+        possibleDuplicates: [],
       },
     ]);
     fixture.detectChanges();

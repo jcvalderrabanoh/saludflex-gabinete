@@ -176,8 +176,13 @@ export class ValidateAttachmentDialogComponent implements OnDestroy {
   readonly error = signal<string | null>(null);
   readonly suppliers = signal(this.data.suppliers);
   readonly duplicates = computed(() => this.a.possibleDuplicates ?? []);
-  readonly options = computed(() => targetOptions(this.data.sources, this.duplicates()));
-  readonly mode = signal<Mode>(this.duplicates().length > 0 || !this.data.canRegister ? 'existing' : 'new');
+  /** El servicio que reconoció la IA (por su número) y los posibles duplicados. */
+  private readonly likely = computed(() => {
+    const target = this.a.suggestion?.suggestedTarget;
+    return target ? [target, ...this.duplicates()] : this.duplicates();
+  });
+  readonly options = computed(() => targetOptions(this.data.sources, this.likely()));
+  readonly mode = signal<Mode>(this.likely().length > 0 || !this.data.canRegister ? 'existing' : 'new');
   /** El servicio que la IA reconoció por su número de medidor o servicio. */
   readonly service = computed(() => {
     const target = this.a.suggestion?.suggestedTarget;
