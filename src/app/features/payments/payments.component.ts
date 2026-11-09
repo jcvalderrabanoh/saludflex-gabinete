@@ -84,23 +84,31 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
                     }
                     <span class="meta">{{ period(line.payment.periodMonths) }} · {{ line.payment.kind === 'subscription' ? 'Suscripción' : 'Servicio' }}</span>
                     @if (line.dueOn === line.payment.next && line.payment.lastPaid; as last) {
-                      <span class="meta">Último pago {{ date(last.paidOn) }}@if (last.paidCents !== null) { · {{ money(last.paidCents) }} }
+                      <span class="meta">Último pago: periodo {{ date(last.dueOn) }}, pagado el {{ date(last.paidOn) }}@if (last.paidCents !== null) { · {{ money(last.paidCents) }} }
                         <button class="undo" type="button" [disabled]="busy()" (click)="undo(line.payment)">Deshacer</button>
                         @for (f of last.attachments ?? []; track f.id) {
                           @if (billed(f)) { <span class="period">{{ billed(f) }}</span> }
                           <button class="undo" type="button" (click)="openAttachment(f.id)">Ver soporte{{ f.references.length ? ' ' + f.references.join(', ') : '' }}</button>
                         }
-                        <button class="undo" type="button" [disabled]="busy()" (click)="pickAttachment(line.payment.id, last.dueOn)">Adjuntar recibo del último pago</button>
+                        <button class="undo" type="button" [disabled]="busy()" (click)="pickAttachment(line.payment.id, last.dueOn)">Adjuntar recibo o comprobante del último pago</button>
                       </span>
                     }
                   </div>
                   <div class="due">{{ date(line.dueOn) }}</div>
                   <div class="amount">{{ amount(line.payment) }}</div>
-                  <span class="chip" [class.overdue]="section.key === 'overdue'">{{ section.key === 'overdue' ? 'Vencido' : 'Por pagar' }}</span>
-                  <button mat-stroked-button [disabled]="busy()" (click)="markPaid(line)"><mat-icon>check</mat-icon> Marcar como pagado</button>
+                  @if (upToDate(section.key, line)) {
+                    <span class="chip ok">Al corriente</span>
+                    <span class="next-note">Siguiente periodo; márcalo cuando llegue su recibo.</span>
+                  } @else {
+                    <span class="chip" [class.overdue]="section.key === 'overdue'">{{ section.key === 'overdue' ? 'Vencido' : 'Por pagar' }}</span>
+                    <button mat-stroked-button [disabled]="busy()" (click)="markPaid(line)"><mat-icon>check</mat-icon> Marcar como pagado</button>
+                  }
                   <button mat-icon-button [matMenuTriggerFor]="menu" [attr.aria-label]="'Más acciones de ' + line.payment.name"><mat-icon>more_vert</mat-icon></button>
                   <mat-menu #menu="matMenu">
-                    <button mat-menu-item (click)="pickAttachment(line.payment.id, line.dueOn)"><mat-icon>attach_file</mat-icon> Adjuntar recibo de este periodo</button>
+                    @if (upToDate(section.key, line)) {
+                      <button mat-menu-item [disabled]="busy()" (click)="markPaid(line)"><mat-icon>check</mat-icon> Marcar pagado por adelantado</button>
+                    }
+                    <button mat-menu-item (click)="pickAttachment(line.payment.id, line.dueOn)"><mat-icon>attach_file</mat-icon> Adjuntar recibo o comprobante de este periodo</button>
                     <button mat-menu-item (click)="skip(line)"><mat-icon>event_busy</mat-icon> Omitir este periodo</button>
                     @if (permissions.can('manage')) {
                       <button mat-menu-item (click)="edit(line.payment)"><mat-icon>edit</mat-icon> Editar</button>
@@ -133,6 +141,8 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
     .due, .amount { font-size: 14px; color: #0f172a; font-variant-numeric: tabular-nums; }
     .chip { justify-self: start; font-size: 12px; font-weight: 600; border-radius: 12px; padding: 2px 10px; background: #fef3c7; color: #92400e; white-space: nowrap; }
     .chip.overdue { background: #fee2e2; color: #991b1b; }
+    .chip.ok { background: #dcfce7; color: #166534; }
+    .next-note { font-size: 12px; color: #475569; max-width: 22ch; }
     .undo { border: 0; background: none; padding: 0 0 0 4px; font: inherit; color: #1d4ed8; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
     .period { display: block; }
     .undo:disabled { color: #64748b; cursor: default; }
@@ -163,6 +173,14 @@ export class PaymentsComponent implements OnDestroy {
   readonly busy = signal(false);
   /** Recibos subidos sin pago, por leer o validar. */
   readonly pending = signal<PaymentAttachment[]>([]);
+
+  /**
+   * Un periodo lejano cuyo anterior ya se pagó: no se pide pagar (el recibo
+   * aún no llega); marcarlo por adelantado queda en el menú.
+   */
+  upToDate(section: string, line: PaymentLine): boolean {
+    return section === 'later' && line.payment.overdue.length === 0 && line.payment.lastPaid !== null;
+  }
 
   readonly visibleSections = computed(() => {
     const o = this.overview();
