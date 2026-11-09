@@ -11,6 +11,10 @@ import {
   referencesError,
   suggestionSummary,
   summaryNote,
+  billedLabel,
+  initialTarget,
+  newServiceOptions,
+  serviceDefaults,
   targetOptions,
   toExpenseInput,
   toRecurringInput,
@@ -259,5 +263,49 @@ describe('soportes de pago y duplicados', () => {
         currency: 'MXN', amountConfidence: 1, paidOn: '2026-11-03', paidOnConfidence: 1, dueOn: null, supplierName: 'CFE', supplierConfidence: 1, supplierId: null, references: [],
       }),
     ).toBe('Luz · $1,234.50 MXN · pagado el 2026-11-03 · CFE');
+  });
+});
+
+describe('dar de alta un servicio desde un recibo', () => {
+  const cfe = {
+    documentType: 'Recibo de luz CFE', isPaymentDocument: true, name: 'Luz noviembre', category: 'utilities' as const, categoryConfidence: 1,
+    amountCents: 647330, currency: 'MXN', amountConfidence: 1, paidOn: null, paidOnConfidence: 0, dueOn: '2026-11-20',
+    supplierName: 'CFE Suministrador', supplierConfidence: 1, supplierId: null, references: ['000087933519'],
+  };
+  const empty = { expenses: [], overview: { today: '2026-11-09', payments: [] } };
+
+  it('reconoce la luz, propone bimestral y toma el número de servicio del recibo', () => {
+    expect(serviceDefaults(cfe, [])).toEqual({ name: 'Luz', periodMonths: 2, reference: '000087933519' });
+  });
+
+  it('sin pagos registrados, «Luz (nuevo)» queda elegida y va primero', () => {
+    const defaults = serviceDefaults(cfe, []);
+    const options = newServiceOptions(defaults);
+    expect(options[0]).toEqual(jasmine.objectContaining({ key: 'new:Luz', label: '★ Luz (nuevo)', periodMonths: 2 }));
+    expect(initialTarget([], empty, defaults, true)).toBe('new:Luz');
+    expect(initialTarget([], empty, defaults, false)).toBe('');
+  });
+
+  it('si ya hay un solo servicio «Luz», elige su periodo por pagar', () => {
+    const sources = {
+      expenses: [],
+      overview: {
+        today: '2026-11-09',
+        payments: [{ id: 'p1', establishmentId: 'e1', name: 'Luz', kind: 'service' as const, category: 'utilities' as const, amountMode: 'variable' as const, amountCents: null, periodMonths: 2, firstDueOn: '2026-09-20', endsOn: null, overdue: [], next: '2026-11-20', skipped: [], paid: [], lastPaid: null }],
+      },
+    };
+    const options = targetOptions(sources);
+    expect(initialTarget(options, sources, serviceDefaults(cfe, []), true)).toBe('r:p1:2026-11-20');
+  });
+
+  it('un recibo desconocido ofrece darlo de alta con el nombre del proveedor', () => {
+    const defaults = serviceDefaults({ ...cfe, documentType: 'Factura', supplierName: 'Limpieza Total', name: 'Limpieza', references: [] }, []);
+    expect(defaults).toEqual({ name: 'Limpieza Total', periodMonths: 1, reference: '' });
+    expect(newServiceOptions(defaults)[0]).toEqual(jasmine.objectContaining({ key: 'new:otro', label: '★ Limpieza Total (nuevo)' }));
+  });
+
+  it('el periodo facturado se lee corto', () => {
+    expect(billedLabel({ billedFrom: '2026-09-05', billedTo: '2026-11-05' })).toBe('Periodo facturado 5 sep 2026 – 5 nov 2026');
+    expect(billedLabel({ billedFrom: null, billedTo: null })).toBe('');
   });
 });
