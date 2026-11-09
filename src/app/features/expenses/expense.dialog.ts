@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { Expense, ExpenseCategory, InventorySupplier, RecurringAmountMode, RecurringPayment } from '../../core/models/facility.models';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
-import { PERIOD_OPTIONS } from '../payments/payments.helpers';
+import { PERIOD_OPTIONS, serviceReferenceError } from '../payments/payments.helpers';
 import { CATEGORY_OPTIONS, ExpenseFormValue, personalDataError, toExpenseInput, toRecurringInput } from './expenses.helpers';
 import { SupplierFieldComponent } from './supplier-field.component';
 
@@ -32,6 +32,10 @@ export interface ExpenseDialogData {
 function safeName(control: AbstractControl): ValidationErrors | null {
   const error = personalDataError(String(control.value ?? ''));
   return error ? { [error]: true } : null;
+}
+
+function safeReference(control: AbstractControl): ValidationErrors | null {
+  return serviceReferenceError(String(control.value ?? '')) ? { reference: true } : null;
 }
 
 function amountRequired(group: AbstractControl): ValidationErrors | null {
@@ -98,6 +102,12 @@ function amountRequired(group: AbstractControl): ValidationErrors | null {
             <mat-label>Termina (opcional)</mat-label>
             <input matInput type="date" formControlName="endsOn" />
           </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Número de servicio o de medidor (opcional)</mat-label>
+            <input matInput formControlName="reference" maxlength="60" />
+            <mat-hint>Con varios medidores de luz, uno por gasto: así la IA liga cada recibo al suyo.</mat-hint>
+            <mat-error>{{ referenceProblem() }}</mat-error>
+          </mat-form-field>
         }
         @if (error()) { <p class="field-error" role="alert">{{ error() }}</p> }
       </form>
@@ -139,6 +149,7 @@ export class ExpenseDialogComponent {
       dueOn: [this.data.expense?.dueOn ?? this.data.payment?.firstDueOn ?? this.data.today, Validators.required],
       periodMonths: [this.data.payment?.periodMonths ?? 1],
       endsOn: [this.data.payment?.endsOn ?? ''],
+      reference: [this.data.payment?.reference ?? '', safeReference],
     },
     { validators: amountRequired },
   );
@@ -146,6 +157,10 @@ export class ExpenseDialogComponent {
   addSupplier(supplier: InventorySupplier): void {
     this.suppliers.update((list) => [...list, supplier].sort((a, b) => a.name.localeCompare(b.name)));
     this.form.controls.supplierId.setValue(supplier.id);
+  }
+
+  referenceProblem(): string {
+    return serviceReferenceError(this.form.controls.reference.value) ?? '';
   }
 
   get repeats(): boolean {

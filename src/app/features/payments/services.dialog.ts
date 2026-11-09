@@ -12,7 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { RecurringAmountMode, RecurringPayment, RecurringPaymentKind } from '../../core/models/facility.models';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
-import { PERIOD_OPTIONS, ServiceFormValue, toPaymentInput, unusedSuggestions } from './payments.helpers';
+import { PERIOD_OPTIONS, ServiceFormValue, serviceReferenceError, toPaymentInput, unusedSuggestions } from './payments.helpers';
 
 export interface ServicesDialogData {
   establishmentId: string;
@@ -26,6 +26,10 @@ const ACCOUNT_LIKE_DIGITS = /(\d[\s-]*){8,}/;
 
 function noAccountNumbers(control: AbstractControl): ValidationErrors | null {
   return ACCOUNT_LIKE_DIGITS.test(String(control.value ?? '')) ? { accountLike: true } : null;
+}
+
+function safeReference(control: AbstractControl): ValidationErrors | null {
+  return serviceReferenceError(String(control.value ?? '')) ? { reference: true } : null;
 }
 
 function fixedNeedsAmount(group: AbstractControl): ValidationErrors | null {
@@ -93,6 +97,12 @@ function fixedNeedsAmount(group: AbstractControl): ValidationErrors | null {
                     <mat-label>{{ row.value.amountMode === 'fixed' ? 'Monto en MXN' : 'Aprox. MXN (opcional)' }}</mat-label>
                     <input matInput type="number" min="0" step="0.01" formControlName="amount" />
                   </mat-form-field>
+                  <mat-form-field appearance="outline" class="wide">
+                    <mat-label>Número de servicio o de medidor (opcional)</mat-label>
+                    <input matInput formControlName="reference" maxlength="60" />
+                    <mat-hint>Si tienes varios medidores de luz, uno por servicio: así la IA liga cada recibo al suyo.</mat-hint>
+                    <mat-error>{{ referenceError(row) }}</mat-error>
+                  </mat-form-field>
                   @if (row.hasError('amountRequired') && row.touched) {
                     <p class="field-error wide" role="alert">Escribe el monto fijo o cambia a «Varía cada periodo».</p>
                   }
@@ -102,7 +112,10 @@ function fixedNeedsAmount(group: AbstractControl): ValidationErrors | null {
           }
         </div>
         @if (!data.editing) {
-          <button mat-stroked-button type="button" (click)="addCustom()"><mat-icon>add</mat-icon> Agregar otro servicio o suscripción</button>
+          <div class="adds">
+            <button mat-stroked-button type="button" (click)="addMeter()"><mat-icon>bolt</mat-icon> Agregar otro medidor de luz</button>
+            <button mat-stroked-button type="button" (click)="addCustom()"><mat-icon>add</mat-icon> Agregar otro servicio o suscripción</button>
+          </div>
         }
         @if (error()) { <p class="field-error" role="alert">{{ error() }}</p> }
       </form>
@@ -120,6 +133,8 @@ function fixedNeedsAmount(group: AbstractControl): ValidationErrors | null {
     .fields { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; margin-top: 8px; }
     .wide { grid-column: 1 / -1; }
     .hint { margin: 0; font-size: 13px; color: #475569; }
+    .adds { display: flex; gap: 8px; flex-wrap: wrap; }
+    mat-hint { white-space: normal; }
     .field-error { margin: 0 0 8px; font-size: 13px; color: #b91c1c; }
     @media (max-width: 640px) { .fields { grid-template-columns: 1fr; } }
   `],
@@ -157,6 +172,16 @@ export class ServicesDialogComponent {
 
   addCustom(): void {
     this.rows.push(this.newRow('', 1, 'variable', false));
+  }
+
+  /** Cada medidor tiene su recibo: un servicio por medidor, con su número. */
+  addMeter(): void {
+    const meters = this.data.followedNames.filter((n) => /^luz\b/i.test(n)).length + this.rows.controls.filter((r) => /^luz\b/i.test(r.value.name ?? '')).length;
+    this.rows.push(this.newRow(`Luz · Medidor ${meters + 1}`, 2, 'variable', false));
+  }
+
+  referenceError(row: AbstractControl): string {
+    return serviceReferenceError(row.get('reference')?.value) ?? '';
   }
 
   removeRow(index: number): void {
@@ -198,6 +223,7 @@ export class ServicesDialogComponent {
         firstDueOn: ['', Validators.required],
         amountMode: [amountMode],
         amount: [null as number | null, Validators.min(0)],
+        reference: ['', safeReference],
       },
       { validators: fixedNeedsAmount },
     );
@@ -205,7 +231,7 @@ export class ServicesDialogComponent {
 
   private editRow(payment: RecurringPayment): FormGroup {
     const row = this.newRow(payment.name, payment.periodMonths, payment.amountMode, false, payment.kind);
-    row.patchValue({ firstDueOn: payment.firstDueOn, amount: payment.amountCents === null ? null : payment.amountCents / 100 });
+    row.patchValue({ firstDueOn: payment.firstDueOn, amount: payment.amountCents === null ? null : payment.amountCents / 100, reference: payment.reference ?? '' });
     return row;
   }
 }

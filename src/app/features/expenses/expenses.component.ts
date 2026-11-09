@@ -1,6 +1,6 @@
 import { Component, ElementRef, OnDestroy, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, Subscription, catchError, concatMap, from, forkJoin, map, of, switchMap, toArray } from 'rxjs';
+import { Observable, Subscription, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,7 +15,6 @@ import { MarkPaidData, MarkPaidDialogComponent } from '../payments/mark-paid.dia
 import { formatMoney } from '../payments/payments.helpers';
 import { ExpenseDialogComponent, ExpenseDialogData } from './expense.dialog';
 import {
-  ATTACHMENT_STATE_LABEL,
   CERTAINTY_LABEL,
   ExpenseFilter,
   ExpenseLine,
@@ -24,11 +23,10 @@ import {
   commitmentCuts,
   expenseSections,
   periodOf,
-  suggestionSummary,
   summaryNote,
 } from './expenses.helpers';
 import { MergeExpenseData, MergeExpenseDialogComponent } from './merge-expense.dialog';
-import { ValidateAttachmentData, ValidateAttachmentDialogComponent } from './validate-attachment.dialog';
+import { PaymentUploadsComponent, openAttachmentFile } from './payment-uploads.component';
 
 /** Mientras la IA lee, la lista de soportes se refresca sola. */
 const PENDING_REFRESH_MS = 5000;
@@ -49,7 +47,7 @@ function yearsFrom(today: string, years: number): string {
 @Component({
   selector: 'app-expenses',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatMenuModule],
+  imports: [MatButtonModule, MatIconModule, MatMenuModule, PaymentUploadsComponent],
   template: `
     <header class="head">
       <div>
@@ -57,40 +55,28 @@ function yearsFrom(today: string, years: number): string {
         <p class="sub">Registra tus gastos y compromisos y consulta lo que vence. Registro interno; no es contabilidad ni comprobante fiscal.</p>
       </div>
       <div class="head-actions">
-        @if (data()) {
-          <input #files type="file" hidden multiple accept="application/pdf,image/*" (change)="uploadFiles(files.files); files.value = ''" />
-          <button mat-stroked-button [disabled]="uploading()" (click)="files.click()"><mat-icon>upload_file</mat-icon> {{ uploading() ? 'Subiendo…' : 'Subir soportes de pago' }}</button>
-        }
         @if (permissions.can('manage') && data()) {
           <button mat-flat-button color="primary" (click)="add()"><mat-icon>add</mat-icon> Agregar gasto</button>
         }
       </div>
     </header>
     <input #attachFile type="file" hidden accept="application/pdf,image/*" (change)="attachTo(attachFile.files); attachFile.value = ''" />
-    @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
 
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
 
-    @if (pending().length > 0) {
-      <section class="pending" aria-labelledby="to-validate">
-        <h2 id="to-validate">Soportes por validar <span class="count">{{ pending().length }}</span></h2>
-        <p class="reading">La IA propone el registro de cada soporte; tú lo confirmas o corriges. Si ya capturaste ese pago, únelo en vez de registrar otro.</p>
-        <ul class="list">
-          @for (a of pending(); track a.id) {
-            <li class="att">
-              <mat-icon aria-hidden="true">{{ a.contentType === 'application/pdf' ? 'picture_as_pdf' : 'image' }}</mat-icon>
-              <div class="name">
-                <span class="title">{{ summary(a) || 'Soporte de pago' }}</span>
-                <span class="meta">{{ attachmentState[a.state] }}@if ((a.possibleDuplicates?.length ?? 0) > 0) { · <strong class="dup">posible duplicado</strong> }</span>
-              </div>
-              <button mat-button (click)="openAttachment(a.id)">Ver</button>
-              @if (a.state === 'review' || a.state === 'failed' || a.state === 'validating') {
-                <button mat-stroked-button (click)="validate(a)">Validar</button>
-              }
-            </li>
-          }
-        </ul>
-      </section>
+    @if (data(); as d) {
+      @if (context.current(); as e) {
+        <app-payment-uploads
+          [establishmentId]="e.id"
+          [today]="d.plan.today"
+          [pending]="pending()"
+          [sources]="d"
+          [suppliers]="suppliers()"
+          [canManage]="permissions.can('manage')"
+          [canRegister]="permissions.can('manage')"
+          (changed)="reload()"
+        />
+      }
     }
 
     @if (data(); as d) {
@@ -176,8 +162,8 @@ function yearsFrom(today: string, years: number): string {
                     @if (line.source === 'recurring' && (line.status === 'overdue' || line.status === 'pending')) {
                       <button mat-menu-item (click)="skip(line)">Omitir este periodo</button>
                     }
-                    @if (line.source === 'expense' || line.status === 'paid') {
-                      <button mat-menu-item (click)="pickAttachment(line)">Adjuntar soporte</button>
+                    @if (line.status !== 'skipped') {
+                      <button mat-menu-item (click)="pickAttachment(line)">Adjuntar recibo</button>
                     }
                     @if (line.source === 'expense' && permissions.can('manage')) {
                       <button mat-menu-item (click)="merge(line)">Unir con otro pago</button>
@@ -201,17 +187,10 @@ function yearsFrom(today: string, years: number): string {
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 16px; }
     .head button { flex: none; }
     .head-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-    .notice { background: #dbeafe; color: #1e3a8a; border-radius: 8px; padding: 8px 12px; font-size: 14px; }
-    .pending { margin: 16px 0; }
-    .pending h2 { display: flex; align-items: center; gap: 8px; }
-    .att { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid #e2e8f0; }
-    .att:first-child { border-top: 0; }
-    .att .name { flex: 1; }
-    .att mat-icon { color: #475569; flex: none; }
     .extras { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
     .tag { display: inline-flex; align-items: center; gap: 2px; border: 1px solid #cbd5e1; background: #fff; border-radius: 12px; padding: 0 8px; min-height: 24px; font: inherit; font-size: 12px; color: #334155; cursor: pointer; }
     .tag mat-icon { font-size: 16px; width: 16px; height: 16px; }
-    .tag.dup, strong.dup { border-color: #93c5fd; color: #1e3a8a; }
+    .tag.dup { border-color: #93c5fd; color: #1e3a8a; }
     .tag:focus-visible { outline: 2px solid #2563c9; outline-offset: 2px; }
     h1 { margin: 0; } .place { color: #475569; font-weight: 500; }
     .sub { margin: 4px 0 0; color: #475569; font-size: 14px; max-width: 70ch; }
@@ -280,11 +259,7 @@ export class ExpensesComponent implements OnDestroy {
   readonly busy = signal(false);
   readonly filter = signal<ExpenseFilter>('all');
   readonly suppliers = signal<InventorySupplier[]>([]);
-  readonly uploading = signal(false);
-  readonly notice = signal<string | null>(null);
   readonly pending = computed(() => this.data()?.pending ?? []);
-  readonly attachmentState = ATTACHMENT_STATE_LABEL;
-  readonly summary = (a: PaymentAttachment) => suggestionSummary(a.suggestion);
   /** El pago al que va el soporte del selector de archivo de un renglón. */
   private attachTarget: PaymentTarget | null = null;
   @ViewChild('attachFile') private attachInput?: ElementRef<HTMLInputElement>;
@@ -363,31 +338,6 @@ export class ExpensesComponent implements OnDestroy {
     this.refreshTimer = setTimeout(() => this.reload(), PENDING_REFRESH_MS);
   }
 
-  /** Uno por petición: la IA los lee en segundo plano. */
-  uploadFiles(list: FileList | null): void {
-    const id = this.context.current()?.id;
-    const files = Array.from(list ?? []);
-    if (!id || files.length === 0) return;
-    this.uploading.set(true);
-    this.error.set(null);
-    from(files)
-      .pipe(
-        concatMap((file) => this.api.uploadPaymentAttachment(id, file).pipe(catchError((err: HttpErrorResponse) => of({ failed: `${file.name}: ${apiMessage(err)}` })))),
-        toArray(),
-      )
-      .subscribe((results) => {
-        this.uploading.set(false);
-        const failed = results.filter((r): r is { failed: string } => 'failed' in r);
-        const repeated = results.filter((r) => 'duplicate' in r && r.duplicate).length;
-        const ok = results.length - failed.length;
-        this.notice.set(
-          `${ok === 1 ? 'Se subió 1 soporte' : `Se subieron ${ok} soportes`}; la IA los está leyendo.${repeated ? ` ${repeated} ya estaba${repeated === 1 ? '' : 'n'} subido${repeated === 1 ? '' : 's'}.` : ''}`,
-        );
-        if (failed.length) this.error.set(failed.join(' · '));
-        this.reload();
-      });
-  }
-
   /** «Adjuntar soporte» en un renglón: el archivo va directo a ese pago, sin IA. */
   pickAttachment(line: ExpenseLine): void {
     this.attachTarget = line.source === 'expense' ? { expenseId: line.sourceId } : { recurringPaymentId: line.sourceId, dueOn: periodOf(line) };
@@ -404,32 +354,7 @@ export class ExpensesComponent implements OnDestroy {
   }
 
   openAttachment(id: string): void {
-    this.api.paymentAttachmentFile(id).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank', 'noopener');
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      },
-      error: (err: HttpErrorResponse) => this.error.set(apiMessage(err)),
-    });
-  }
-
-  validate(attachment: PaymentAttachment): void {
-    const d = this.data();
-    const establishment = this.context.current();
-    if (!d || !establishment) return;
-    const data: ValidateAttachmentData = {
-      establishmentId: establishment.id,
-      today: d.plan.today,
-      attachment,
-      data: d,
-      suppliers: this.suppliers(),
-      canManage: this.permissions.can('manage'),
-    };
-    this.dialog
-      .open(ValidateAttachmentDialogComponent, { width: '640px', data })
-      .afterClosed()
-      .subscribe((saved) => saved && this.reload());
+    openAttachmentFile(this.api, id, (message) => this.error.set(message));
   }
 
   merge(line: ExpenseLine): void {
@@ -450,7 +375,7 @@ export class ExpensesComponent implements OnDestroy {
       });
   }
 
-  private reload(): void {
+  reload(): void {
     const id = this.context.current()?.id;
     if (id) this.load(id);
   }

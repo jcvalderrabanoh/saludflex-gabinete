@@ -15,7 +15,7 @@ import {
   RecurringPaymentKind,
   RecurringPaymentsOverview,
 } from '../../core/models/facility.models';
-import { formatMoney, periodLabel, toCents } from '../payments/payments.helpers';
+import { formatMoney, periodLabel, serviceLabel, toCents } from '../payments/payments.helpers';
 
 const MS_PER_DAY = 86_400_000;
 const DAYS_PER_CUT = 7;
@@ -158,7 +158,7 @@ function pendingLine(item: CommitmentItem, payments: ReadonlyMap<string, Recurri
     amountCents: item.amountCents,
     certainty: item.certainty,
     status: item.overdue ? 'overdue' : 'pending',
-    attachments: expense?.attachments ?? [],
+    attachments: expense?.attachments ?? (payment?.unpaidAttachments ?? []).filter((a) => a.dueOn === item.dueOn),
     duplicateIds: expense?.possibleDuplicateIds ?? [],
   };
 }
@@ -269,6 +269,8 @@ export interface ExpenseFormValue {
   dueOn: string;
   periodMonths: number;
   endsOn: string;
+  /** Número de servicio o medidor (solo recurrentes). */
+  reference?: string;
 }
 
 export function toExpenseInput(value: ExpenseFormValue): ExpenseInput {
@@ -295,6 +297,7 @@ export function toRecurringInput(value: ExpenseFormValue, kind?: RecurringPaymen
     firstDueOn: value.dueOn,
     endsOn: value.endsOn || null,
     supplierId: value.supplierId || null,
+    reference: value.reference?.trim() || null,
   };
 }
 
@@ -344,6 +347,9 @@ export function suggestionSummary(suggestion: ExpenseSuggestion | null): string 
   return parts.join(' · ');
 }
 
+/** Los pagos registrados a los que se puede unir un soporte. */
+export type PaymentSources = Pick<ExpensesData, 'expenses' | 'overview'>;
+
 /** Un pago al que se puede unir algo, con su nombre para elegirlo. */
 export interface TargetOption {
   key: string;
@@ -364,7 +370,7 @@ export function targetKey(target: PaymentTarget): string {
  * periodos recurrentes vencidos, próximos o pagados recientemente. Los
  * probables (duplicados) van primero.
  */
-export function targetOptions(data: ExpensesData, likely: readonly PaymentTarget[] = [], excludeExpenseId?: string): TargetOption[] {
+export function targetOptions(data: PaymentSources, likely: readonly PaymentTarget[] = [], excludeExpenseId?: string): TargetOption[] {
   const likelyKeys = new Set(likely.map(targetKey));
   const options: TargetOption[] = [];
   for (const e of data.expenses) {
@@ -390,7 +396,7 @@ export function targetOptions(data: ExpensesData, likely: readonly PaymentTarget
       options.push({
         key: targetKey(target),
         target,
-        label: `${p.name} (periodo ${dueOn})${amount} · ${period.paidOn ? `pagado ${period.paidOn}` : 'por pagar'}`,
+        label: `${serviceLabel(p)} (periodo ${dueOn})${amount} · ${period.paidOn ? `pagado ${period.paidOn}` : 'por pagar'}`,
         amountCents: period.paidCents,
         paidOn: period.paidOn,
         likely: likelyKeys.has(targetKey(target)),

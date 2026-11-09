@@ -1,11 +1,12 @@
-import { Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
-import { map } from 'rxjs';
+import { Component, ElementRef, OnDestroy, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { catchError, map, of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { RecurringPayment, RecurringPaymentsOverview } from '../../core/models/facility.models';
+import { PaymentAttachment, RecurringPayment, RecurringPaymentsOverview } from '../../core/models/facility.models';
+import { PaymentUploadsComponent, openAttachmentFile } from '../expenses/payment-uploads.component';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { PermissionsService } from '../../core/services/permissions.service';
@@ -20,7 +21,7 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
 @Component({
   selector: 'app-payments',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatMenuModule],
+  imports: [MatButtonModule, MatIconModule, MatMenuModule, PaymentUploadsComponent],
   template: `
     <header class="head">
       <div>
@@ -28,11 +29,24 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
         <p class="sub">Registra lo que pagas cada periodo y consulta qué sigue. No paga, no cobra y no guarda datos bancarios; pagas directo a tu proveedor.</p>
       </div>
       @if (permissions.can('manage') && overview()) {
-        <button mat-flat-button color="primary" (click)="chooseServices()"><mat-icon>tune</mat-icon> Elegir servicios</button>
+        <button mat-stroked-button (click)="chooseServices()"><mat-icon>tune</mat-icon> Elegir servicios o medidores</button>
       }
     </header>
 
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (overview(); as o) {
+      @if (context.current(); as e) {
+        <app-payment-uploads
+          [establishmentId]="e.id"
+          [today]="o.today"
+          [pending]="pending()"
+          [sources]="{ expenses: [], overview: o }"
+          [canManage]="permissions.can('manage')"
+          [canRegister]="false"
+          (changed)="reload()"
+        />
+      }
+    }
     <input #attachFile type="file" hidden accept="application/pdf,image/*" (change)="attachTo(attachFile.files); attachFile.value = ''" />
 
     @if (overview(); as o) {
@@ -56,6 +70,14 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
                   <mat-icon class="kind" aria-hidden="true">{{ line.payment.kind === 'subscription' ? 'autorenew' : 'receipt_long' }}</mat-icon>
                   <div class="name">
                     <span class="title">{{ line.payment.name }}</span>
+                    @if (line.payment.reference) { <span class="meta">Servicio o medidor {{ line.payment.reference }}</span> }
+                    @if (periodAttachments(line).length > 0) {
+                      <span class="meta">Recibo de este periodo:
+                        @for (f of periodAttachments(line); track f.id) {
+                          <button class="undo" type="button" (click)="openAttachment(f.id)">Ver{{ f.references.length ? ' ' + f.references.join(', ') : '' }}</button>
+                        }
+                      </span>
+                    }
                     <span class="meta">{{ period(line.payment.periodMonths) }} · {{ line.payment.kind === 'subscription' ? 'Suscripción' : 'Servicio' }}</span>
                     @if (line.dueOn === line.payment.next && line.payment.lastPaid; as last) {
                       <span class="meta">Último pago {{ date(last.paidOn) }}@if (last.paidCents !== null) { · {{ money(last.paidCents) }} }
@@ -63,7 +85,7 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
                         @for (f of last.attachments ?? []; track f.id) {
                           <button class="undo" type="button" (click)="openAttachment(f.id)">Ver soporte{{ f.references.length ? ' ' + f.references.join(', ') : '' }}</button>
                         }
-                        <button class="undo" type="button" [disabled]="busy()" (click)="pickAttachment(line.payment.id, last.dueOn)">Adjuntar soporte</button>
+                        <button class="undo" type="button" [disabled]="busy()" (click)="pickAttachment(line.payment.id, last.dueOn)">Adjuntar recibo del último pago</button>
                       </span>
                     }
                   </div>
@@ -71,13 +93,15 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
                   <div class="amount">{{ amount(line.payment) }}</div>
                   <span class="chip" [class.overdue]="section.key === 'overdue'">{{ section.key === 'overdue' ? 'Vencido' : 'Por pagar' }}</span>
                   <button mat-stroked-button [disabled]="busy()" (click)="markPaid(line)"><mat-icon>check</mat-icon> Marcar como pagado</button>
-                  @if (permissions.can('manage')) {
-                    <button mat-icon-button [matMenuTriggerFor]="menu" [attr.aria-label]="'Más acciones de ' + line.payment.name"><mat-icon>more_vert</mat-icon></button>
-                    <mat-menu #menu="matMenu">
+                  <button mat-icon-button [matMenuTriggerFor]="menu" [attr.aria-label]="'Más acciones de ' + line.payment.name"><mat-icon>more_vert</mat-icon></button>
+                  <mat-menu #menu="matMenu">
+                    <button mat-menu-item (click)="pickAttachment(line.payment.id, line.dueOn)"><mat-icon>attach_file</mat-icon> Adjuntar recibo de este periodo</button>
+                    <button mat-menu-item (click)="skip(line)"><mat-icon>event_busy</mat-icon> Omitir este periodo</button>
+                    @if (permissions.can('manage')) {
                       <button mat-menu-item (click)="edit(line.payment)"><mat-icon>edit</mat-icon> Editar</button>
                       <button mat-menu-item (click)="stopFollowing(line.payment)"><mat-icon>remove_circle_outline</mat-icon> Dejar de seguir</button>
-                    </mat-menu>
-                  }
+                    }
+                  </mat-menu>
                 </li>
               }
             </ul>
@@ -118,18 +142,21 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
     @media (max-width: 640px) { .head { flex-direction: column; gap: 8px; } }
   `],
 })
-export class PaymentsComponent {
+export class PaymentsComponent implements OnDestroy {
   readonly context = inject(EstablishmentContextService);
   readonly permissions = inject(PermissionsService);
   private readonly api = inject(FacilityApiService);
   private readonly dialog = inject(MatDialog);
   @ViewChild('attachFile') private attachInput?: ElementRef<HTMLInputElement>;
-  /** El periodo pagado al que va el soporte que se elija. */
+  private refreshTimer?: ReturnType<typeof setTimeout>;
+  /** El periodo al que va el recibo que se elija (pagado, vencido o por pagar). */
   private attachPeriod: { recurringPaymentId: string; dueOn: string } | null = null;
 
   readonly overview = signal<RecurringPaymentsOverview | null>(null);
   readonly error = signal<string | null>(null);
   readonly busy = signal(false);
+  /** Recibos subidos sin pago, por leer o validar. */
+  readonly pending = signal<PaymentAttachment[]>([]);
 
   readonly visibleSections = computed(() => {
     const o = this.overview();
@@ -157,9 +184,17 @@ export class PaymentsComponent {
       },
       error: (err: HttpErrorResponse) => this.error.set(`No pudimos cargar tus pagos. ${apiMessage(err)}`),
     });
+    // Sin la lista de recibos la pantalla sigue sirviendo.
+    this.api
+      .pendingPaymentAttachments(id)
+      .pipe(catchError(() => of([] as PaymentAttachment[])))
+      .subscribe((pending) => {
+        this.pending.set(pending);
+        this.scheduleRefresh();
+      });
   }
 
-  private reload(): void {
+  reload(): void {
     const id = this.context.current()?.id;
     if (id) this.load(id);
   }
@@ -224,14 +259,28 @@ export class PaymentsComponent {
   }
 
   openAttachment(attachmentId: string): void {
-    this.api.paymentAttachmentFile(attachmentId).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank', 'noopener');
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      },
-      error: (err: HttpErrorResponse) => this.error.set(apiMessage(err)),
-    });
+    openAttachmentFile(this.api, attachmentId, (message) => this.error.set(message));
+  }
+
+  /** Recibos de ese periodo (por pagar o vencido). */
+  periodAttachments(line: PaymentLine) {
+    return (line.payment.unpaidAttachments ?? []).filter((a) => a.dueOn === line.dueOn);
+  }
+
+  skip(line: PaymentLine): void {
+    if (!confirm(`¿Omitir el periodo del ${this.date(line.dueOn)} de ${line.payment.name}? Deja de deberse sin contar como pago.`)) return;
+    this.run(this.api.skipPaymentPeriod(line.payment.id, line.dueOn));
+  }
+
+  /** Mientras la IA lee algún recibo, vuelve a consultar en unos segundos. */
+  private scheduleRefresh(): void {
+    clearTimeout(this.refreshTimer);
+    if (!this.pending().some((a) => a.state === 'queued' || a.state === 'reading')) return;
+    this.refreshTimer = setTimeout(() => this.reload(), 5000);
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.refreshTimer);
   }
 
   undo(payment: RecurringPayment): void {

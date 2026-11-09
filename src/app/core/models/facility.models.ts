@@ -363,6 +363,8 @@ export interface RecurringPaymentInput {
   endsOn?: string | null;
   /** Proveedor del catálogo (el mismo de Inventario). */
   supplierId?: string | null;
+  /** Número de servicio o de medidor (p. ej. un medidor de luz de varios). */
+  reference?: string | null;
 }
 
 export interface PaidPeriod {
@@ -384,6 +386,8 @@ export interface RecurringPayment extends RecurringPaymentInput {
   skipped: string[];
   paid: PaidPeriod[];
   lastPaid: PaidPeriod | null;
+  /** Recibos de periodos que siguen sin pagar. */
+  unpaidAttachments?: (AttachmentSummary & { dueOn: string })[];
 }
 
 export interface RecurringPaymentsOverview {
@@ -443,6 +447,8 @@ export interface ExpenseSuggestion {
   supplierConfidence: number;
   supplierId: string | null;
   references: string[];
+  /** El servicio cuyo número de medidor o servicio viene en el recibo. */
+  suggestedTarget?: { recurringPaymentId: string; dueOn: string } | null;
 }
 
 /** El pago al que se une un soporte o un gasto duplicado. */
@@ -479,6 +485,8 @@ export interface RegisterAttachmentInput {
 }
 
 export interface AttachAttachmentInput extends PaymentTarget {
+  /** false: solo adjunta el recibo (por pagar) sin marcar el pago. */
+  markPaid?: boolean;
   paidOn?: string;
   paidCents?: number;
   references?: string[];

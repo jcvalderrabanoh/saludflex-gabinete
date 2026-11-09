@@ -191,7 +191,7 @@ describe('entradas del formulario', () => {
   });
 
   it('un recurrente sin término manda null, y software o plataforma son suscripción', () => {
-    expect(toRecurringInput(base)).toEqual({ name: 'Renta', kind: 'service', category: 'rent', amountMode: 'fixed', amountCents: 1800000, periodMonths: 1, firstDueOn: '2026-11-10', endsOn: null, supplierId: null });
+    expect(toRecurringInput(base)).toEqual({ name: 'Renta', kind: 'service', category: 'rent', amountMode: 'fixed', amountCents: 1800000, periodMonths: 1, firstDueOn: '2026-11-10', endsOn: null, supplierId: null, reference: null });
     expect(toRecurringInput({ ...base, category: 'platform', endsOn: '2027-01-01' })).toEqual(jasmine.objectContaining({ kind: 'subscription', endsOn: '2027-01-01' }));
   });
 
