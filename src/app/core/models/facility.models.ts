@@ -424,7 +424,7 @@ export interface AttachmentSummary {
   createdAt: string;
 }
 
-export type PaymentAttachmentState = 'queued' | 'reading' | 'review' | 'failed' | 'blocked' | 'attached' | 'removed';
+export type PaymentAttachmentState = 'queued' | 'reading' | 'review' | 'failed' | 'validating' | 'blocked' | 'attached' | 'removed';
 
 /** Lo que la IA propone al leer un soporte; la persona lo valida. */
 export interface ExpenseSuggestion {

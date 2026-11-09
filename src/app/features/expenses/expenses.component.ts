@@ -84,7 +84,7 @@ function yearsFrom(today: string, years: number): string {
                 <span class="meta">{{ attachmentState[a.state] }}@if ((a.possibleDuplicates?.length ?? 0) > 0) { · <strong class="dup">posible duplicado</strong> }</span>
               </div>
               <button mat-button (click)="openAttachment(a.id)">Ver</button>
-              @if (a.state === 'review' || a.state === 'failed') {
+              @if (a.state === 'review' || a.state === 'failed' || a.state === 'validating') {
                 <button mat-stroked-button (click)="validate(a)">Validar</button>
               }
             </li>

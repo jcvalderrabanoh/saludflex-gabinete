@@ -327,6 +327,7 @@ export const ATTACHMENT_STATE_LABEL: Record<PaymentAttachment['state'], string> 
   reading: 'Leyendo…',
   review: 'Listo para validar',
   failed: 'No se pudo leer: captura a mano',
+  validating: 'Se estaba validando: revisa si el pago ya quedó antes de validar otra vez',
   blocked: 'Traía datos de pacientes: se borró',
   attached: 'En un pago',
   removed: 'Quitado',

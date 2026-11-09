@@ -59,6 +59,9 @@ function safeReferences(control: AbstractControl): ValidationErrors | null {
         } @else { <span class="muted">Cargando vista previa…</span> }
       </div>
 
+      @if (a.state === 'validating') {
+        <p class="warn" role="status">Alguien empezó a validar este soporte y no terminó. Revisa en la lista si el pago ya quedó registrado antes de guardar otra vez.</p>
+      }
       @if (a.state === 'failed') {
         <p class="warn" role="status">No se pudo leer el soporte. Captura los datos a mano.</p>
       }
