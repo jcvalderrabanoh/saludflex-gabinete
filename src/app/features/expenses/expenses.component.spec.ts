@@ -47,10 +47,17 @@ function setup(permissions: string[] = ['facility.manage']) {
   return { fixture, http, current, el: fixture.nativeElement as HTMLElement };
 }
 
-function flushAll(http: HttpTestingController, plan: CommitmentPlan = PLAN) {
+/** Soportes por validar y proveedores: se piden junto con lo demás. */
+function flushExtras(http: HttpTestingController, pending: object[] = []) {
+  http.expectOne(`${API}/establishments/e1/payment-attachments/pending`).flush(pending);
+  http.expectOne(`${API}/establishments/e1/payment-suppliers`).flush([]);
+}
+
+function flushAll(http: HttpTestingController, plan: CommitmentPlan = PLAN, expenses: object[] = [EXPENSE], pending: object[] = []) {
   http.expectOne(`${API}/establishments/e1/commitments`).flush(plan);
   http.expectOne(`${API}/establishments/e1/recurring-payments`).flush({ today: plan.today, payments: [payment('p1', 'Luz CFE'), payment('p2', 'Gas LP')] });
-  http.expectOne((r) => r.url === `${API}/establishments/e1/expenses`).flush({ today: plan.today, expenses: [EXPENSE] });
+  http.expectOne((r) => r.url === `${API}/establishments/e1/expenses`).flush({ today: plan.today, expenses });
+  flushExtras(http, pending);
 }
 
 describe('Gastos', () => {
@@ -102,6 +109,7 @@ describe('Gastos', () => {
       payments: [payment('p3', 'Renta', { paid: [{ dueOn: '2026-11-01', paidOn: '2026-11-03', paidCents: 100 }] })],
     });
     http.expectOne((r) => r.url === `${API}/establishments/e1/expenses`).flush({ today: PLAN.today, expenses: [] });
+    flushExtras(http);
     fixture.detectChanges();
     el.querySelector<HTMLButtonElement>('button.undo')?.click();
     const req = http.expectOne(`${API}/recurring-payments/p3/paid/2026-11-01`);
@@ -121,6 +129,7 @@ describe('Gastos', () => {
     http.expectOne(`${API}/establishments/e1/commitments`).flush({ ...PLAN, items: [], totals: { totalCents: 0, estimatedCents: 0, overdueCents: 0, unknownCount: 0 } });
     http.expectOne(`${API}/establishments/e1/recurring-payments`).flush({ today: PLAN.today, payments: [] });
     http.expectOne((r) => r.url === `${API}/establishments/e1/expenses`).flush({ today: PLAN.today, expenses: [] });
+    flushExtras(http);
     fixture.detectChanges();
     expect(el.querySelector('.empty')?.textContent).toContain('Agrega tu primer gasto');
     expect(el.querySelector('.summary')).toBeNull();
@@ -149,5 +158,40 @@ describe('Gastos', () => {
     http.expectOne(`${API}/establishments/e1/commitments`).flush({ message: 'x' }, { status: 500, statusText: 'Error' });
     fixture.detectChanges();
     expect(el.querySelector('[role=alert]')?.textContent).toContain('No pudimos cargar tus gastos');
+  });
+
+  it('lista los soportes por validar con lo que propuso la IA y avisa del posible duplicado', () => {
+    const { fixture, http, el } = setup();
+    flushAll(http, PLAN, [EXPENSE], [
+      {
+        id: 'a1', establishmentId: 'e1', state: 'review', expenseId: null, recurringPaymentId: null, dueOn: null,
+        contentType: 'application/pdf', references: ['F-1'], lastError: null, hasFile: true, createdAt: '2026-11-08T10:00:00Z',
+        suggestion: { documentType: 'Factura', isPaymentDocument: true, name: 'Gel y papel', category: 'supplies', categoryConfidence: 0.9, amountCents: 234000, currency: 'MXN', amountConfidence: 0.9, paidOn: '2026-11-07', paidOnConfidence: 0.9, dueOn: null, supplierName: 'Distribuidora', supplierConfidence: 0.9, supplierId: null, references: ['F-1'] },
+        possibleDuplicates: [{ expenseId: 'x1' }],
+      },
+    ]);
+    fixture.detectChanges();
+    const pending = el.querySelector('.pending');
+    expect(pending?.textContent).toContain('Soportes por validar');
+    expect(pending?.textContent).toContain('Gel y papel · $2,340 MXN · pagado el 2026-11-07 · Distribuidora');
+    expect(pending?.textContent).toContain('posible duplicado');
+    expect(pending?.querySelector('button')).not.toBeNull();
+  });
+
+  it('un gasto con soportes y posible duplicado lo muestra en su renglón', () => {
+    const { fixture, http, el } = setup();
+    const withExtras = { ...EXPENSE, attachments: [{ id: 'f1', contentType: 'application/pdf', references: ['F-9'], createdAt: '2026-11-08' }], possibleDuplicateIds: ['x2'] };
+    flushAll(http, PLAN, [withExtras]);
+    fixture.detectChanges();
+    const line = [...el.querySelectorAll('.line')].find((l) => l.textContent?.includes('Gel y papel'));
+    expect(line?.querySelector('.tag')?.textContent).toContain('1');
+    expect(line?.textContent).toContain('¿Duplicado? Unir');
+  });
+
+  it('quien no administra no ve «Unir» en un posible duplicado', () => {
+    const { fixture, http, el } = setup(['facility.record']);
+    flushAll(http, PLAN, [{ ...EXPENSE, possibleDuplicateIds: ['x2'] }]);
+    fixture.detectChanges();
+    expect(el.textContent).not.toContain('¿Duplicado? Unir');
   });
 });

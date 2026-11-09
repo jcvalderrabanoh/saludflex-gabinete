@@ -1,4 +1,5 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { map } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -32,6 +33,7 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
     </header>
 
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    <input #attachFile type="file" hidden accept="application/pdf,image/*" (change)="attachTo(attachFile.files); attachFile.value = ''" />
 
     @if (overview(); as o) {
       @if (o.payments.length === 0) {
@@ -58,6 +60,10 @@ const DATE = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', 
                     @if (line.dueOn === line.payment.next && line.payment.lastPaid; as last) {
                       <span class="meta">Último pago {{ date(last.paidOn) }}@if (last.paidCents !== null) { · {{ money(last.paidCents) }} }
                         <button class="undo" type="button" [disabled]="busy()" (click)="undo(line.payment)">Deshacer</button>
+                        @for (f of last.attachments ?? []; track f.id) {
+                          <button class="undo" type="button" (click)="openAttachment(f.id)">Ver soporte{{ f.references.length ? ' ' + f.references.join(', ') : '' }}</button>
+                        }
+                        <button class="undo" type="button" [disabled]="busy()" (click)="pickAttachment(line.payment.id, last.dueOn)">Adjuntar soporte</button>
                       </span>
                     }
                   </div>
@@ -117,6 +123,9 @@ export class PaymentsComponent {
   readonly permissions = inject(PermissionsService);
   private readonly api = inject(FacilityApiService);
   private readonly dialog = inject(MatDialog);
+  @ViewChild('attachFile') private attachInput?: ElementRef<HTMLInputElement>;
+  /** El periodo pagado al que va el soporte que se elija. */
+  private attachPeriod: { recurringPaymentId: string; dueOn: string } | null = null;
 
   readonly overview = signal<RecurringPaymentsOverview | null>(null);
   readonly error = signal<string | null>(null);
@@ -197,6 +206,32 @@ export class PaymentsComponent {
       .open(MarkPaidDialogComponent, { width: '420px', data })
       .afterClosed()
       .subscribe((saved) => saved && this.reload());
+  }
+
+  /** El soporte (recibo, transferencia) del último pago: se adjunta sin pasar por la IA. */
+  pickAttachment(recurringPaymentId: string, dueOn: string): void {
+    this.attachPeriod = { recurringPaymentId, dueOn };
+    this.attachInput?.nativeElement.click();
+  }
+
+  attachTo(list: FileList | null): void {
+    const id = this.context.current()?.id;
+    const file = list?.[0];
+    const period = this.attachPeriod;
+    this.attachPeriod = null;
+    if (!id || !file || !period) return;
+    this.run(this.api.uploadPaymentAttachment(id, file, period).pipe(map(() => undefined)));
+  }
+
+  openAttachment(attachmentId: string): void {
+    this.api.paymentAttachmentFile(attachmentId).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank', 'noopener');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: (err: HttpErrorResponse) => this.error.set(apiMessage(err)),
+    });
   }
 
   undo(payment: RecurringPayment): void {

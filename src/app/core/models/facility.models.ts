@@ -361,12 +361,16 @@ export interface RecurringPaymentInput {
   firstDueOn: string;
   category?: ExpenseCategory;
   endsOn?: string | null;
+  /** Proveedor del catálogo (el mismo de Inventario). */
+  supplierId?: string | null;
 }
 
 export interface PaidPeriod {
   dueOn: string;
   paidOn: string;
   paidCents: number | null;
+  /** Soportes de pago del periodo. */
+  attachments?: AttachmentSummary[];
 }
 
 export interface RecurringPayment extends RecurringPaymentInput {
@@ -398,12 +402,95 @@ export interface ExpenseInput {
   category: ExpenseCategory;
   amountCents: number;
   dueOn: string;
+  /** Proveedor del catálogo (el mismo de Inventario). */
+  supplierId?: string | null;
 }
 
 export interface Expense extends ExpenseInput {
   id: string;
   establishmentId: string;
   paidOn: string | null;
+  /** Soportes de pago adjuntos. */
+  attachments?: AttachmentSummary[];
+  /** Gastos con el mismo monto a pocos días: quizá el mismo pago dos veces. */
+  possibleDuplicateIds?: string[];
+}
+
+/** Un soporte de pago tal como aparece junto a su pago. */
+export interface AttachmentSummary {
+  id: string;
+  contentType: string;
+  references: string[];
+  createdAt: string;
+}
+
+export type PaymentAttachmentState = 'queued' | 'reading' | 'review' | 'failed' | 'validating' | 'blocked' | 'attached' | 'removed';
+
+/** Lo que la IA propone al leer un soporte; la persona lo valida. */
+export interface ExpenseSuggestion {
+  documentType: string;
+  isPaymentDocument: boolean;
+  name: string | null;
+  category: ExpenseCategory;
+  categoryConfidence: number;
+  amountCents: number | null;
+  currency: string | null;
+  amountConfidence: number;
+  paidOn: string | null;
+  paidOnConfidence: number;
+  dueOn: string | null;
+  supplierName: string | null;
+  supplierConfidence: number;
+  supplierId: string | null;
+  references: string[];
+}
+
+/** El pago al que se une un soporte o un gasto duplicado. */
+export interface PaymentTarget {
+  expenseId?: string;
+  recurringPaymentId?: string;
+  dueOn?: string;
+}
+
+export interface PaymentAttachment {
+  id: string;
+  establishmentId: string;
+  state: PaymentAttachmentState;
+  expenseId: string | null;
+  recurringPaymentId: string | null;
+  dueOn: string | null;
+  contentType: string;
+  references: string[];
+  suggestion: ExpenseSuggestion | null;
+  lastError: string | null;
+  hasFile: boolean;
+  createdAt: string;
+  /** Solo en los pendientes: pagos registrados que podrían ser el mismo. */
+  possibleDuplicates?: PaymentTarget[];
+}
+
+export interface RegisterAttachmentInput {
+  name: string;
+  category: ExpenseCategory;
+  amountCents: number;
+  paidOn: string;
+  supplierId?: string;
+  references?: string[];
+}
+
+export interface AttachAttachmentInput extends PaymentTarget {
+  paidOn?: string;
+  paidCents?: number;
+  references?: string[];
+}
+
+export type MergeKeep = 'target' | 'source';
+
+export interface ExpenseMerge {
+  id: string;
+  sourceExpenseId: string;
+  keep: MergeKeep;
+  undoneAt: string | null;
 }
 
 export interface ExpensesList {

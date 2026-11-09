@@ -1,10 +1,14 @@
 import {
+  AttachmentSummary,
   CommitmentCertainty,
   CommitmentItem,
   CommitmentPlan,
   Expense,
   ExpenseCategory,
   ExpenseInput,
+  ExpenseSuggestion,
+  PaymentAttachment,
+  PaymentTarget,
   RecurringAmountMode,
   RecurringPayment,
   RecurringPaymentInput,
@@ -62,6 +66,10 @@ export interface ExpenseLine {
   status: ExpenseLineStatus;
   /** Periodo del calendario, cuando `dueOn` muestra el día en que se pagó. */
   period?: string;
+  /** Soportes de pago (recibo, factura, transferencia). */
+  attachments: AttachmentSummary[];
+  /** Otros gastos con el mismo monto a pocos días: quizá el mismo pago dos veces. */
+  duplicateIds: string[];
 }
 
 export interface ExpenseSection {
@@ -74,6 +82,8 @@ export interface ExpensesData {
   plan: CommitmentPlan;
   overview: RecurringPaymentsOverview;
   expenses: Expense[];
+  /** Soportes subidos sin pago, por leer o por validar. */
+  pending?: PaymentAttachment[];
 }
 
 function addDays(date: string, days: number): string {
@@ -135,8 +145,9 @@ function recurringDetail(payment: RecurringPayment): string {
 
 const ONCE = 'Una sola vez';
 
-function pendingLine(item: CommitmentItem, payments: ReadonlyMap<string, RecurringPayment>): ExpenseLine {
+function pendingLine(item: CommitmentItem, payments: ReadonlyMap<string, RecurringPayment>, expenses: ReadonlyMap<string, Expense>): ExpenseLine {
   const payment = payments.get(item.sourceId);
+  const expense = item.source === 'expense' ? expenses.get(item.sourceId) : undefined;
   return {
     key: `${item.source}:${item.sourceId}:${item.dueOn}`,
     source: item.source,
@@ -147,6 +158,8 @@ function pendingLine(item: CommitmentItem, payments: ReadonlyMap<string, Recurri
     amountCents: item.amountCents,
     certainty: item.certainty,
     status: item.overdue ? 'overdue' : 'pending',
+    attachments: expense?.attachments ?? [],
+    duplicateIds: expense?.possibleDuplicateIds ?? [],
   };
 }
 
@@ -161,11 +174,25 @@ function expenseLine(expense: Expense, status: ExpenseLineStatus, dueOn: string)
     amountCents: expense.amountCents,
     certainty: 'known',
     status,
+    attachments: expense.attachments ?? [],
+    duplicateIds: expense.possibleDuplicateIds ?? [],
   };
 }
 
-function recurringLine(payment: RecurringPayment, line: Pick<ExpenseLine, 'dueOn' | 'amountCents' | 'certainty' | 'status' | 'period'>): ExpenseLine {
-  return { ...line, key: `recurring:${payment.id}:${line.period ?? line.dueOn}`, source: 'recurring', sourceId: payment.id, name: payment.name, detail: recurringDetail(payment) };
+function recurringLine(
+  payment: RecurringPayment,
+  line: Pick<ExpenseLine, 'dueOn' | 'amountCents' | 'certainty' | 'status' | 'period'> & Partial<Pick<ExpenseLine, 'attachments'>>,
+): ExpenseLine {
+  return {
+    attachments: [],
+    duplicateIds: [],
+    ...line,
+    key: `recurring:${payment.id}:${line.period ?? line.dueOn}`,
+    source: 'recurring',
+    sourceId: payment.id,
+    name: payment.name,
+    detail: recurringDetail(payment),
+  };
 }
 
 function referenceCertainty(payment: RecurringPayment): CommitmentCertainty {
@@ -188,7 +215,16 @@ function doneLines({ plan, overview, expenses }: ExpensesData): ExpenseLine[] {
   const paidPayments = overview.payments.flatMap((p) =>
     p.paid
       .filter((r) => r.paidOn >= since)
-      .map((r) => recurringLine(p, { dueOn: r.paidOn, period: r.dueOn, amountCents: r.paidCents, certainty: r.paidCents === null ? 'unknown' : 'known', status: 'paid' })),
+      .map((r) =>
+        recurringLine(p, {
+          dueOn: r.paidOn,
+          period: r.dueOn,
+          amountCents: r.paidCents,
+          certainty: r.paidCents === null ? 'unknown' : 'known',
+          status: 'paid',
+          attachments: r.attachments ?? [],
+        }),
+      ),
   );
   const skipped = overview.payments.flatMap((p) =>
     p.skipped.filter((dueOn) => dueOn >= since).map((dueOn) => recurringLine(p, { dueOn, amountCents: null, certainty: 'unknown', status: 'skipped' })),
@@ -203,7 +239,8 @@ export function periodOf(line: ExpenseLine): string {
 
 export function expenseSections(data: ExpensesData, filter: ExpenseFilter): ExpenseSection[] {
   const payments = new Map(data.overview.payments.map((p) => [p.id, p]));
-  const pending = data.plan.items.map((item) => pendingLine(item, payments));
+  const expenses = new Map(data.expenses.map((e) => [e.id, e]));
+  const pending = data.plan.items.map((item) => pendingLine(item, payments, expenses));
   const passes = (line: ExpenseLine) => filter === 'all' || (filter === 'once' ? line.source === 'expense' : line.source === 'recurring');
   const sections: ExpenseSection[] = [
     { key: 'overdue', title: 'Vencidos', lines: pending.filter((l) => l.status === 'overdue') },
@@ -226,6 +263,7 @@ export function personalDataError(value: string): 'account' | 'personal' | null 
 export interface ExpenseFormValue {
   name: string;
   category: ExpenseCategory;
+  supplierId?: string | null;
   amountMode: RecurringAmountMode;
   amount: number | string | null;
   dueOn: string;
@@ -234,7 +272,13 @@ export interface ExpenseFormValue {
 }
 
 export function toExpenseInput(value: ExpenseFormValue): ExpenseInput {
-  return { name: value.name.trim(), category: value.category, amountCents: toCents(value.amount) ?? 0, dueOn: value.dueOn };
+  return {
+    name: value.name.trim(),
+    category: value.category,
+    amountCents: toCents(value.amount) ?? 0,
+    dueOn: value.dueOn,
+    supplierId: value.supplierId || null,
+  };
 }
 
 const SUBSCRIPTION_CATEGORIES: readonly ExpenseCategory[] = ['software', 'platform'];
@@ -250,5 +294,115 @@ export function toRecurringInput(value: ExpenseFormValue, kind?: RecurringPaymen
     periodMonths: value.periodMonths,
     firstDueOn: value.dueOn,
     endsOn: value.endsOn || null,
+    supplierId: value.supplierId || null,
   };
+}
+
+/* ---------- Soportes de pago y duplicados ---------- */
+
+/** jc-core rechaza lo mismo: un folio no es tarjeta, CLABE, RFC ni CURP. */
+const CARD_OR_CLABE_DIGITS = /(\d[\s-]*){15,}/;
+export const MAX_REFERENCE_LENGTH = 60;
+export const MAX_REFERENCES = 10;
+
+export function isSafeReference(value: string): boolean {
+  const text = value.trim();
+  return text.length > 0 && text.length <= MAX_REFERENCE_LENGTH && !CARD_OR_CLABE_DIGITS.test(text) && !PERSONAL_ID_LIKE.test(text);
+}
+
+/** Folios separados por coma o renglón, sin repetidos. */
+export function parseReferences(text: string): string[] {
+  return [...new Set(text.split(/[,\n]/).map((r) => r.trim()).filter(Boolean))];
+}
+
+/** Por qué no se pueden guardar las referencias, o null si se puede. */
+export function referencesError(references: readonly string[]): string | null {
+  if (references.length > MAX_REFERENCES) return `Máximo ${MAX_REFERENCES} referencias.`;
+  const bad = references.find((r) => !isSafeReference(r));
+  return bad ? `«${bad}» parece tarjeta, CLABE, RFC o CURP, o es muy largo: deja solo folios.` : null;
+}
+
+export const ATTACHMENT_STATE_LABEL: Record<PaymentAttachment['state'], string> = {
+  queued: 'En cola para leer',
+  reading: 'Leyendo…',
+  review: 'Listo para validar',
+  failed: 'No se pudo leer: captura a mano',
+  validating: 'Se estaba validando: revisa si el pago ya quedó antes de validar otra vez',
+  blocked: 'Traía datos de pacientes: se borró',
+  attached: 'En un pago',
+  removed: 'Quitado',
+};
+
+/** Una línea corta con lo que propuso la IA. */
+export function suggestionSummary(suggestion: ExpenseSuggestion | null): string {
+  if (!suggestion) return '';
+  const parts = [suggestion.name ?? suggestion.documentType];
+  if (suggestion.amountCents !== null) parts.push(formatMoney(suggestion.amountCents));
+  else if (suggestion.currency && suggestion.currency !== 'MXN') parts.push(`en ${suggestion.currency}: captura el monto en pesos`);
+  if (suggestion.paidOn) parts.push(`pagado el ${suggestion.paidOn}`);
+  if (suggestion.supplierName) parts.push(suggestion.supplierName);
+  return parts.join(' · ');
+}
+
+/** Un pago al que se puede unir algo, con su nombre para elegirlo. */
+export interface TargetOption {
+  key: string;
+  target: PaymentTarget;
+  label: string;
+  amountCents: number | null;
+  paidOn: string | null;
+  /** Lo marcó la IA o el monto y la fecha: aparece primero. */
+  likely: boolean;
+}
+
+export function targetKey(target: PaymentTarget): string {
+  return target.expenseId ? `e:${target.expenseId}` : `r:${target.recurringPaymentId}:${target.dueOn}`;
+}
+
+/**
+ * Pagos a los que unir un soporte o un gasto duplicado: gastos sin anular y
+ * periodos recurrentes vencidos, próximos o pagados recientemente. Los
+ * probables (duplicados) van primero.
+ */
+export function targetOptions(data: ExpensesData, likely: readonly PaymentTarget[] = [], excludeExpenseId?: string): TargetOption[] {
+  const likelyKeys = new Set(likely.map(targetKey));
+  const options: TargetOption[] = [];
+  for (const e of data.expenses) {
+    if (e.id === excludeExpenseId) continue;
+    const target = { expenseId: e.id };
+    options.push({
+      key: targetKey(target),
+      target,
+      label: `${e.name} · ${formatMoney(e.amountCents)} · ${e.paidOn ? `pagado ${e.paidOn}` : `vence ${e.dueOn}`}`,
+      amountCents: e.amountCents,
+      paidOn: e.paidOn,
+      likely: likelyKeys.has(targetKey(target)),
+    });
+  }
+  for (const p of data.overview.payments) {
+    const periods = new Map<string, { paidOn: string | null; paidCents: number | null }>();
+    for (const dueOn of p.overdue) periods.set(dueOn, { paidOn: null, paidCents: p.amountCents });
+    if (p.next) periods.set(p.next, { paidOn: null, paidCents: p.amountCents });
+    for (const r of p.paid) periods.set(r.dueOn, { paidOn: r.paidOn, paidCents: r.paidCents });
+    for (const [dueOn, period] of periods) {
+      const target = { recurringPaymentId: p.id, dueOn };
+      const amount = period.paidCents === null ? '' : ` · ${formatMoney(period.paidCents)}`;
+      options.push({
+        key: targetKey(target),
+        target,
+        label: `${p.name} (periodo ${dueOn})${amount} · ${period.paidOn ? `pagado ${period.paidOn}` : 'por pagar'}`,
+        amountCents: period.paidCents,
+        paidOn: period.paidOn,
+        likely: likelyKeys.has(targetKey(target)),
+      });
+    }
+  }
+  return options.sort((a, b) => Number(b.likely) - Number(a.likely) || a.label.localeCompare(b.label));
+}
+
+/** Al unir, ¿hay que elegir con qué monto y fecha se queda? */
+export function mergeNeedsChoice(source: Pick<Expense, 'amountCents' | 'paidOn'>, target: Pick<TargetOption, 'amountCents' | 'paidOn'>): boolean {
+  const amountDiffers = target.amountCents !== null && target.amountCents !== source.amountCents;
+  const dateDiffers = target.paidOn !== null && source.paidOn !== null && target.paidOn !== source.paidOn;
+  return amountDiffers || dateDiffers;
 }
