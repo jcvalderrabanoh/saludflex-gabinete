@@ -82,6 +82,8 @@ export interface ServiceFormValue {
   amount: number | string | null;
   periodMonths: number;
   firstDueOn: string;
+  /** Número de servicio o medidor (opcional). */
+  reference?: string;
 }
 
 export function toPaymentInput(value: ServiceFormValue): RecurringPaymentInput {
@@ -92,7 +94,25 @@ export function toPaymentInput(value: ServiceFormValue): RecurringPaymentInput {
     amountCents: toCents(value.amount),
     periodMonths: value.periodMonths,
     firstDueOn: value.firstDueOn,
+    reference: value.reference?.trim() || null,
   };
+}
+
+/** jc-core rechaza lo mismo: un número de servicio no es tarjeta, CLABE, RFC ni CURP. */
+const CARD_OR_CLABE = /(\d[\s-]*){15,}/;
+const PERSONAL_ID = /[a-zñ&]{3,4}\d{6}[a-z0-9]{3}/i;
+
+export function serviceReferenceError(value: string | null | undefined): string | null {
+  const text = (value ?? '').trim();
+  if (!text) return null;
+  if (text.length > 60) return 'Máximo 60 caracteres.';
+  if (CARD_OR_CLABE.test(text)) return 'Parece tarjeta o CLABE: escribe el número de servicio o de medidor.';
+  return PERSONAL_ID.test(text) ? 'Parece RFC o CURP: escribe el número de servicio o de medidor.' : null;
+}
+
+/** «Luz · Primer piso · servicio 9876…» para distinguir dos medidores. */
+export function serviceLabel(payment: Pick<RecurringPayment, 'name' | 'reference'>): string {
+  return payment.reference ? `${payment.name} · servicio ${payment.reference}` : payment.name;
 }
 
 const normalized = (name: string) => name.normalize('NFD').replace(/\p{M}/gu, '').trim().toLowerCase();

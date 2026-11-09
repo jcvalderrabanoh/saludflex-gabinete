@@ -172,10 +172,11 @@ describe('Gastos', () => {
     ]);
     fixture.detectChanges();
     const pending = el.querySelector('.pending');
-    expect(pending?.textContent).toContain('Soportes por validar');
+    expect(pending?.textContent).toContain('Recibos y comprobantes de pago');
+    expect(pending?.textContent).toContain('1 por validar');
     expect(pending?.textContent).toContain('Gel y papel · $2,340 MXN · pagado el 2026-11-07 · Distribuidora');
     expect(pending?.textContent).toContain('posible duplicado');
-    expect(pending?.querySelector('button')).not.toBeNull();
+    expect([...(pending?.querySelectorAll('button') ?? [])].some((b) => b.textContent?.includes('Validar'))).toBeTrue();
   });
 
   it('un gasto con soportes y posible duplicado lo muestra en su renglón', () => {
@@ -193,5 +194,12 @@ describe('Gastos', () => {
     flushAll(http, PLAN, [{ ...EXPENSE, possibleDuplicateIds: ['x2'] }]);
     fixture.detectChanges();
     expect(el.textContent).not.toContain('¿Duplicado? Unir');
+  });
+
+  it('siempre muestra dónde subir recibos, aunque no haya ninguno por validar', () => {
+    const { fixture, http, el } = setup(['facility.record']);
+    flushAll(http);
+    fixture.detectChanges();
+    expect(el.querySelector('.pending')?.textContent).toContain('Subir recibos o comprobantes');
   });
 });

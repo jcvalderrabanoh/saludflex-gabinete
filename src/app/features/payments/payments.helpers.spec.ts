@@ -1,5 +1,5 @@
 import { RecurringPayment } from '../../core/models/facility.models';
-import { amountLabel, paymentSections, periodLabel, toCents, toPaymentInput, unusedSuggestions } from './payments.helpers';
+import { amountLabel, paymentSections, periodLabel, serviceLabel, serviceReferenceError, toCents, toPaymentInput, unusedSuggestions } from './payments.helpers';
 
 const payment = (over: Partial<RecurringPayment>): RecurringPayment => ({
   id: 'p', establishmentId: 'e', name: 'Luz', kind: 'service', category: 'other', amountMode: 'variable', amountCents: null,
@@ -58,7 +58,7 @@ describe('pagos recurrentes: ayudantes', () => {
   describe('toPaymentInput', () => {
     const base = { name: '  Agua ', kind: 'service' as const, amountMode: 'fixed' as const, amount: 100, periodMonths: 1, firstDueOn: '2026-11-10' };
     it('limpia el nombre y manda centavos', () => {
-      expect(toPaymentInput(base)).toEqual({ name: 'Agua', kind: 'service', amountMode: 'fixed', amountCents: 10000, periodMonths: 1, firstDueOn: '2026-11-10' });
+      expect(toPaymentInput(base)).toEqual({ name: 'Agua', kind: 'service', amountMode: 'fixed', amountCents: 10000, periodMonths: 1, firstDueOn: '2026-11-10', reference: null });
     });
     it('variable sin monto manda null para poder borrarlo al editar', () => {
       expect(toPaymentInput({ ...base, amountMode: 'variable', amount: null }).amountCents).toBeNull();
@@ -68,5 +68,19 @@ describe('pagos recurrentes: ayudantes', () => {
   it('unusedSuggestions quita lo que ya se sigue, sin importar mayúsculas ni acentos', () => {
     const names = unusedSuggestions(['LUZ', 'teléfono']).map((s) => s.name);
     expect(names).toEqual(['Predial', 'Gas', 'Agua']);
+  });
+});
+
+describe('número de servicio o medidor', () => {
+  it('acepta un número de servicio y rechaza CLABE, tarjeta y RFC', () => {
+    expect(serviceReferenceError('123456789012')).toBeNull();
+    expect(serviceReferenceError('')).toBeNull();
+    expect(serviceReferenceError('012180001234567891')).toContain('CLABE');
+    expect(serviceReferenceError('GOMA800101ABC')).toContain('RFC');
+  });
+
+  it('el nombre del servicio lleva su número para distinguir dos medidores', () => {
+    expect(serviceLabel({ name: 'Luz · Primer piso', reference: '987654321098' })).toBe('Luz · Primer piso · servicio 987654321098');
+    expect(serviceLabel({ name: 'Agua', reference: null })).toBe('Agua');
   });
 });

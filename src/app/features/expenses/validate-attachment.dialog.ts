@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -12,18 +13,21 @@ import { ExpenseCategory, InventorySupplier, PaymentAttachment } from '../../cor
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { confidenceLevel } from '../evidence/analyze-document.helpers';
 import { apiMessage } from '../evidence/record-evidence.dialog';
-import { toCents } from '../payments/payments.helpers';
-import { CATEGORY_OPTIONS, ExpensesData, parseReferences, personalDataError, referencesError, targetOptions } from './expenses.helpers';
+import { serviceLabel, toCents } from '../payments/payments.helpers';
+import { CATEGORY_OPTIONS, PaymentSources, parseReferences, personalDataError, referencesError, targetOptions } from './expenses.helpers';
 import { SupplierFieldComponent } from './supplier-field.component';
 
 export interface ValidateAttachmentData {
   establishmentId: string;
   today: string;
   attachment: PaymentAttachment;
-  data: ExpensesData;
+  /** Gastos y pagos recurrentes a los que se puede unir. */
+  sources: PaymentSources;
   suppliers: InventorySupplier[];
-  /** Registrar un gasto nuevo y quitar soportes piden facility.manage. */
+  /** Quitar soportes pide facility.manage. */
   canManage: boolean;
+  /** Registrar un gasto nuevo: Gastos encendido y facility.manage. */
+  canRegister: boolean;
 }
 
 type Mode = 'new' | 'existing';
@@ -45,7 +49,7 @@ function safeReferences(control: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-validate-attachment-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, MatSelectModule, SupplierFieldComponent],
+  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatButtonToggleModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, MatSelectModule, SupplierFieldComponent],
   template: `
     <h2 mat-dialog-title>Validar soporte de pago</h2>
     <mat-dialog-content>
@@ -71,15 +75,18 @@ function safeReferences(control: AbstractControl): ValidationErrors | null {
         @if (a.suggestion.currency && a.suggestion.currency !== 'MXN') { <p class="warn" role="status">Viene en {{ a.suggestion.currency }}: captura el monto en pesos.</p> }
       }
 
-      @if (duplicates().length > 0) {
+      @if (service(); as svc) {
+        <p class="dup" role="status"><strong>Es de {{ svc }}.</strong> La IA reconoció su número de servicio o medidor. Revisa el periodo antes de guardar.</p>
+      } @else if (duplicates().length > 0) {
         <p class="dup" role="status"><strong>Posible duplicado:</strong> ya hay un pago con el mismo monto a pocos días. Úneselo en vez de registrar otro.</p>
       }
 
+      @if (data.canRegister) {
       <mat-button-toggle-group [value]="mode()" (change)="mode.set($event.value)" aria-label="Qué hacer con el soporte" class="toggle" hideSingleSelectionIndicator>
         <mat-button-toggle value="existing">Unir a un pago que ya existe</mat-button-toggle>
-        <mat-button-toggle value="new" [disabled]="!data.canManage">Registrar gasto nuevo</mat-button-toggle>
+        <mat-button-toggle value="new">Registrar gasto nuevo</mat-button-toggle>
       </mat-button-toggle-group>
-      @if (!data.canManage) { <p class="muted">Para registrar un gasto nuevo, pídelo a quien administra el gabinete.</p> }
+      }
 
       <form [formGroup]="form" class="form">
         @if (mode() === 'existing') {
@@ -90,9 +97,9 @@ function safeReferences(control: AbstractControl): ValidationErrors | null {
                 <mat-option [value]="o.key">{{ o.likely ? '★ ' : '' }}{{ o.label }}</mat-option>
               }
             </mat-select>
-            <mat-hint>★ mismo monto a pocos días.</mat-hint>
+            <mat-hint>★ el que reconoció la IA o mismo monto a pocos días.</mat-hint>
           </mat-form-field>
-          <p class="muted wide">Si el pago seguía pendiente, se marca pagado con esta fecha y monto.</p>
+          <mat-checkbox class="wide" formControlName="markPaid">Ya está pagado: si seguía pendiente, márcalo pagado con esta fecha y monto</mat-checkbox>
         } @else {
           <mat-form-field appearance="outline" class="wide">
             <mat-label>Nombre</mat-label>
@@ -111,6 +118,7 @@ function safeReferences(control: AbstractControl): ValidationErrors | null {
           </mat-form-field>
           <app-supplier-field class="wide" [establishmentId]="data.establishmentId" [suppliers]="suppliers()" [canCreate]="data.canManage" [suggestedName]="a.suggestion?.supplierName ?? null" [control]="form.controls.supplierId" (created)="addSupplier($event)" />
         }
+        @if (mode() === 'new' || form.controls.markPaid.value) {
         <mat-form-field appearance="outline">
           <mat-label>{{ mode() === 'existing' ? 'Monto pagado (MXN)' : 'Monto en MXN' }}</mat-label>
           <input matInput type="number" min="0" step="0.01" formControlName="amount" />
@@ -121,6 +129,7 @@ function safeReferences(control: AbstractControl): ValidationErrors | null {
           <input matInput type="date" formControlName="paidOn" [max]="data.today" />
           <mat-hint>{{ hint('paidOn') }}</mat-hint>
         </mat-form-field>
+        }
         <mat-form-field appearance="outline" class="wide">
           <mat-label>Referencias</mat-label>
           <input matInput formControlName="references" />
@@ -135,7 +144,7 @@ function safeReferences(control: AbstractControl): ValidationErrors | null {
       @if (data.canManage) { <button mat-button class="remove" [disabled]="saving()" (click)="remove()">Quitar soporte</button> }
       <span class="spacer"></span>
       <button mat-button mat-dialog-close>Después</button>
-      <button mat-flat-button color="primary" [disabled]="saving()" (click)="save()">{{ mode() === 'existing' ? 'Unir a este pago' : 'Registrar gasto' }}</button>
+      <button mat-flat-button color="primary" [disabled]="saving()" (click)="save()">{{ mode() === 'new' ? 'Registrar gasto' : form.controls.markPaid.value ? 'Unir y marcar pagado' : 'Adjuntar al pago' }}</button>
     </mat-dialog-actions>
   `,
   styles: [`
@@ -167,8 +176,14 @@ export class ValidateAttachmentDialogComponent implements OnDestroy {
   readonly error = signal<string | null>(null);
   readonly suppliers = signal(this.data.suppliers);
   readonly duplicates = computed(() => this.a.possibleDuplicates ?? []);
-  readonly options = computed(() => targetOptions(this.data.data, this.duplicates()));
-  readonly mode = signal<Mode>(this.duplicates().length > 0 || !this.data.canManage ? 'existing' : 'new');
+  readonly options = computed(() => targetOptions(this.data.sources, this.duplicates()));
+  readonly mode = signal<Mode>(this.duplicates().length > 0 || !this.data.canRegister ? 'existing' : 'new');
+  /** El servicio que la IA reconoció por su número de medidor o servicio. */
+  readonly service = computed(() => {
+    const target = this.a.suggestion?.suggestedTarget;
+    const payment = target && this.data.sources.overview.payments.find((p) => p.id === target.recurringPaymentId);
+    return payment ? `${serviceLabel(payment)}, periodo ${target.dueOn}` : null;
+  });
 
   private readonly s = this.a.suggestion;
   readonly form = inject(FormBuilder).nonNullable.group({
@@ -178,6 +193,8 @@ export class ValidateAttachmentDialogComponent implements OnDestroy {
     supplierId: [this.s?.supplierId ?? ''],
     amount: [(this.s?.amountCents ?? null) === null ? null : (this.s?.amountCents as number) / 100] as [number | string | null],
     paidOn: [this.s?.paidOn ?? this.data.today, Validators.required],
+    // Un recibo con fecha de pago ya está pagado; uno con solo fecha límite, no.
+    markPaid: [!!this.s?.paidOn || !this.s],
     references: [(this.a.references.length ? this.a.references : this.s?.references ?? []).join(', '), safeReferences],
   });
 
@@ -238,10 +255,12 @@ export class ValidateAttachmentDialogComponent implements OnDestroy {
         this.error.set('Elige el pago al que corresponde.');
         return;
       }
+      const paid = controls.markPaid.value;
       request = this.api.attachToPayment(this.a.id, {
         ...option.target,
-        paidOn: controls.paidOn.value,
-        paidCents: option.target.recurringPaymentId && cents ? cents : undefined,
+        markPaid: paid,
+        paidOn: paid ? controls.paidOn.value : undefined,
+        paidCents: paid && option.target.recurringPaymentId && cents ? cents : undefined,
         references,
       });
     }
