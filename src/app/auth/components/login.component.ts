@@ -15,7 +15,7 @@ const GOOGLE_FAILED = 'No se pudo entrar con Google. Intenta de nuevo o entra co
 
 /**
  * Entrada al Sistema Integral de Gabinete, con Google (Auth0) o con contraseña.
- * Diseño: pantalla F1 del proyecto de Stitch (ver `docs/pantallas.md`).
+ * Diseño: pantalla F1 del proyecto de Stitch.
  *
  * Google sale de la app y Auth0 regresa a esta misma página con
  * `?code=&state=`: al montarse, la página detecta el regreso y canjea.
