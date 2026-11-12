@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SaludFlex - F24 Horarios y bloqueos</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration verbatim as requested -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "brand-blue": "#2563C9",
+            "brand-blue-hover": "#1d4fa3",
+            "brand-blue-subtle": "#eff6ff",
+            "secondary-fixed-dim": "#76d4e7",
+            "secondary": "#006877",
+            "surface-container-lowest": "#ffffff",
+            "outline": "#71787d",
+            "tertiary-container": "#004f5c",
+            "on-surface-variant": "#41484d",
+            "tertiary": "#003740",
+            "on-tertiary-fixed-variant": "#004e5b",
+            "tertiary-fixed": "#a7eeff",
+            "error-container": "#ffdad6",
+            "outline-variant": "#c0c7cd",
+            "surface-tint": "#2c6480",
+            "inverse-surface": "#283044",
+            "surface-container": "#eaedff",
+            "on-tertiary-fixed": "#001f25",
+            "on-tertiary": "#ffffff",
+            "surface-container-highest": "#dae2fd",
+            "on-error": "#ffffff",
+            "surface-bright": "#faf8ff",
+            "on-error-container": "#93000a",
+            "on-surface": "#131b2e",
+            "surface-container-high": "#e2e7ff",
+            "primary": "#00354a",
+            "background": "#faf8ff",
+            "on-secondary-container": "#006b7a",
+            "on-primary-fixed": "#001e2c",
+            "error": "#ba1a1a",
+            "primary-container": "#0a4d68",
+            "on-secondary": "#ffffff",
+            "tertiary-fixed-dim": "#41d8f4",
+            "surface-container-low": "#f2f3ff",
+            "inverse-on-surface": "#eef0ff",
+            "primary-fixed": "#c3e8ff",
+            "on-background": "#131b2e",
+            "on-secondary-fixed": "#001f25",
+            "on-primary": "#ffffff",
+            "surface": "#faf8ff",
+            "surface-variant": "#dae2fd",
+            "inverse-primary": "#98cded",
+            "secondary-fixed": "#a3eeff",
+            "primary-fixed-dim": "#98cded",
+            "on-secondary-fixed-variant": "#004e5a",
+            "surface-dim": "#d2d9f4",
+            "on-primary-fixed-variant": "#084c67",
+            "on-primary-container": "#88bddc",
+            "on-tertiary-container": "#23c7e3",
+            "secondary-container": "#8debff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-md": "0.75rem",
+            "space-sm": "0.5rem",
+            "margin": "1rem",
+            "space-xl": "1.5rem",
+            "margin-tablet": "1.5rem",
+            "gutter": "1rem",
+            "space-xs": "0.25rem",
+            "space-2xl": "2rem",
+            "margin-desktop": "2rem",
+            "gutter-tablet": "1.25rem",
+            "gutter-desktop": "1.5rem",
+            "space-lg": "1rem",
+            "space-3xl": "3rem"
+          },
+          "fontFamily": {
+            "label-md": ["Inter"],
+            "label-sm": ["Inter"],
+            "display-lg-mobile": ["Inter"],
+            "headline-md": ["Inter"],
+            "body-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "display-lg": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "title-md": ["Inter"],
+            "headline-sm": ["Inter"],
+            "code-clinical": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "title-sm": ["Inter"]
+          },
+          "fontSize": {
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "display-lg-mobile": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "title-md": ["16px", { "lineHeight": "22px", "fontWeight": "600" }],
+            "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "code-clinical": ["13px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "title-sm": ["14px", { "lineHeight": "20px", "fontWeight": "600" }]
+          }
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-full flex flex-col font-body-md text-on-surface bg-[#F8FAFC] antialiased">
+<!-- Banda superior de maqueta -->
+<div class="bg-[#fef3c7] text-[#78350f] py-1 px-4 text-center text-xs font-medium border-b border-amber-200 shrink-0 select-none">
+    Maqueta. Datos ficticios de ejemplo
+  </div>
+<div class="flex flex-1 min-h-0 overflow-hidden">
+<!-- Menú lateral fijo agrupado -->
+<aside class="w-64 flex flex-col justify-between bg-surface-container-lowest border-r border-slate-200 shrink-0 h-full select-none">
+<!-- Top del menú lateral: Logo y secciones de navegación -->
+<div class="flex flex-col flex-1 overflow-y-auto">
+<!-- Brand Header -->
+<div class="px-5 py-4 border-b border-slate-100 flex items-center gap-3">
+<svg class="w-7 h-7 text-[#2563C9] shrink-0" fill="none" viewbox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#eff6ff" height="32" rx="8" width="32"></rect>
+<path d="M16 7V25M7 16H25" stroke="#2563C9" stroke-linecap="round" stroke-width="3"></path>
+<circle cx="16" cy="16" fill="#0284c7" r="3.5"></circle>
+</svg>
+<div class="flex flex-col">
+<span class="font-bold text-base leading-tight text-slate-900 tracking-tight">SaludFlex</span>
+<span class="text-[11px] leading-tight text-slate-500 font-medium">Sistema Integral de Gabinete</span>
+</div>
+</div>
+<!-- Grupos de Navegación -->
+<nav class="p-3 space-y-4">
+<!-- Grupo: DÍA A DÍA -->
+<div>
+<div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 px-3 py-1.5">
+              DÍA A DÍA
+            </div>
+<ul class="space-y-0.5 mt-0.5">
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="dashboard">dashboard</span>
+<span>Hoy</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="calendar_today">calendar_today</span>
+<span>Calendario</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="description">description</span>
+<span>Documentos</span>
+</a>
+</li>
+</ul>
+</div>
+<!-- Grupo: ESPACIOS (Con elemento activo) -->
+<div>
+<div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 px-3 py-1.5">
+              ESPACIOS
+            </div>
+<ul class="space-y-0.5 mt-0.5">
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="event_note">event_note</span>
+<span>Agenda</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="medical_services">medical_services</span>
+<span>Servicios</span>
+</a>
+</li>
+<li>
+<!-- Activo: Horarios y bloqueos -->
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-[#eff6ff] text-[#2563C9] font-semibold text-[13px] border-l-4 border-[#2563C9] pl-2.5" href="#">
+<span class="material-symbols-outlined text-[18px] text-[#2563C9]" data-icon="schedule">schedule</span>
+<span>Horarios y bloqueos</span>
+</a>
+</li>
+</ul>
+</div>
+<!-- Grupo: EN REGLA -->
+<div>
+<div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 px-3 py-1.5">
+              EN REGLA
+            </div>
+<ul class="space-y-0.5 mt-0.5">
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="verified">verified</span>
+<span>Obligaciones</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="apartment">apartment</span>
+<span>Municipal</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="folder_special">folder_special</span>
+<span>Carpeta de inspección</span>
+</a>
+</li>
+</ul>
+</div>
+<!-- Grupo: MI GABINETE -->
+<div>
+<div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 px-3 py-1.5">
+              MI GABINETE
+            </div>
+<ul class="space-y-0.5 mt-0.5">
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="payments">payments</span>
+<span>Pagos recurrentes</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="storefront">storefront</span>
+<span>Establecimientos</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="badge">badge</span>
+<span>Equipos y personal</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="vpn_key">vpn_key</span>
+<span>Accesos</span>
+</a>
+</li>
+</ul>
+</div>
+</nav>
+</div>
+<!-- Menú lateral inferior -->
+<div class="p-3 border-t border-slate-100 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[13px] font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-slate-400" data-icon="hub">hub</span>
+<span>Conexiones</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-700 bg-slate-50 hover:bg-slate-100 text-[12px] font-medium border border-slate-200 transition-colors" href="#">
+<span class="truncate">Carpeta en 1 clic (ZIP/PDF) Listo</span>
+<span class="material-symbols-outlined text-[16px] text-slate-400" data-icon="download">download</span>
+</a>
+</div>
+</aside>
+<!-- Área de Trabajo Principal -->
+<div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+<!-- Barra superior limpia -->
+<header class="h-14 bg-surface-container-lowest border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
+<!-- Izquierda: selector de establecimiento -->
+<button class="flex items-center gap-2 text-slate-700 hover:text-slate-900 font-medium text-sm px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200" type="button">
+<span class="material-symbols-outlined text-[18px] text-slate-500" data-icon="apartment">apartment</span>
+<span>Gabinete de ejemplo</span>
+<span class="material-symbols-outlined text-[16px] text-slate-400" data-icon="expand_more">expand_more</span>
+</button>
+<!-- Derecha: usuario Recepción con avatar R -->
+<div class="flex items-center gap-3">
+<span class="text-sm font-medium text-slate-700">Recepción</span>
+<div class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center border border-slate-300">
+            R
+          </div>
+</div>
+</header>
+<!-- Canvas de contenido: F24 Horarios y bloqueos -->
+<main class="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto space-y-8">
+<!-- Encabezado de página -->
+<div>
+<h1 class="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">Horarios y bloqueos</h1>
+<p class="text-sm text-slate-500 mt-0.5">Cuándo se puede agendar en cada equipo</p>
+</div>
+<!-- Sección 1: Horario semanal -->
+<section class="space-y-3">
+<h2 class="text-base font-semibold text-slate-900 tracking-tight">Horario semanal</h2>
+<div class="bg-surface-container-lowest border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse text-sm">
+<thead>
+<tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600">
+<th class="py-3 px-4 font-semibold" scope="col">Equipo</th>
+<th class="py-3 px-3 font-semibold" scope="col">Lun</th>
+<th class="py-3 px-3 font-semibold" scope="col">Mar</th>
+<th class="py-3 px-3 font-semibold" scope="col">Mié</th>
+<th class="py-3 px-3 font-semibold" scope="col">Jue</th>
+<th class="py-3 px-3 font-semibold" scope="col">Vie</th>
+<th class="py-3 px-3 font-semibold" scope="col">Sáb</th>
+<th class="py-3 px-3 font-semibold" scope="col">Dom</th>
+<th class="py-3 px-4 text-right font-semibold" scope="col">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-200 font-normal text-slate-700">
+<!-- Fila 1: Tomógrafo -->
+<tr class="hover:bg-slate-50/75 transition-colors">
+<td class="py-3.5 px-4 font-medium text-slate-900 whitespace-nowrap">Tomógrafo</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">07:00–18:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">07:00–18:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">07:00–18:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">07:00–18:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">07:00–18:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">08:00–14:00</td>
+<td class="py-3.5 px-3 text-slate-400 text-xs whitespace-nowrap">Cerrado</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button class="text-sm font-semibold text-[#2563C9] hover:text-[#1d4fa3] transition-colors focus:outline-none focus:underline" type="button">
+                        Editar horario
+                      </button>
+</td>
+</tr>
+<!-- Fila 2: Rayos X -->
+<tr class="hover:bg-slate-50/75 transition-colors">
+<td class="py-3.5 px-4 font-medium text-slate-900 whitespace-nowrap">Rayos X</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">07:00–20:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">07:00–20:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">07:00–20:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">07:00–20:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">07:00–20:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">08:00–16:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">09:00–14:00</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button class="text-sm font-semibold text-[#2563C9] hover:text-[#1d4fa3] transition-colors focus:outline-none focus:underline" type="button">
+                        Editar horario
+                      </button>
+</td>
+</tr>
+<!-- Fila 3: Ultrasonido -->
+<tr class="hover:bg-slate-50/75 transition-colors">
+<td class="py-3.5 px-4 font-medium text-slate-900 whitespace-nowrap">Ultrasonido</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">08:00–19:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">08:00–19:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">08:00–19:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">08:00–19:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">08:00–19:00</td>
+<td class="py-3.5 px-3 tabular-nums font-mono text-[13px] whitespace-nowrap">08:00–15:00</td>
+<td class="py-3.5 px-3 text-slate-400 text-xs whitespace-nowrap">Cerrado</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button class="text-sm font-semibold text-[#2563C9] hover:text-[#1d4fa3] transition-colors focus:outline-none focus:underline" type="button">
+                        Editar horario
+                      </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Sección 2: Bloqueos -->
+<section class="space-y-3 pt-2">
+<!-- Encabezado con título y botón outline a la derecha -->
+<div class="flex items-center justify-between">
+<h2 class="text-base font-semibold text-slate-900 tracking-tight">Bloqueos</h2>
+<button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 border border-[#2563C9] text-[#2563C9] hover:bg-[#eff6ff] rounded-md text-sm font-semibold transition-colors focus:outline-none" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+<span>Agregar bloqueo</span>
+</button>
+</div>
+<!-- Tabla de bloqueos -->
+<div class="bg-surface-container-lowest border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse text-sm">
+<thead>
+<tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600">
+<th class="py-3 px-4 font-semibold" scope="col">Equipo</th>
+<th class="py-3 px-4 font-semibold" scope="col">Desde</th>
+<th class="py-3 px-4 font-semibold" scope="col">Hasta</th>
+<th class="py-3 px-4 font-semibold" scope="col">Motivo</th>
+<th class="py-3 px-4 text-right font-semibold" scope="col">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-200 font-normal text-slate-700">
+<!-- Fila 1: Tomógrafo -->
+<tr class="hover:bg-slate-50/75 transition-colors">
+<td class="py-3.5 px-4 font-medium text-slate-900 whitespace-nowrap">Tomógrafo</td>
+<td class="py-3.5 px-4 tabular-nums font-mono text-[13px] whitespace-nowrap">Jue 12 nov 2026, 14:00</td>
+<td class="py-3.5 px-4 tabular-nums font-mono text-[13px] whitespace-nowrap">Jue 12 nov 2026, 15:00</td>
+<td class="py-3.5 px-4 whitespace-nowrap text-slate-800">Mantenimiento</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button class="text-sm font-semibold text-[#2563C9] hover:text-[#1d4fa3] transition-colors focus:outline-none focus:underline" type="button">
+                        Quitar bloqueo
+                      </button>
+</td>
+</tr>
+<!-- Fila 2: Rayos X -->
+<tr class="hover:bg-slate-50/75 transition-colors">
+<td class="py-3.5 px-4 font-medium text-slate-900 whitespace-nowrap">Rayos X</td>
+<td class="py-3.5 px-4 tabular-nums font-mono text-[13px] whitespace-nowrap">Sáb 14 nov 2026, 07:00</td>
+<td class="py-3.5 px-4 tabular-nums font-mono text-[13px] whitespace-nowrap">Sáb 14 nov 2026, 18:00</td>
+<td class="py-3.5 px-4 whitespace-nowrap text-slate-800">Falla del equipo</td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<button class="text-sm font-semibold text-[#2563C9] hover:text-[#1d4fa3] transition-colors focus:outline-none focus:underline" type="button">
+                        Quitar bloqueo
+                      </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Texto de apoyo neutro -->
+<p class="text-slate-600 text-sm mt-3 font-normal">
+            Un bloqueo no cancela las citas que ya existen: te las muestra para que las reprogrames.
+          </p>
+</section>
+</main>
+</div>
+</div>
+</body></html>

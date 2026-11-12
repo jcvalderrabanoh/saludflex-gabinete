@@ -30,6 +30,36 @@
       "name": "Maqueta de saldo",
       "screen": "projects/9959578893517974265/screens/b51e660fdd9549cc8a756622c576a4ad",
       "generatedAt": "2026-11-08T16:51:24.621Z"
+    },
+    "F19": {
+      "name": "Agenda del día",
+      "screen": "projects/9959578893517974265/screens/d4e1804db5194a549f9b44e94ac99f2e",
+      "generatedAt": "2026-11-12T01:54:12.056Z"
+    },
+    "F20": {
+      "name": "Agendar cita",
+      "screen": "projects/9959578893517974265/screens/1232b871503e4fe0a7b59f719038fa2b",
+      "generatedAt": "2026-11-12T01:46:21.518Z"
+    },
+    "F21": {
+      "name": "Detalle de la cita",
+      "screen": "projects/9959578893517974265/screens/76533479551544fb8a9523be79722e56",
+      "generatedAt": "2026-11-12T01:55:54.151Z"
+    },
+    "F22": {
+      "name": "Llegadas del día",
+      "screen": "projects/9959578893517974265/screens/fb7a4ae4ee8b493fa55563a3b1d7c608",
+      "generatedAt": "2026-11-12T15:59:55.516Z"
+    },
+    "F23": {
+      "name": "Servicios",
+      "screen": "projects/9959578893517974265/screens/658b4c869c014fba93bf9d6b04c3b11e",
+      "generatedAt": "2026-11-12T16:00:53.102Z"
+    },
+    "F24": {
+      "name": "Horarios y bloqueos",
+      "screen": "projects/9959578893517974265/screens/98e30d4ff0f34fb1afd8539bdad4b81e",
+      "generatedAt": "2026-11-12T16:02:11.732Z"
     }
   }
 }
