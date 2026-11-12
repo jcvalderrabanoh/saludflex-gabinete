@@ -1,5 +1,8 @@
-// Genera en Google Stitch (MCP remoto) una propuesta por pantalla de
-// docs/pantallas.md y guarda HTML + captura en docs/stitch/ (copiado de jc-attendance).
+// Genera en Google Stitch (MCP remoto) una propuesta por pantalla y guarda
+// HTML + captura FUERA del repo: las maquetas son documentación de producto.
+//
+// Carpeta de trabajo (obligatoria): STITCH_DIR. Ahí se lee `screens.json` y se
+// escriben `manifest.json`, los HTML y las capturas.
 //
 // Credencial (una de las dos, como variable de entorno; nunca en el repo):
 //   STITCH_API_KEY       → header X-Goog-Api-Key
@@ -7,17 +10,20 @@
 //   STITCH_QUOTA_PROJECT → header x-goog-user-project; obligatorio con token de usuario
 //
 // Uso:
-//   node scripts/stitch/generate-screens.mjs              # todas las pendientes
-//   node scripts/stitch/generate-screens.mjs A4 C1        # solo esas
-// Es reanudable: lo ya generado queda en docs/stitch/manifest.json y se salta.
+//   STITCH_DIR=/ruta node scripts/stitch/generate-screens.mjs         # todas las pendientes
+//   STITCH_DIR=/ruta node scripts/stitch/generate-screens.mjs A4 C1   # solo esas
+// Es reanudable: lo ya generado queda en `manifest.json` de esa carpeta y se salta.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 
 const ENDPOINT = 'https://stitch.googleapis.com/mcp';
-const root = resolve(new URL('../..', import.meta.url).pathname);
-const outDir = join(root, 'docs', 'stitch');
+if (!process.env.STITCH_DIR) {
+  console.error('Falta STITCH_DIR: la carpeta, fuera del repo, con screens.json y donde se guardan las maquetas.');
+  process.exit(1);
+}
+const outDir = resolve(process.env.STITCH_DIR);
 const manifestPath = join(outDir, 'manifest.json');
-const config = JSON.parse(readFileSync(join(root, 'scripts/stitch/screens.json'), 'utf8'));
+const config = JSON.parse(readFileSync(join(outDir, 'screens.json'), 'utf8'));
 
 const headers = { 'content-type': 'application/json', accept: 'application/json' };
 if (process.env.STITCH_API_KEY) headers['X-Goog-Api-Key'] = process.env.STITCH_API_KEY;
