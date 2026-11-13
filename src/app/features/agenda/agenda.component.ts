@@ -42,6 +42,8 @@ const REFRESH_NOW_EVERY_MS = 60_000;
 /** Al abrir un día, la parrilla se desplaza hasta un poco antes de lo que importa. */
 const SCROLL_LEAD_MINUTES = 45;
 const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** 23:55: lo último que un clic en la parrilla puede proponer. */
+const LAST_BOOKABLE_MINUTE = 1435;
 
 const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'attended', 'no_show'];
 
@@ -290,7 +292,8 @@ export class AgendaComponent {
 
   /** Clic en un carril: propone esa hora, ajustada a 5 minutos, en ese equipo. */
   bookAt(lane: AgendaLane, top: number): void {
-    this.book({ equipmentId: lane.id, clock: clockOfMinutes(snapMinutes(this.axis().minutesAt(top))) });
+    const minutes = Math.min(snapMinutes(this.axis().minutesAt(top)), LAST_BOOKABLE_MINUTE);
+    this.book({ equipmentId: lane.id, clock: clockOfMinutes(minutes) });
   }
 
   open(appointment: AgendaAppointment, lane: AgendaLane): void {
@@ -306,15 +309,22 @@ export class AgendaComponent {
       .afterClosed()
       .subscribe((result) => {
         if (result === 'changed') this.reload();
-        if (result === 'reschedule') this.book({ rescheduling: appointment, clock: clockOf(appointment.startsAt, lane.timeZone) });
+        if (result === 'reschedule') {
+          this.book({ rescheduling: appointment, date: todayIn(lane.timeZone, new Date(appointment.startsAt)), clock: clockOf(appointment.startsAt, lane.timeZone) });
+        }
       });
   }
 
   private afterBooking(booked: AgendaBooked, moved: boolean): void {
-    this.reload();
+    // Si quedó en otro día, la agenda va a ese día: ahí es donde se ve.
+    const date = todayIn(this.timeZone(), new Date(booked.startsAt));
+    const elsewhere = date !== this.date();
+    if (elsewhere) this.pick(date);
+    else this.reload();
+    const day = elsewhere ? ` para el ${longDate(date).toLowerCase()}` : '';
     const when = clockOf(booked.startsAt, this.timeZone());
     const warning = overlapWarning(booked.warnings ?? [], this.ownLanes(), this.timeZone());
-    const message = `${moved ? 'Cita movida' : 'Cita agendada'}: ${when}, ${booked.patientName}.${warning ? ` ${warning}` : ''}`;
+    const message = `${moved ? 'Cita movida' : 'Cita agendada'}${day}: ${when}, ${booked.patientName}.${warning ? ` ${warning}` : ''}`;
     const contact: AgendaContact | null = booked.patientContactId ? { id: booked.patientContactId, name: booked.patientName, phone: booked.patientPhone } : null;
     const again = this.snack.open(message, contact && !moved ? 'Agendar otra para este paciente' : undefined, { duration: warning ? 12_000 : 8_000 });
     if (contact) again.onAction().subscribe(() => this.book({ contact }));

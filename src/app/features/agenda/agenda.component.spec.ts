@@ -214,9 +214,13 @@ describe('AgendaComponent', () => {
   });
 
   it('al agendar recarga el día y avisa, con el aviso del mismo paciente si lo hay', () => {
+    // Una cita para el día que se está viendo: hoy a las 09:00 de Ciudad de México.
+    const today = todayIn(DEFAULT_TIME_ZONE);
     const booked = {
       ...lane().appointments[0],
-      warnings: [{ code: 'PATIENT_OVERLAP', appointment: { id: 'x', equipmentId: 'ct', startsAt: '2026-12-07T15:00:00.000Z', endsAt: '2026-12-07T15:30:00.000Z' } }],
+      startsAt: `${today}T15:00:00.000Z`,
+      endsAt: `${today}T15:15:00.000Z`,
+      warnings: [{ code: 'PATIENT_OVERLAP', appointment: { id: 'x', equipmentId: 'ct', startsAt: `${today}T15:00:00.000Z`, endsAt: `${today}T15:30:00.000Z` } }],
     };
     const { fixture, element, api, snack } = setup(dayWith(lane()), undefined, true, booked);
 
@@ -227,6 +231,26 @@ describe('AgendaComponent', () => {
     const [message, action] = snack.open.calls.mostRecent().args;
     expect(message).toBe('Cita agendada: 09:00, María López. Este paciente ya tiene otra cita a esa hora: 09:00 en Tomógrafo.');
     expect(action).toBe('Agendar otra para este paciente');
+  });
+
+  it('al agendar para otro día salta a ese día y lo dice en el aviso', () => {
+    const booked = { ...lane().appointments[0], startsAt: '2026-12-24T16:30:00.000Z', endsAt: '2026-12-24T16:45:00.000Z', warnings: [] };
+    const { fixture, element, api, snack } = setup(dayWith(lane()), undefined, true, booked);
+
+    element.querySelector<HTMLButtonElement>('.new')?.click();
+    fixture.detectChanges();
+
+    expect(api.day.calls.mostRecent().args).toEqual(['2026-12-24']);
+    expect(snack.open.calls.mostRecent().args[0]).toBe('Cita agendada para el jueves 24 de diciembre de 2026: 10:30, María López.');
+  });
+
+  it('reprogramar propone el día de la cita, no el que se está viendo', () => {
+    const moving = setup(dayWith(lane()), undefined, true);
+    moving.dialog.open.and.returnValues({ afterClosed: () => of('reschedule') }, { afterClosed: () => of(undefined) });
+
+    moving.element.querySelector<HTMLButtonElement>('.appointment .card')?.click();
+
+    expect(moving.dialog.open.calls.mostRecent().args[1].data.date).toBe('2026-12-07');
   });
 
   it('si el detalle cambió la cita, recarga; si pidió reprogramar, abre el diálogo para moverla', () => {

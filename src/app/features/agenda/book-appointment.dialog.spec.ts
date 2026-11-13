@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { of, throwError } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 import { AgendaAppointment, AgendaLane, AgendaServiceType } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { BookAppointmentData, BookAppointmentDialogComponent } from './book-appointment.dialog';
@@ -83,6 +83,63 @@ describe('BookAppointmentDialogComponent', () => {
     expect(component.form.controls.equipmentId.value).toBe('');
     expect(component.canSave()).toBeFalse();
   }));
+
+  it('conserva el equipo del carril donde se hizo clic cuando el servicio tiene varios posibles', fakeAsync(() => {
+    const { fixture, component } = setup({ equipmentId: 'rx2', clock: '10:00' });
+    settle(fixture);
+    expect(component.form.controls.equipmentId.value).toBe('rx2');
+
+    component.form.controls.serviceTypeId.setValue('rx');
+    settle(fixture);
+
+    expect(component.form.controls.equipmentId.value).toBe('rx2');
+  }));
+
+  it('pide las horas libres una sola vez aunque se siga escribiendo, y no las quita al elegir una', fakeAsync(() => {
+    const { fixture, component, api, element } = setup({ equipmentId: 'ct' });
+    component.form.controls.serviceTypeId.setValue('tc');
+    settle(fixture);
+
+    component.form.patchValue({ patientName: 'Pedro', notes: 'Trae estudios', urgent: true });
+    tick(300);
+    settle(fixture);
+    element.querySelectorAll<HTMLButtonElement>('.chip')[0].click();
+    settle(fixture);
+
+    expect(api.slots).toHaveBeenCalledTimes(1);
+    expect(element.querySelectorAll('.chip').length).toBe(2);
+    expect(element.querySelector('.chip.on')?.textContent).toBe('09:00');
+  }));
+
+  it('dos pulsaciones seguidas de guardar agendan una sola vez', fakeAsync(() => {
+    const { component, api } = setup({ equipmentId: 'ct', clock: '09:00' });
+    component.form.patchValue({ serviceTypeId: 'tc', patientName: 'Pedro' });
+    api.book.and.returnValue(NEVER);
+
+    component.save();
+    component.save();
+
+    expect(api.book).toHaveBeenCalledTimes(1);
+    tick(300);
+  }));
+
+  it('no deja guardar con una fecha u hora que no se puede leer', fakeAsync(() => {
+    const { fixture, component } = setup({ equipmentId: 'ct', clock: '09:00' });
+    component.form.patchValue({ serviceTypeId: 'tc', patientName: 'Pedro', date: '20261-12-07' });
+    settle(fixture);
+    expect(component.canSave()).toBeFalse();
+
+    component.form.patchValue({ date: '2026-12-07', clock: '09:00:30' });
+    settle(fixture);
+    expect(component.canSave()).toBeFalse();
+    tick(300);
+  }));
+
+  it('sin servicios en el catálogo lo explica en vez de dejar un formulario que no se puede guardar', () => {
+    const { element } = setup({ services: [] });
+
+    expect(element.textContent).toContain('Aún no hay servicios en el catálogo');
+  });
 
   it('busca contactos parecidos al nombre y, al elegir uno, agenda con su id', fakeAsync(() => {
     const { fixture, component, api, ref, element } = setup({ equipmentId: 'ct', clock: '09:00' });

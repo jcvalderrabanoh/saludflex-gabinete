@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
@@ -22,6 +22,9 @@ export interface AppointmentDetailData {
   /** Con `facility.schedule.manage`; sin él, el detalle es de solo lectura. */
   canManage: boolean;
 }
+
+/** 409: ya cambió de estado; 404: ya no existe. */
+const STALE_STATUSES = [409, 404];
 
 /** `changed`: la cita cambió de estado y hay que recargar; `reschedule`: abrir el diálogo para moverla. */
 export type AppointmentDetailResult = 'changed' | 'reschedule';
@@ -95,18 +98,18 @@ export type AppointmentDetailResult = 'changed' | 'reschedule';
         <button mat-button (click)="cancelling.set(false)" [disabled]="busy()">No cancelar</button>
         <button mat-flat-button class="danger" (click)="run(api.cancel(appointment.id, reason.value.trim() || null))" [disabled]="busy()">Sí, cancelar la cita</button>
       } @else {
-        @if (data.canManage && appointment.state === 'scheduled') {
+        @if (canAct() && appointment.state === 'scheduled') {
           <button mat-flat-button color="primary" (click)="run(api.arrive(appointment.id))" [disabled]="busy()"><mat-icon>how_to_reg</mat-icon> Marcar llegada</button>
           <button mat-stroked-button (click)="reschedule()" [disabled]="busy()">Reprogramar</button>
           <button mat-stroked-button (click)="run(api.noShow(appointment.id))" [disabled]="busy()">No se presentó</button>
         }
-        @if (data.canManage && appointment.state === 'arrived') {
+        @if (canAct() && appointment.state === 'arrived') {
           <button mat-flat-button color="primary" (click)="run(api.attend(appointment.id))" [disabled]="busy()"><mat-icon>done_all</mat-icon> Marcar atendida</button>
         }
-        @if (data.canManage && canCancel) {
+        @if (canAct() && canCancel) {
           <button mat-button class="danger-text" (click)="cancelling.set(true)" [disabled]="busy()">Cancelar cita</button>
         }
-        <button mat-button mat-dialog-close class="close">Cerrar</button>
+        <button mat-button class="close" (click)="close()">Cerrar</button>
       }
     </mat-dialog-actions>
   `,
@@ -151,6 +154,9 @@ export class AppointmentDetailDialogComponent {
   readonly cancelling = signal(false);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
+  /** La cita ya no está como se muestra: se quitan las acciones y al cerrar se recarga la agenda. */
+  private readonly outdated = signal(false);
+  readonly canAct = computed(() => this.data.canManage && !this.outdated());
 
   clock(instant: string): string {
     return clockOf(instant, this.data.lane.timeZone);
@@ -160,15 +166,26 @@ export class AppointmentDetailDialogComponent {
     this.ref.close('reschedule');
   }
 
+  close(): void {
+    this.ref.close(this.outdated() ? 'changed' : undefined);
+  }
+
   /** Cualquier cambio de estado: si entra, se cierra y la agenda se recarga. */
   run(action: Observable<AgendaAppointment>): void {
+    if (this.busy()) return;
     this.busy.set(true);
     this.error.set(null);
     action.subscribe({
       next: () => this.ref.close('changed'),
       error: (err: HttpErrorResponse) => {
         this.busy.set(false);
+        this.cancelling.set(false);
         this.error.set(apiMessage(err));
+        // Alguien más ya movió o cerró esta cita: lo que se ve aquí es viejo.
+        if (STALE_STATUSES.includes(err.status)) {
+          this.outdated.set(true);
+          this.ref.disableClose = true;
+        }
       },
     });
   }

@@ -35,6 +35,8 @@ export interface BookAppointmentData {
 const SEARCH_AFTER_MS = 300;
 const SEARCH_MIN_LENGTH = 2;
 const CONFLICT = 409;
+const LOCAL_DATE = /^20\d{2}-\d{2}-\d{2}$/;
+const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** Agendar una cita o mover una de hora. El orden de los campos sigue la llamada con el paciente. */
 @Component({
@@ -44,6 +46,9 @@ const CONFLICT = 409;
   template: `
     <h2 mat-dialog-title>{{ moving ? 'Reprogramar cita' : 'Agendar cita' }}</h2>
     <mat-dialog-content>
+      @if (!moving && data.services.length === 0) {
+        <p class="error" role="alert"><mat-icon aria-hidden="true">error</mat-icon> Aún no hay servicios en el catálogo. Alguien con permiso de configurar la agenda debe darlos de alta antes de agendar.</p>
+      }
       <form [formGroup]="form" class="form">
         @if (moving; as current) {
           <p class="fixed wide"><strong>{{ current.patientName }}</strong> · {{ current.serviceTypeName ?? 'Servicio' }} · {{ laneName(current.equipmentId) }}</p>
@@ -187,10 +192,13 @@ export class BookAppointmentDialogComponent {
   /** Al reprogramar el equipo no cambia; al agendar, los de la modalidad del servicio. */
   readonly equipment = computed<AgendaLane[]>(() => (this.moving ? this.data.lanes.filter((lane) => lane.id === this.moving?.equipmentId) : lanesFor(this.service(), this.data.lanes)));
 
-  /** Lo que define qué horas libres pedir; `null` mientras falte algo. */
-  private readonly slotsQuery = computed(() => {
+  /**
+   * Lo que define qué horas libres pedir, como texto: así escribir el nombre o
+   * las notas no las vuelve a pedir. Vacío mientras falte algo.
+   */
+  private readonly slotsKey = computed(() => {
     const { equipmentId, serviceTypeId, date } = this.value();
-    return equipmentId && serviceTypeId && date ? { equipmentId, serviceTypeId, date } : null;
+    return equipmentId && serviceTypeId && LOCAL_DATE.test(date) ? [equipmentId, serviceTypeId, date].join('|') : '';
   });
   private readonly refreshes = signal(0);
   readonly slotsReady = signal(false);
@@ -212,16 +220,24 @@ export class BookAppointmentDialogComponent {
     toObservable(this.equipment)
       .pipe(takeUntilDestroyed())
       .subscribe((options) => {
+        // Sin servicio aún no se sabe qué equipos caben: se respeta el del carril donde se hizo clic.
+        if (!this.moving && !this.service()) return;
         const control = this.form.controls.equipmentId;
         if (options.some((lane) => lane.id === control.value)) return;
         control.setValue(options.length === 1 ? options[0].id : '');
       });
 
-    toObservable(computed(() => ({ query: this.slotsQuery(), refresh: this.refreshes() })))
+    let shownFor = '';
+    toObservable(computed(() => `${this.slotsKey()}#${this.refreshes()}`))
       .pipe(
-        switchMap(({ query }) => {
-          this.slotsReady.set(false);
-          return query ? this.api.slots(query).pipe(map((result) => result.slots), catchError(() => of(null))) : of(null);
+        switchMap(() => {
+          const key = this.slotsKey();
+          // Otro equipo, servicio o fecha: las horas de antes ya no valen. Un simple refresco las deja a la vista.
+          if (key !== shownFor) this.slotsReady.set(false);
+          shownFor = key;
+          if (!key) return of(null);
+          const [equipmentId, serviceTypeId, date] = key.split('|');
+          return this.api.slots({ equipmentId, serviceTypeId, date }).pipe(map((result) => result.slots), catchError(() => of(null)));
         }),
         takeUntilDestroyed(),
       )
@@ -248,10 +264,11 @@ export class BookAppointmentDialogComponent {
   canSave(): boolean {
     const { patientName, serviceTypeId, equipmentId, date, clock } = this.value();
     const patient = this.moving !== null || this.contact() !== null || patientName.trim().length > 0;
-    return patient && !!serviceTypeId && !!equipmentId && !!date && !!clock;
+    return patient && !!serviceTypeId && !!equipmentId && LOCAL_DATE.test(date) && CLOCK.test(clock);
   }
 
   save(): void {
+    if (this.saving() || !this.canSave()) return;
     const form = this.form.getRawValue();
     const startsAt = instantAt(form.date, form.clock, this.data.timeZone);
     const request = this.moving

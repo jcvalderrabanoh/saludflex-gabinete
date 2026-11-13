@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { AgendaAppointment, AgendaLane } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { AppointmentDetailDialogComponent } from './appointment-detail.dialog';
@@ -42,7 +42,7 @@ function setup(current: AgendaAppointment, canManage = true) {
   });
   const lanes = [lane('ct', 'Tomógrafo', [current]), lane('rx', 'Rayos X', [other])];
   const api = jasmine.createSpyObj<AgendaApiService>('AgendaApiService', { arrive: of(current), attend: of(current), noShow: of(current), cancel: of(current) });
-  const ref = { close: jasmine.createSpy('close') };
+  const ref = { close: jasmine.createSpy('close'), disableClose: false };
   TestBed.configureTestingModule({
     imports: [AppointmentDetailDialogComponent],
     providers: [
@@ -132,14 +132,39 @@ describe('AppointmentDetailDialogComponent', () => {
     expect(ref.close).toHaveBeenCalledOnceWith('changed');
   });
 
-  it('si la acción falla muestra el mensaje y deja reintentar', () => {
-    const { api, ref, element, press } = setup(appointment());
+  it('si la cita ya cambió en el servidor lo dice, quita las acciones y al cerrar la agenda se recarga', () => {
+    const { api, ref, element, press, labels } = setup(appointment());
     api.noShow.and.returnValue(throwError(() => new HttpErrorResponse({ status: 409, error: { message: 'La cita ya cambió de estado.' } })));
 
     press('No se presentó');
 
     expect(ref.close).not.toHaveBeenCalled();
     expect(element.querySelector('[role="alert"]')?.textContent).toContain('La cita ya cambió de estado.');
-    expect(element.querySelector<HTMLButtonElement>('mat-dialog-actions button')?.disabled).toBeFalse();
+    expect(labels()).toEqual(['Cerrar']);
+    press('Cerrar');
+    expect(ref.close).toHaveBeenCalledOnceWith('changed');
+  });
+
+  it('si falla por otra cosa muestra el mensaje y deja reintentar', () => {
+    const { api, ref, element, press, labels } = setup(appointment());
+    api.arrive.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+
+    press('Marcar llegada');
+
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain('No hay conexión con el servidor.');
+    expect(labels()).toContain('Marcar llegada');
+    press('Cerrar');
+    expect(ref.close).toHaveBeenCalledOnceWith(undefined);
+  });
+
+  it('dos pulsaciones seguidas mandan la acción una sola vez', () => {
+    const { fixture } = setup(appointment());
+    let subscriptions = 0;
+    const action = new Observable<AgendaAppointment>(() => void subscriptions++);
+
+    fixture.componentInstance.run(action);
+    fixture.componentInstance.run(action);
+
+    expect(subscriptions).toBe(1);
   });
 });

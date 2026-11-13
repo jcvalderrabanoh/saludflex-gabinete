@@ -117,7 +117,8 @@ export interface AgendaPatientOverlap {
   appointment: { id: string; equipmentId: string; startsAt: string; endsAt: string };
 }
 
-export type AgendaBooked = AgendaAppointment & { warnings: AgendaPatientOverlap[] };
+/** Lo que devuelven el alta y la reprogramación: la cita, sin el nombre del servicio, y sus avisos. */
+export type AgendaBooked = Omit<AgendaAppointment, 'serviceTypeName'> & { warnings: AgendaPatientOverlap[] };
 
 /** Cuerpo de un 409 al agendar: con qué choca. */
 export interface AgendaConflict {
