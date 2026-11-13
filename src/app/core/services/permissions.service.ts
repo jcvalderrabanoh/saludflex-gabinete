@@ -4,10 +4,15 @@ import { EvaluatedObligation } from '../models/facility.models';
 import { AuthService } from './auth.service';
 
 /** Lo que una pantalla puede ofrecer; cada acción se traduce a permisos `facility.*`. */
-export type FacilityAction = 'read' | 'record' | 'schedule' | 'manage' | 'inspect' | 'payments';
+export type FacilityAction = 'read' | 'record' | 'schedule' | 'manage' | 'inspect' | 'payments' | 'agenda' | 'agendaManage' | 'agendaConfigure';
 
 export const RECORD_ALL = 'facility.record';
 export const RECORD_ASSIGNED = 'facility.record.assigned';
+
+/** Agenda de estudios: permisos propios, que no se conceden al contratar Gabinete. */
+export const AGENDA_READ = 'facility.schedule.read';
+export const AGENDA_MANAGE = 'facility.schedule.manage';
+export const AGENDA_CONFIGURE = 'facility.schedule.configure';
 
 const REQUIRED: Record<FacilityAction, readonly string[]> = {
   read: ['facility.read'],
@@ -18,6 +23,10 @@ const REQUIRED: Record<FacilityAction, readonly string[]> = {
   inspect: ['facility.inspect'],
   // Montos: jc-core no los abre con facility.read ni con la captura acotada.
   payments: [RECORD_ALL, 'facility.manage'],
+  // Ver la agenda: jc-core la abre con cualquiera de sus tres permisos.
+  agenda: [AGENDA_READ, AGENDA_MANAGE, AGENDA_CONFIGURE],
+  agendaManage: [AGENDA_MANAGE],
+  agendaConfigure: [AGENDA_CONFIGURE],
 };
 
 /** ¿Alguno de los permisos deja hacer la acción? (para registrar basta el global o el asignado). */

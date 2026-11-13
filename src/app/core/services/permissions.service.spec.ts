@@ -38,6 +38,15 @@ describe('permisos del gabinete', () => {
       expect(can(['facility.record.assigned'], 'payments')).toBeFalse();
     });
 
+    it('la agenda se ve con cualquiera de sus permisos, pero agendar y configurar piden el suyo', () => {
+      expect(can(['facility.schedule.read'], 'agenda')).toBeTrue();
+      expect(can(['facility.schedule.configure'], 'agenda')).toBeTrue();
+      expect(can(['facility.schedule.read'], 'agendaManage')).toBeFalse();
+      expect(can(['facility.schedule.manage'], 'agendaManage')).toBeTrue();
+      expect(can(['facility.schedule.manage'], 'agendaConfigure')).toBeFalse();
+      expect(can(['facility.read', 'facility.manage'], 'agenda')).toBeFalse();
+    });
+
     it('sin permisos no deja nada', () => {
       expect(can([], 'read')).toBeFalse();
       expect(can(undefined, 'record')).toBeFalse();
