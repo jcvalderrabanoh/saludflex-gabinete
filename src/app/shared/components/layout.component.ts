@@ -28,6 +28,8 @@ interface NavItem {
   whenExpenses?: boolean;
   /** Solo en las cuentas con la agenda encendida. */
   whenAgenda?: true;
+  /** Se marca activa solo en su ruta exacta, no en las que cuelgan de ella. */
+  exact?: true;
 }
 
 interface NavGroup {
@@ -47,7 +49,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   },
   {
     label: 'Espacios',
-    items: [{ path: '/operacion/agenda', label: 'Agenda', icon: 'view_week', requires: 'agenda', whenAgenda: true }],
+    items: [
+      { path: '/operacion/agenda', label: 'Agenda', icon: 'view_week', requires: 'agenda', whenAgenda: true, exact: true },
+      { path: '/operacion/agenda/configuracion', label: 'Configurar agenda', icon: 'tune', requires: 'agendaConfigure', whenAgenda: true },
+    ],
   },
   {
     label: 'En regla',
@@ -97,7 +102,7 @@ export function visibleNavGroups(can: (action: FacilityAction) => boolean, group
               <mat-divider />
             }
             @for (item of group.items; track item.path) {
-              <a mat-list-item [routerLink]="item.path" routerLinkActive="active">
+              <a mat-list-item [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: !!item.exact }">
                 <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
                 <span matListItemTitle>{{ item.label }}</span>
               </a>
