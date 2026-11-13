@@ -127,3 +127,33 @@ export interface AgendaConflict {
   conflict?: { id: string; startsAt: string; endsAt: string } | null;
   block?: { id: string; startsAt: string; endsAt: string; reason: string };
 }
+
+/** Tramo del horario semanal de un equipo: `weekday` 0 es domingo y 6 es sábado. */
+export interface AgendaWeekHour {
+  weekday: number;
+  opensAt: string;
+  closesAt: string;
+}
+
+/** Un equipo de Gabinete como recurso agendable, con su horario semanal. */
+export interface AgendaResource {
+  id: string;
+  establishmentId: string;
+  name: string;
+  modality: string;
+  room: string | null;
+  hours: AgendaWeekHour[];
+}
+
+export interface AgendaServiceTypeInput {
+  name: string;
+  modality: string;
+  durationMinutes: number;
+  preparation: string | null;
+}
+
+export interface AgendaBlockInput {
+  startsAt: string;
+  endsAt: string;
+  reason: string;
+}
