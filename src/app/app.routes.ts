@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
+import { agendaRouteGuard } from './auth/guards/agenda.guard';
 import { authGuard } from './auth/guards/auth.guard';
 import { expensesRouteGuard } from './auth/guards/expenses.guard';
 import { permissionGuard } from './auth/guards/permission.guard';
@@ -18,6 +19,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'hoy', loadComponent: () => import('./features/today/today.component').then((m) => m.TodayComponent) },
+      { path: 'agenda', canActivate: [permissionGuard('agenda'), agendaRouteGuard()], loadComponent: () => import('./features/agenda/agenda.component').then((m) => m.AgendaComponent) },
       { path: 'documentos', loadComponent: () => import('./features/documents/documents.component').then((m) => m.DocumentsComponent) },
       { path: 'obligaciones', loadComponent: () => import('./features/obligations/obligations.component').then((m) => m.ObligationsComponent) },
       { path: 'calendario', loadComponent: () => import('./features/calendar/calendar.component').then((m) => m.CalendarComponent) },

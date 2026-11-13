@@ -12,3 +12,16 @@ body {
 @media (max-width: 767.98px) {
   .cdk-overlay-pane.mat-mdc-dialog-panel { max-width: calc(100vw - 16px) !important; }
 }
+
+/* Texto solo para lectores de pantalla. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

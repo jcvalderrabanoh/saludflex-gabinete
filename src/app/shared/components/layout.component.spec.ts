@@ -21,6 +21,17 @@ describe('menú del layout', () => {
     expect(labels).not.toContain('Pagos recurrentes');
   });
 
+  it('con la agenda encendida y permiso, aparece «Espacios › Agenda» tras «Día a día»', () => {
+    const labels = visibleNavGroups(allow('agenda'), undefined, false, true).map((g) => g.label);
+    expect(labels.slice(0, 2)).toEqual(['Día a día', 'Espacios']);
+  });
+
+  it('la agenda no se ofrece con la cuenta apagada ni sin permiso', () => {
+    const groupsOf = (can: (a: FacilityAction) => boolean, agenda: boolean) => visibleNavGroups(can, undefined, false, agenda).map((g) => g.label);
+    expect(groupsOf(allow('agenda'), false)).not.toContain('Espacios');
+    expect(groupsOf(allow('read'), true)).not.toContain('Espacios');
+  });
+
   it('sin permisos oculta Carpeta, Pagos y Accesos y deja el resto', () => {
     expect(groups(allow())).toEqual([
       ['Día a día', ['Hoy', 'Calendario', 'Documentos']],
