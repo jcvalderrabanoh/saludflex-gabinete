@@ -1,12 +1,14 @@
 import { AgendaAppointment, AgendaLane } from '../../core/models/agenda.models';
 import {
   appointmentPlace,
+  blockPlace,
   clockOf,
   closedBands,
+  dayAxis,
   daySummary,
   gridAppointments,
   gridWindow,
-  hourMarks,
+  laneRange,
   longDate,
   minutesOfClock,
   nowMinutes,
@@ -105,13 +107,48 @@ describe('ventana de la parrilla', () => {
     expect(gridWindow([lane({ hours: [] })])).toEqual({ from: 420, to: 1200 });
   });
 
+  it('se estira para mostrar un bloqueo fuera del horario', () => {
+    const evening = { id: 'b1', startsAt: '2026-12-07T22:00:00.000Z', endsAt: '2026-12-08T00:00:00.000Z', reason: 'Mantenimiento' };
+    expect(gridWindow([lane({ blocks: [evening] })])).toEqual({ from: 480, to: 1080 });
+  });
+
+  it('un bloqueo de varios días no estira la ventana a las 24 horas', () => {
+    const week = { id: 'b1', startsAt: '2026-12-01T06:00:00.000Z', endsAt: '2026-12-20T06:00:00.000Z', reason: 'Obra' };
+    expect(gridWindow([lane({ blocks: [week] })])).toEqual({ from: 480, to: 840 });
+  });
+});
+
+describe('eje del día', () => {
   it('marca cada media hora y distingue las horas en punto', () => {
-    const marks = hourMarks({ from: 480, to: 570 });
-    expect(marks).toEqual([
-      { minutes: 480, label: '08:00', onTheHour: true },
-      { minutes: 510, label: '08:30', onTheHour: false },
-      { minutes: 540, label: '09:00', onTheHour: true },
+    const axis = dayAxis([lane({ hours: [{ opensAt: '08:00', closesAt: '09:30' }] })], 2);
+    expect(axis.marks).toEqual([
+      { minutes: 480, label: '08:00', onTheHour: true, top: 0 },
+      { minutes: 510, label: '08:30', onTheHour: false, top: 60 },
+      { minutes: 540, label: '09:00', onTheHour: true, top: 120 },
+      { minutes: 570, label: '09:30', onTheHour: false, top: 180 },
     ]);
+    expect(axis.height).toBe(240);
+  });
+
+  it('pliega a una franja corta los tramos largos en que ningún equipo trabaja', () => {
+    const night = appointment({ startsAt: '2026-12-08T04:00:00.000Z', endsAt: '2026-12-08T04:30:00.000Z', priority: 'urgent' });
+    const axis = dayAxis([lane({ appointments: [night] })], 2);
+
+    // 08–14 abierto (720 px), 14–22 plegado (36 px), 22–23 con la urgencia (120 px).
+    expect(axis.folds).toEqual([{ from: 840, to: 1320 }]);
+    expect(axis.height).toBe(720 + 36 + 120);
+    expect(axis.top(840)).toBe(720);
+    expect(axis.top(1000)).toBe(720);
+    expect(axis.top(1320)).toBe(756);
+    expect(axis.top(1350)).toBe(816);
+    expect(axis.marks.filter((mark) => mark.minutes > 840 && mark.minutes < 1320)).toEqual([]);
+  });
+
+  it('no pliega un tramo corto ni uno en que algún equipo sí trabaja', () => {
+    const split = lane({ hours: [{ opensAt: '08:00', closesAt: '12:00' }, { opensAt: '13:00', closesAt: '18:00' }] });
+    const other = lane({ id: 'e2', hours: [{ opensAt: '12:00', closesAt: '20:00' }] });
+    expect(dayAxis([split], 2).folds).toEqual([]);
+    expect(dayAxis([lane({ hours: [{ opensAt: '08:00', closesAt: '10:00' }, { opensAt: '16:00', closesAt: '18:00' }] }), other], 2).folds).toEqual([]);
   });
 });
 
@@ -127,8 +164,21 @@ describe('escala de la parrilla', () => {
     expect(pixelsPerMinute([lane()])).toBe(1.6);
   });
 
-  it('coloca una cita según su hora y duración dentro de la ventana', () => {
-    expect(appointmentPlace(appointment(), lane(), { from: 480, to: 840 }, 2)).toEqual({ top: 120, height: 30 });
+  it('coloca una cita según su hora y duración sobre el eje', () => {
+    const own = lane({ appointments: [appointment()] });
+    expect(appointmentPlace(appointment(), own, dayAxis([own], 2))).toEqual({ top: 120, height: 30 });
+  });
+
+  it('un bloqueo que empezó días antes se pinta desde el inicio de la ventana', () => {
+    const block = { id: 'b1', startsAt: '2026-12-01T06:00:00.000Z', endsAt: '2026-12-07T16:00:00.000Z', reason: 'Obra' };
+    const own = lane({ blocks: [block] });
+    expect(blockPlace(block, own, dayAxis([own], 2))).toEqual({ top: 0, height: 240 });
+  });
+
+  it('un bloqueo que no toca la ventana no se pinta', () => {
+    const block = { id: 'b1', startsAt: '2026-12-07T06:00:00.000Z', endsAt: '2026-12-07T07:00:00.000Z', reason: 'Limpieza' };
+    const own = lane();
+    expect(blockPlace(block, own, dayAxis([own], 2))).toBeNull();
   });
 });
 
@@ -161,6 +211,20 @@ describe('citas que se pintan', () => {
     const replacement = appointment({ id: 'r1', startsAt: '2026-12-07T15:05:00.000Z', endsAt: '2026-12-07T15:20:00.000Z' });
     expect(gridAppointments(lane({ appointments: [noShow] })).map((a) => a.id)).toEqual(['n1']);
     expect(gridAppointments(lane({ appointments: [noShow, replacement] })).map((a) => a.id)).toEqual(['r1']);
+  });
+
+  it('de dos ausencias en el mismo hueco pinta solo la última', () => {
+    const first = appointment({ id: 'n1', state: 'no_show' });
+    const second = appointment({ id: 'n2', state: 'no_show' });
+    expect(gridAppointments(lane({ appointments: [first, second] })).map((a) => a.id)).toEqual(['n2']);
+  });
+});
+
+describe('rango de citas de un carril', () => {
+  it('dice de qué hora a qué hora hay citas, aunque no estén a la vista', () => {
+    const night = appointment({ id: 'n', startsAt: '2026-12-08T04:00:00.000Z', endsAt: '2026-12-08T04:15:00.000Z' });
+    expect(laneRange(lane({ appointments: [night, appointment()] }))).toBe('09:00–22:15');
+    expect(laneRange(lane())).toBeNull();
   });
 });
 

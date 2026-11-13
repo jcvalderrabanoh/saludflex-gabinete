@@ -10,6 +10,20 @@ export interface HourMark {
   minutes: number;
   label: string;
   onTheHour: boolean;
+  top: number;
+}
+
+/**
+ * El eje vertical del día. No es lineal: los tramos largos en que ningún
+ * equipo trabaja se pliegan a una franja corta para no desplazar en vacío.
+ */
+export interface DayAxis {
+  window: MinuteRange;
+  height: number;
+  marks: HourMark[];
+  folds: MinuteRange[];
+  /** Distancia en píxeles desde el inicio de la ventana hasta ese minuto. */
+  top(minutes: number): number;
 }
 
 export interface Place {
@@ -36,6 +50,11 @@ export const DEFAULT_TIME_ZONE = 'America/Mexico_City';
 /** Jornada que se muestra cuando ningún equipo tiene horario ni citas. */
 const DEFAULT_WINDOW: MinuteRange = { from: 7 * MINUTES_PER_HOUR, to: 20 * MINUTES_PER_HOUR };
 const MARK_EVERY_MINUTES = 30;
+
+/** Un tramo sin actividad se pliega si dura al menos esto. */
+const FOLD_FROM_MINUTES = 180;
+/** Alto de un tramo plegado: cabe su rótulo. */
+const FOLD_HEIGHT = 36;
 
 /** Alto mínimo de una cita para que quepa una línea de texto. */
 const MIN_APPOINTMENT_HEIGHT = 22;
@@ -95,31 +114,79 @@ const overlaps = (a: { startsAt: string; endsAt: string }, b: { startsAt: string
 
 /**
  * Las citas que se pintan en el carril. Las canceladas no; quien no se
- * presentó sí, salvo que otra cita ya haya tomado ese hueco.
+ * presentó sí, salvo que otra cita ya haya tomado ese hueco (o que después
+ * haya otra ausencia en él: se pinta la última).
  */
 export function gridAppointments(lane: AgendaLane): AgendaAppointment[] {
-  const occupying = lane.appointments.filter((a) => OCCUPYING.includes(a.state));
-  return lane.appointments.filter((a) => OCCUPYING.includes(a.state) || (a.state === 'no_show' && !occupying.some((other) => overlaps(a, other))));
+  const occupies = (a: AgendaAppointment) => OCCUPYING.includes(a.state);
+  const occupying = lane.appointments.filter(occupies);
+  return lane.appointments.filter((a, index) => {
+    if (occupies(a)) return true;
+    if (a.state !== 'no_show' || occupying.some((other) => overlaps(a, other))) return false;
+    return !lane.appointments.some((other, later) => later > index && other.state === 'no_show' && overlaps(a, other));
+  });
 }
 
-/** De la primera apertura al último cierre, estirada por las citas fuera de horario, a horas completas. */
-export function gridWindow(lanes: readonly AgendaLane[]): MinuteRange {
-  const ranges: MinuteRange[] = lanes.flatMap((lane) => [
+/** Lo que un bloqueo ocupa del día, en minutos; puede empezar antes o terminar después. */
+function blockRange(block: AgendaBlock, lane: AgendaLane): MinuteRange {
+  return {
+    from: block.startsAt <= lane.dayStartsAt ? 0 : minutesOfClock(clockOf(block.startsAt, lane.timeZone)),
+    to: block.endsAt >= lane.dayEndsAt ? MINUTES_PER_DAY : minutesOfClock(clockOf(block.endsAt, lane.timeZone)),
+  };
+}
+
+/** Horario, citas y los bloqueos que empiezan ese día: lo que la parrilla debe dejar ver. */
+function activeRanges(lane: AgendaLane): MinuteRange[] {
+  return [
     ...lane.hours.map((h) => ({ from: minutesOfClock(h.opensAt), to: minutesOfClock(h.closesAt) })),
     ...gridAppointments(lane).map((a) => appointmentRange(a, lane)),
-  ]);
-  if (ranges.length === 0) return DEFAULT_WINDOW;
-  const from = Math.min(...ranges.map((r) => r.from));
-  const to = Math.max(...ranges.map((r) => r.to));
-  return { from: Math.floor(from / MINUTES_PER_HOUR) * MINUTES_PER_HOUR, to: Math.ceil(to / MINUTES_PER_HOUR) * MINUTES_PER_HOUR };
+    ...lane.blocks.filter((block) => block.startsAt > lane.dayStartsAt).map((block) => blockRange(block, lane)),
+  ];
 }
 
-export function hourMarks(window: MinuteRange): HourMark[] {
+const toHours = (range: MinuteRange): MinuteRange => ({
+  from: Math.floor(range.from / MINUTES_PER_HOUR) * MINUTES_PER_HOUR,
+  to: Math.ceil(range.to / MINUTES_PER_HOUR) * MINUTES_PER_HOUR,
+});
+
+/** De la primera apertura al último cierre, estirada por citas y bloqueos fuera de horario, a horas completas. */
+export function gridWindow(lanes: readonly AgendaLane[]): MinuteRange {
+  const ranges = lanes.flatMap(activeRanges);
+  if (ranges.length === 0) return DEFAULT_WINDOW;
+  return toHours({ from: Math.min(...ranges.map((r) => r.from)), to: Math.max(...ranges.map((r) => r.to)) });
+}
+
+/** Tramos de la ventana, de al menos tres horas, en que ningún equipo tiene horario, citas ni bloqueos. */
+function foldsOf(lanes: readonly AgendaLane[], window: MinuteRange): MinuteRange[] {
+  const busy = lanes.flatMap(activeRanges).map(toHours).sort((a, b) => a.from - b.from);
+  const folds: MinuteRange[] = [];
+  let cursor = window.from;
+  for (const range of busy) {
+    if (range.from - cursor >= FOLD_FROM_MINUTES) folds.push({ from: cursor, to: range.from });
+    cursor = Math.max(cursor, range.to);
+  }
+  return folds;
+}
+
+export function dayAxis(lanes: readonly AgendaLane[], scale: number): DayAxis {
+  const window = gridWindow(lanes);
+  const folds = foldsOf(lanes, window);
+  const top = (minutes: number): number => {
+    const at = Math.min(Math.max(minutes, window.from), window.to);
+    let pixels = (at - window.from) * scale;
+    for (const fold of folds) {
+      if (at <= fold.from) break;
+      pixels += FOLD_HEIGHT - (Math.min(at, fold.to) - fold.from) * scale;
+      if (at < fold.to) return top(fold.from);
+    }
+    return pixels;
+  };
   const marks: HourMark[] = [];
   for (let minutes = window.from; minutes < window.to; minutes += MARK_EVERY_MINUTES) {
-    marks.push({ minutes, label: clockOfMinutes(minutes), onTheHour: minutes % MINUTES_PER_HOUR === 0 });
+    if (folds.some((fold) => minutes > fold.from && minutes < fold.to)) continue;
+    marks.push({ minutes, label: clockOfMinutes(minutes), onTheHour: minutes % MINUTES_PER_HOUR === 0, top: top(minutes) });
   }
-  return marks;
+  return { window, height: top(window.to), marks, folds, top };
 }
 
 /** Escala vertical: la cita más corta del día debe poder leerse en una línea. */
@@ -129,25 +196,32 @@ export function pixelsPerMinute(lanes: readonly AgendaLane[]): number {
   return Math.min(MAX_PIXELS_PER_MINUTE, Math.max(MIN_PIXELS_PER_MINUTE, MIN_APPOINTMENT_HEIGHT / Math.min(...durations)));
 }
 
-function placeOf(range: MinuteRange, window: MinuteRange, scale: number): Place | null {
-  const from = Math.max(range.from, window.from);
-  const to = Math.min(range.to, window.to);
-  return to > from ? { top: (from - window.from) * scale, height: (to - from) * scale } : null;
+function placeOf(range: MinuteRange, axis: DayAxis): Place | null {
+  const from = Math.max(range.from, axis.window.from);
+  const to = Math.min(range.to, axis.window.to);
+  if (to <= from) return null;
+  const top = axis.top(from);
+  return { top, height: axis.top(to) - top };
 }
 
-export function appointmentPlace(appointment: AgendaAppointment, lane: AgendaLane, window: MinuteRange, scale: number): Place | null {
-  return placeOf(appointmentRange(appointment, lane), window, scale);
+export function appointmentPlace(appointment: AgendaAppointment, lane: AgendaLane, axis: DayAxis): Place | null {
+  return placeOf(appointmentRange(appointment, lane), axis);
 }
 
 /** Un bloqueo puede empezar antes o terminar después del día: se pinta solo lo que cae en él. */
-export function blockPlace(block: AgendaBlock, lane: AgendaLane, window: MinuteRange, scale: number): Place | null {
-  const from = block.startsAt <= lane.dayStartsAt ? 0 : minutesOfClock(clockOf(block.startsAt, lane.timeZone));
-  const to = block.endsAt >= lane.dayEndsAt ? MINUTES_PER_DAY : minutesOfClock(clockOf(block.endsAt, lane.timeZone));
-  return placeOf({ from, to }, window, scale);
+export function blockPlace(block: AgendaBlock, lane: AgendaLane, axis: DayAxis): Place | null {
+  return placeOf(blockRange(block, lane), axis);
 }
 
-export function bandPlace(band: MinuteRange, window: MinuteRange, scale: number): Place | null {
-  return placeOf(band, window, scale);
+export function bandPlace(band: MinuteRange, axis: DayAxis): Place | null {
+  return placeOf(band, axis);
+}
+
+/** «09:00–22:15»: de la primera a la última cita pintada del carril; `null` si no hay. */
+export function laneRange(lane: AgendaLane): string | null {
+  const ranges = gridAppointments(lane).map((a) => appointmentRange(a, lane));
+  if (ranges.length === 0) return null;
+  return `${clockOfMinutes(Math.min(...ranges.map((r) => r.from)))}–${clockOfMinutes(Math.max(...ranges.map((r) => r.to)))}`;
 }
 
 /** Lo que queda de la ventana fuera del horario del equipo. */

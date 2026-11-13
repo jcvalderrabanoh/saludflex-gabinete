@@ -38,14 +38,14 @@ const lane = (patch: Partial<AgendaLane> = {}): AgendaLane => ({
   ...patch,
 });
 
-function setup(day: (date: string) => Observable<AgendaDay>, establishmentId = 'est-1') {
+function setup(day: (date: string) => Observable<AgendaDay>, establishment: { id: string; timeZone: string } | null = { id: 'est-1', timeZone: DEFAULT_TIME_ZONE }) {
   const api = { day: jasmine.createSpy('day').and.callFake(day) };
   TestBed.configureTestingModule({
     imports: [AgendaComponent],
     providers: [
       provideRouter([]),
       { provide: AgendaApiService, useValue: api },
-      { provide: EstablishmentContextService, useValue: { current: () => ({ id: establishmentId }) } },
+      { provide: EstablishmentContextService, useValue: { current: () => establishment } },
     ],
   });
   const fixture = TestBed.createComponent(AgendaComponent);
@@ -63,9 +63,10 @@ describe('AgendaComponent', () => {
 
     expect(api.day).toHaveBeenCalledOnceWith(todayIn(DEFAULT_TIME_ZONE));
     expect(text()).toContain('Tomógrafo');
-    expect(text()).toContain('Sala 1 · 1 cita');
+    expect(text()).toContain('Sala 1 · 1 cita · 09:00–09:15');
     const appointment = element.querySelector('.appointment');
-    expect(appointment?.getAttribute('aria-label')).toBe('09:00–09:15, María López, Tomografía contrastada, Urgente, Llegó');
+    expect(appointment?.querySelector('.visually-hidden')?.textContent).toBe('09:00–09:15, María López, Tomografía contrastada, Urgente, Llegó');
+    expect(appointment?.querySelector('.line')?.getAttribute('aria-hidden')).toBe('true');
     expect(appointment?.classList).toContain('arrived');
     expect(appointment?.classList).toContain('urgent');
   });
@@ -76,6 +77,51 @@ describe('AgendaComponent', () => {
     expect(text()).toContain('1 cita · 1 llegó · 1 urgente');
     expect(text()).toContain('Bloqueado: Mantenimiento');
     expect(text()).toContain('Fuera de horario');
+  });
+
+  it('«hoy» es la fecha del establecimiento: de noche en Tijuana aún no es mañana', () => {
+    jasmine.clock().install();
+    // 06:30Z del día 8: 00:30 en Ciudad de México, pero 22:30 del día 7 en Tijuana.
+    jasmine.clock().mockDate(new Date('2026-12-08T06:30:00.000Z'));
+    try {
+      const { api, element } = setup(dayWith(lane()), { id: 'est-1', timeZone: 'America/Tijuana' });
+
+      expect(api.day).toHaveBeenCalledOnceWith('2026-12-07');
+      expect(element.querySelector<HTMLButtonElement>('.days button:nth-child(2)')?.disabled).toBeTrue();
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
+  it('mientras no se conoce el establecimiento no pide nada ni pinta carriles de otros', () => {
+    const { api, element, text } = setup(dayWith(lane()), null);
+
+    expect(api.day).not.toHaveBeenCalled();
+    expect(text()).toContain('Cargando la agenda…');
+    expect(element.querySelector('.board')).toBeNull();
+  });
+
+  it('el selector de fecha salta a ese día y vaciarlo no cambia nada', () => {
+    const { fixture, api, element } = setup(dayWith(lane()));
+    const input = element.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+    input.value = '2026-12-24';
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(api.day.calls.mostRecent().args).toEqual(['2026-12-24']);
+    expect(element.querySelector('.date')?.textContent).toBe('Jueves 24 de diciembre de 2026');
+
+    input.value = '';
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(api.day).toHaveBeenCalledTimes(2);
+  });
+
+  it('un bloqueo fuera del horario se alcanza a ver', () => {
+    const evening = { id: 'b2', startsAt: '2026-12-07T22:00:00.000Z', endsAt: '2026-12-08T00:00:00.000Z', reason: 'Calibración' };
+    const { element } = setup(dayWith(lane({ blocks: [evening] })));
+
+    expect(element.querySelector('.band.blocked')?.textContent).toContain('Bloqueado: Calibración');
   });
 
   it('solo muestra los equipos del establecimiento elegido', () => {

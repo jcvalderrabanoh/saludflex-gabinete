@@ -1,27 +1,28 @@
-import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { catchError, of, switchMap, tap } from 'rxjs';
+import { catchError, filter, of, switchMap, tap } from 'rxjs';
 import { AgendaAppointment, AgendaAppointmentState, AgendaDay, AgendaLane } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
+import { AgendaLaneComponent, LaneView, PlacedAppointment } from './agenda-lane.component';
 import {
   DEFAULT_TIME_ZONE,
+  DayAxis,
   Place,
   STATE_VIEWS,
-  StateView,
   appointmentPlace,
   bandPlace,
   blockPlace,
   clockOf,
   clockOfMinutes,
   closedBands,
+  dayAxis,
   daySummary,
   gridAppointments,
-  gridWindow,
-  hourMarks,
+  laneRange,
   longDate,
   nowMinutes,
   pixelsPerMinute,
@@ -29,36 +30,12 @@ import {
   todayIn,
 } from './agenda.helpers';
 
-interface PlacedAppointment {
-  appointment: AgendaAppointment;
-  place: Place;
-  time: string;
-  state: StateView;
-  /** El servicio solo se escribe si en el carril hay más de uno y la cita tiene alto para dos líneas. */
-  service: string | null;
-  label: string;
-}
-
-interface PlacedBand {
-  place: Place;
-  text: string;
-}
-
-interface LaneView {
-  lane: AgendaLane;
-  count: number;
-  closed: PlacedBand[];
-  blocks: PlacedBand[];
-  appointments: PlacedAppointment[];
-}
-
 /** Alto a partir del cual una cita muestra una segunda línea. */
 const TWO_LINES_HEIGHT = 44;
-/** Alto a partir del cual una franja cerrada o bloqueada lleva su rótulo. */
-const BAND_LABEL_HEIGHT = 20;
 const REFRESH_NOW_EVERY_MS = 60_000;
 /** Al abrir un día, la parrilla se desplaza hasta un poco antes de lo que importa. */
 const SCROLL_LEAD_MINUTES = 45;
+const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'attended', 'no_show'];
 
@@ -66,7 +43,7 @@ const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'atte
 @Component({
   selector: 'app-agenda',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatIconModule],
+  imports: [RouterLink, MatButtonModule, MatIconModule, AgendaLaneComponent],
   template: `
     <header class="head">
       <h1>Agenda</h1>
@@ -75,7 +52,10 @@ const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'atte
         <button mat-stroked-button (click)="goToday()" [disabled]="isToday()">Hoy</button>
         <button mat-stroked-button (click)="move(1)">Siguiente <mat-icon iconPositionEnd>chevron_right</mat-icon></button>
       </div>
-      <p class="date" aria-live="polite">{{ dateLabel() }}</p>
+      <label class="pick">
+        <span class="date" aria-live="polite">{{ dateLabel() }}</span>
+        <input type="date" [value]="date()" (change)="pick($any($event.target).value)" aria-label="Ir a una fecha" />
+      </label>
     </header>
 
     @if (error()) {
@@ -83,7 +63,7 @@ const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'atte
         <p>No pudimos cargar la agenda de este día.</p>
         <button mat-stroked-button (click)="reload()"><mat-icon>refresh</mat-icon> Volver a intentar</button>
       </div>
-    } @else if (loading() && !day()) {
+    } @else if (!day()) {
       <p class="muted" role="status">Cargando la agenda…</p>
     } @else if (lanes().length === 0) {
       <div class="notice">
@@ -99,59 +79,22 @@ const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'atte
           @for (view of lanes(); track view.lane.id) {
             <div class="name">
               <strong>{{ view.lane.name }}</strong>
-              <span>{{ view.lane.room ? view.lane.room + ' · ' : '' }}{{ plural(view.count, 'cita', 'citas') }}</span>
+              <span>{{ view.lane.room ? view.lane.room + ' · ' : '' }}{{ plural(view.count, 'cita', 'citas') }}{{ view.range ? ' · ' + view.range : '' }}</span>
             </div>
           }
         </div>
 
-        <div class="row body" [style.height.px]="height()">
+        <div class="row" [style.height.px]="axis().height">
           <div class="axis" aria-hidden="true">
-            @for (mark of marks(); track mark.minutes) {
-              <span class="mark" [class.half]="!mark.onTheHour" [style.top.px]="(mark.minutes - window().from) * scale()">{{ mark.label }}</span>
+            @for (mark of axis().marks; track mark.minutes) {
+              <span class="mark" [class.half]="!mark.onTheHour" [style.top.px]="mark.top">{{ mark.label }}</span>
             }
             @if (nowTop() !== null) {
               <span class="now-label" [style.top.px]="nowTop()">{{ nowClock() }}</span>
             }
           </div>
-
           @for (view of lanes(); track view.lane.id) {
-            <section class="lane" [attr.aria-label]="view.lane.name" [style.--hour.px]="60 * scale()">
-              @for (band of view.closed; track band.place.top) {
-                <div class="band closed" [style.top.px]="band.place.top" [style.height.px]="band.place.height">
-                  @if (band.place.height >= bandLabelHeight) { <span>{{ band.text }}</span> }
-                </div>
-              }
-              @for (band of view.blocks; track band.place.top) {
-                <div class="band blocked" [style.top.px]="band.place.top" [style.height.px]="band.place.height" [attr.title]="band.text">
-                  @if (band.place.height >= bandLabelHeight) { <span><mat-icon aria-hidden="true">block</mat-icon> {{ band.text }}</span> }
-                </div>
-              }
-              @if (nowTop() !== null) {
-                <div class="now" [style.top.px]="nowTop()" aria-hidden="true"></div>
-              }
-              <ul>
-                @for (item of view.appointments; track item.appointment.id) {
-                  <li
-                    class="appointment"
-                    [class]="'appointment ' + item.appointment.state"
-                    [class.urgent]="item.appointment.priority === 'urgent'"
-                    [style.top.px]="item.place.top"
-                    [style.height.px]="item.place.height"
-                    [attr.aria-label]="item.label"
-                  >
-                    <div class="line" aria-hidden="true">
-                      <span class="time">{{ item.time }}</span>
-                      <span class="patient">{{ item.appointment.patientName }}</span>
-                      @if (item.appointment.priority === 'urgent') {
-                        <span class="tag" title="Urgente"><mat-icon>priority_high</mat-icon><span class="wide">Urgente</span></span>
-                      }
-                      <span class="state" [attr.title]="item.state.label"><mat-icon>{{ item.state.icon }}</mat-icon><span class="wide">{{ item.state.label }}</span></span>
-                    </div>
-                    @if (item.service) { <div class="service" aria-hidden="true">{{ item.service }}</div> }
-                  </li>
-                }
-              </ul>
-            </section>
+            <app-agenda-lane [view]="view" [marks]="axis().marks" [nowTop]="nowTop()" />
           }
         </div>
       </div>
@@ -170,100 +113,81 @@ const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'atte
     .head { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; }
     h1 { margin: 0; }
     .days { display: flex; gap: 8px; }
-    .date { margin: 0; font-size: 18px; font-weight: 600; }
+    .pick { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+    .date { font-size: 18px; font-weight: 600; }
+    .pick input { height: 40px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font: inherit; font-size: 14px; color: #0f172a; }
     .summary, .muted { margin: 8px 0 16px; font-size: 14px; color: #475569; }
     .notice { margin-top: 16px; padding: 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; }
     .notice p { margin: 0 0 12px; }
 
-    .board { --axis: 64px; overflow: auto; max-height: calc(100vh - 250px); background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; }
+    .board { --axis: 64px; --head: 58px; overflow: auto; max-height: calc(100vh - 250px); background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; }
     .board.stale { opacity: 0.55; }
     .row { display: grid; grid-template-columns: var(--axis) repeat(var(--lanes), minmax(220px, 1fr)); min-width: min-content; }
-    .names { position: sticky; top: 0; z-index: 4; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    .names { position: sticky; top: 0; z-index: 4; box-sizing: border-box; height: var(--head); background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
     .corner { position: sticky; left: 0; z-index: 1; background: #f8fafc; padding: 12px 8px; font-size: 12px; font-weight: 600; color: #526077; text-align: right; }
-    .name { padding: 10px 12px; border-left: 1px solid #e2e8f0; }
-    .name strong { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .name { padding: 10px 12px; border-left: 1px solid #e2e8f0; min-width: 0; scroll-snap-align: start; }
+    .name strong, .name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .name strong { font-size: 15px; }
     .name span { font-size: 12px; color: #526077; }
 
     .axis { position: sticky; left: 0; z-index: 3; background: #fff; }
-    .mark { position: absolute; right: 8px; transform: translateY(2px); font-size: 12px; font-weight: 600; color: #334155; }
-    .mark.half { font-weight: 400; color: #94a3b8; }
-    .now-label { position: absolute; right: 4px; transform: translateY(-50%); padding: 1px 6px; border-radius: 6px; background: #2563c9; color: #fff; font-size: 11px; font-weight: 700; }
-
-    .lane {
-      position: relative; container-type: inline-size; border-left: 1px solid #e2e8f0;
-      background-image: linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(#f1f5f9 1px, transparent 1px);
-      background-size: 100% var(--hour), 100% calc(var(--hour) / 2);
-    }
-    .lane ul { list-style: none; margin: 0; padding: 0; }
-    .band { position: absolute; left: 0; right: 0; overflow: hidden; font-size: 12px; color: #526077; }
-    .band span { display: flex; align-items: center; gap: 4px; padding: 2px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .closed { background: #f1f5f9; }
-    .blocked { z-index: 1; background: repeating-linear-gradient(135deg, #fef3c7 0 8px, #fde9a8 8px 16px); color: #713f12; font-weight: 600; }
-    .now { position: absolute; left: 0; right: 0; z-index: 1; border-top: 2px solid #2563c9; }
-
-    .appointment {
-      position: absolute; left: 4px; right: 4px; z-index: 2; box-sizing: border-box; overflow: hidden;
-      padding: 0 8px; border: 1px solid #cbd5e1; border-left: 4px solid #334155; border-radius: 6px; background: #fff; font-size: 13px;
-    }
-    .line { display: flex; align-items: center; gap: 8px; height: 20px; line-height: 20px; }
-    .time { flex: none; font-variant-numeric: tabular-nums; color: #334155; }
-    .patient { flex: 1; min-width: 3ch; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .state, .tag { flex: none; display: inline-flex; align-items: center; gap: 2px; font-size: 12px; }
-    .band mat-icon, .state mat-icon, .tag mat-icon, .legend mat-icon { flex: none; font-size: 16px; width: 16px; height: 16px; }
-    .tag { color: #b91c1c; font-weight: 700; }
-    /* Carril angosto: el nombre manda; estado y urgencia quedan en su icono. */
-    .service { font-size: 12px; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .appointment.urgent { border-left-color: #b91c1c; }
-    .appointment.arrived { background: #ecfdf5; border-color: #86efac; border-left-color: #15803d; }
-    .arrived .state, .legend .arrived { color: #166534; font-weight: 700; }
-    .appointment.attended { background: #f8fafc; border-left-color: #94a3b8; color: #64748b; }
-    .appointment.attended .time, .appointment.attended .patient { color: #64748b; font-weight: 400; }
-    .appointment.no_show { border-style: dashed; border-left-style: solid; border-left-color: #94a3b8; color: #64748b; }
-    .appointment.no_show .patient { font-weight: 400; text-decoration: line-through; }
-    .no_show .state, .legend .no_show, .legend .urgent { color: #b91c1c; }
-    @container (max-width: 440px) { .tag .wide { display: none; } }
-    @container (max-width: 360px) { .wide { display: none; } }
+    .mark { position: absolute; right: 8px; transform: translateY(2px); font-size: 12px; font-weight: 600; color: #334155; font-variant-numeric: tabular-nums; }
+    .mark.half { font-weight: 400; color: #64748b; }
+    .now-label { position: absolute; right: 4px; transform: translateY(-50%); padding: 1px 6px; border-radius: 6px; background: #2563c9; color: #fff; font-size: 12px; font-weight: 700; }
 
     .legend { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 12px 0 0; padding: 0; font-size: 13px; color: #334155; }
     .legend li { display: inline-flex; align-items: center; gap: 4px; }
+    .legend mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .legend .arrived { color: #166534; font-weight: 700; }
+    .legend .attended { color: #5b6b80; }
+    .legend .no_show, .legend .urgent { color: #b91c1c; }
     .swatch { width: 16px; height: 12px; border-radius: 3px; border: 1px solid #cbd5e1; }
+    .swatch.closed { background: #f1f5f9; }
+    .swatch.blocked { background: #fde9a8; }
 
     @media (max-width: 767.98px) {
-      .board { --axis: 52px; max-height: calc(100vh - 270px); }
+      .board { --axis: 52px; max-height: calc(100vh - 300px); scroll-snap-type: x proximity; scroll-padding-left: var(--axis); }
       .days { width: 100%; }
-      .days button { flex: 1; min-width: 0; }
+      .days button { flex: 1; min-width: 0; min-height: 44px; }
+      .pick input { height: 44px; }
     }
   `],
 })
 export class AgendaComponent {
   private readonly api = inject(AgendaApiService);
   private readonly context = inject(EstablishmentContextService);
+  private readonly injector = inject(Injector);
+  private readonly board = viewChild<ElementRef<HTMLElement>>('board');
 
   readonly views = STATE_VIEWS;
   readonly legend = LEGEND;
-  readonly bandLabelHeight = BAND_LABEL_HEIGHT;
 
-  readonly date = signal(todayIn(DEFAULT_TIME_ZONE));
   readonly day = signal<AgendaDay | null>(null);
   readonly loading = signal(true);
   readonly error = signal(false);
   /** Avanza cada minuto para mover la línea de «ahora». */
   private readonly now = signal(new Date());
   private readonly reloads = signal(0);
-  private readonly board = viewChild<ElementRef<HTMLElement>>('board');
-  private readonly injector = inject(Injector);
+  /** El día que la persona eligió; `null` es «hoy», que avanza solo a medianoche. */
+  private readonly chosen = signal<string | null>(null);
 
-  /** Los equipos del establecimiento elegido en la barra superior. */
+  /** Las fechas se leen en la zona del establecimiento, no en la del navegador. */
+  private readonly timeZone = computed(() => this.context.current()?.timeZone || DEFAULT_TIME_ZONE);
+  private readonly today = computed(() => todayIn(this.timeZone(), this.now()));
+  readonly date = computed(() => this.chosen() ?? this.today());
+  readonly isToday = computed(() => this.date() === this.today());
+  readonly dateLabel = computed(() => longDate(this.date()));
+
+  /** Los equipos del establecimiento elegido en la barra superior; ninguno mientras no se conoce. */
   private readonly ownLanes = computed(() => {
     const establishmentId = this.context.current()?.id;
-    return (this.day()?.resources ?? []).filter((lane) => !establishmentId || lane.establishmentId === establishmentId);
+    return establishmentId ? (this.day()?.resources ?? []).filter((lane) => lane.establishmentId === establishmentId) : [];
   });
-  private readonly timeZone = computed(() => this.ownLanes()[0]?.timeZone ?? DEFAULT_TIME_ZONE);
 
-  readonly window = computed(() => gridWindow(this.ownLanes()));
-  readonly scale = computed(() => pixelsPerMinute(this.ownLanes()));
-  readonly height = computed(() => (this.window().to - this.window().from) * this.scale());
-  readonly marks = computed(() => hourMarks(this.window()));
+  private readonly scale = computed(() => pixelsPerMinute(this.ownLanes()));
+  readonly axis = computed(() => dayAxis(this.ownLanes(), this.scale()));
+  readonly lanes = computed(() => this.ownLanes().map((lane) => this.viewOf(lane, this.axis())));
+
   /** «12 citas · 3 llegaron · 1 urgente»; solo lo que hay. */
   readonly summaryText = computed(() => {
     const summary = daySummary(this.ownLanes());
@@ -277,25 +201,25 @@ export class AgendaComponent {
     ];
     return parts.filter(([count]) => count > 0).map(([count, one, many]) => this.plural(count, one, many)).join(' · ');
   });
-  readonly lanes = computed(() => this.ownLanes().map((lane) => this.viewOf(lane)));
-  readonly dateLabel = computed(() => longDate(this.date()));
-  readonly isToday = computed(() => this.date() === todayIn(this.timeZone(), this.now()));
 
   private readonly nowMinute = computed(() => {
     const [lane] = this.ownLanes();
     const minutes = lane ? nowMinutes(lane, this.date(), this.now()) : null;
-    return minutes !== null && minutes >= this.window().from && minutes <= this.window().to ? minutes : null;
+    const { from, to } = this.axis().window;
+    return minutes !== null && minutes >= from && minutes <= to ? minutes : null;
   });
   readonly nowTop = computed(() => {
     const minutes = this.nowMinute();
-    return minutes === null ? null : (minutes - this.window().from) * this.scale();
+    return minutes === null ? null : this.axis().top(minutes);
   });
   readonly nowClock = computed(() => clockOfMinutes(this.nowMinute() ?? 0));
 
   constructor() {
-    const request = computed(() => ({ date: this.date(), attempt: this.reloads() }));
+    // Sin establecimiento aún no se sabe qué día es «hoy» ni qué carriles tocan.
+    const request = computed(() => (this.context.current() ? { date: this.date(), attempt: this.reloads() } : null));
     toObservable(request)
       .pipe(
+        filter((value) => value !== null),
         tap(() => {
           this.loading.set(true);
           this.error.set(false);
@@ -307,19 +231,29 @@ export class AgendaComponent {
         this.loading.set(false);
         this.error.set(day === null);
         this.day.set(day);
-        afterNextRender(() => this.scrollToFocus(), { injector: this.injector });
       });
+
+    // Al llegar un día, o al cambiar de establecimiento, la parrilla va a lo que importa.
+    effect(() => {
+      this.ownLanes();
+      untracked(() => afterNextRender(() => this.scrollToFocus(), { injector: this.injector }));
+    });
 
     const timer = setInterval(() => this.now.set(new Date()), REFRESH_NOW_EVERY_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
   }
 
   move(days: number): void {
-    this.date.update((date) => shiftDate(date, days));
+    this.chosen.set(shiftDate(this.date(), days));
   }
 
   goToday(): void {
-    this.date.set(todayIn(this.timeZone(), new Date()));
+    this.chosen.set(null);
+  }
+
+  /** El selector de fecha puede vaciarse: entonces no se cambia de día. */
+  pick(value: string): void {
+    if (LOCAL_DATE.test(value)) this.chosen.set(value === this.today() ? null : value);
   }
 
   reload(): void {
@@ -337,29 +271,30 @@ export class AgendaComponent {
     this.board()?.nativeElement.scrollTo({ top: Math.max(0, top - SCROLL_LEAD_MINUTES * this.scale()) });
   }
 
-  private viewOf(lane: AgendaLane): LaneView {
-    const window = this.window();
-    const scale = this.scale();
+  private viewOf(lane: AgendaLane, axis: DayAxis): LaneView {
     const shown = gridAppointments(lane);
     const severalServices = new Set(shown.map((a) => a.serviceTypeId)).size > 1;
     const placed = <T,>(place: Place | null, rest: T): (T & { place: Place })[] => (place ? [{ ...rest, place }] : []);
     return {
       lane,
       count: lane.appointments.filter((a) => a.state !== 'cancelled').length,
-      closed: closedBands(lane, window).flatMap((band) => placed(bandPlace(band, window, scale), { text: 'Fuera de horario' })),
-      blocks: lane.blocks.flatMap((block) => placed(blockPlace(block, lane, window, scale), { text: `Bloqueado: ${block.reason}` })),
-      appointments: shown.flatMap((appointment) => placed(appointmentPlace(appointment, lane, window, scale), this.describe(appointment, lane, severalServices))).map((item) => ({
-        ...item,
-        service: item.service && item.place.height >= TWO_LINES_HEIGHT ? item.service : null,
-      })),
+      range: laneRange(lane),
+      closed: closedBands(lane, axis.window).flatMap((band) =>
+        placed(bandPlace(band, axis), { id: `${band.from}`, text: `Fuera de horario · ${clockOfMinutes(band.from)}–${clockOfMinutes(band.to)}` }),
+      ),
+      blocks: lane.blocks.flatMap((block) => placed(blockPlace(block, lane, axis), { id: block.id, text: `Bloqueado: ${block.reason}` })),
+      appointments: shown
+        .flatMap((appointment) => placed(appointmentPlace(appointment, lane, axis), this.describe(appointment, lane, severalServices)))
+        .map((item) => ({ ...item, service: item.service && item.place.height >= TWO_LINES_HEIGHT ? item.service : null })),
     };
   }
 
   private describe(appointment: AgendaAppointment, lane: AgendaLane, severalServices: boolean): Omit<PlacedAppointment, 'place'> {
-    const time = `${clockOf(appointment.startsAt, lane.timeZone)}–${clockOf(appointment.endsAt, lane.timeZone)}`;
+    const start = clockOf(appointment.startsAt, lane.timeZone);
+    const end = clockOf(appointment.endsAt, lane.timeZone);
     const state = STATE_VIEWS[appointment.state];
     const service = appointment.serviceTypeName;
-    const label = [time, appointment.patientName, service, appointment.priority === 'urgent' ? 'Urgente' : null, state.label].filter(Boolean).join(', ');
-    return { appointment, time, state, service: severalServices ? service : null, label };
+    const label = [`${start}–${end}`, appointment.patientName, service, appointment.priority === 'urgent' ? 'Urgente' : null, state.label].filter(Boolean).join(', ');
+    return { appointment, start, end, state, service: severalServices ? service : null, label };
   }
 }
