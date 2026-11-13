@@ -51,13 +51,13 @@ export interface RecordEvidenceData {
           </mat-form-field>
         }
         <label class="upload wide" [class.has-file]="fileName()">
-          <input type="file" accept="image/*,application/pdf" capture="environment" (change)="pick($event)" />
+          <input type="file" accept="image/*,application/pdf" (change)="pick($event)" />
           @if (fileName(); as name) {
             <span class="ok">✓ {{ name }}</span>
             <span class="small">Toca para cambiarlo</span>
           } @else {
-            <span class="cta">Tomar foto o subir PDF</span>
-            <span class="small">{{ data.correcting ? 'Si no subes uno nuevo, se conserva el anterior' : 'Foto del celular o PDF del proveedor' }}</span>
+            <span class="cta">Tomar foto o elegir archivo</span>
+            <span class="small">{{ data.correcting ? 'Si no subes uno nuevo, se conserva el anterior' : 'Foto, imagen guardada o PDF' }}</span>
           }
         </label>
         <p class="trace wide"><strong>Aviso de trazabilidad:</strong> los registros no se borran; corregir crea uno nuevo con motivo.</p>
