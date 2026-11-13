@@ -30,7 +30,6 @@ export const routes: Routes = [
       { path: 'carpeta', canActivate: [permissionGuard('inspect')], loadComponent: () => import('./features/inspection/inspection.component').then((m) => m.InspectionComponent) },
       { path: 'establecimientos', loadComponent: () => import('./features/establishments/establishments.component').then((m) => m.EstablishmentsComponent) },
       { path: 'equipo', canActivate: [permissionGuard('manage')], loadComponent: () => import('./features/team/team.component').then((m) => m.TeamComponent) },
-      { path: 'plataforma', loadComponent: () => import('./features/platform/platform.component').then((m) => m.PlatformComponent) },
       { path: '', pathMatch: 'full', redirectTo: 'hoy' },
     ],
   },
