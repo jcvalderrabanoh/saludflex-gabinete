@@ -52,6 +52,14 @@ describe('weekProblem', () => {
   });
 });
 
+describe('tope de tramos', () => {
+  it('avisa si la semana pasa de los 28 tramos que admite jc-core', () => {
+    const five = [0, 1, 2, 3, 4].map((n) => hour(1, `0${n}:00`, `0${n}:30`));
+    const rows = copyDayToWeek(weekRows(five), 1);
+    expect(weekProblem(rows)).toBe('El horario admite hasta 28 tramos en la semana y tiene 35. Quita algunos.');
+  });
+});
+
 describe('blockSpan', () => {
   const MX = 'America/Mexico_City';
 

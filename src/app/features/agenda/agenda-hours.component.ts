@@ -1,12 +1,12 @@
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroupDirective, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { MatSelect, MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AgendaBlock, AgendaResource } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
@@ -34,7 +34,7 @@ const LOCAL_DATE_TIME = /^(20\d{2}-\d{2}-\d{2})T(\d{2}:\d{2})$/;
     @if (selected(); as equipment) {
       <mat-form-field appearance="outline" class="equipment">
         <mat-label>Equipo</mat-label>
-        <mat-select [value]="equipment.id" (selectionChange)="selectedId.set($event.value)">
+        <mat-select [value]="equipment.id" (selectionChange)="choose($event.source)">
           @for (resource of own(); track resource.id) {
             <mat-option [value]="resource.id">{{ resource.name }}</mat-option>
           }
@@ -149,6 +149,7 @@ export class AgendaHoursComponent {
   readonly blocks = signal<AgendaBlock[]>([]);
   readonly blockError = signal<string | null>(null);
 
+  private readonly blockFormDirective = viewChild(FormGroupDirective);
   readonly blockForm = inject(FormBuilder).nonNullable.group({
     from: ['', [Validators.required, Validators.pattern(LOCAL_DATE_TIME)]],
     to: ['', [Validators.required, Validators.pattern(LOCAL_DATE_TIME)]],
@@ -163,10 +164,12 @@ export class AgendaHoursComponent {
       },
       error: () => this.loadError.set(true),
     });
-    // Al cambiar de equipo se carga su horario y sus bloqueos; lo no guardado del anterior se descarta.
+    // Solo al cambiar de equipo (su id, no el objeto: guardar el horario lo reemplaza) se cargan su horario y sus bloqueos.
+    const equipmentId = computed(() => this.selected()?.id ?? null);
     effect(() => {
-      const equipment = this.selected();
+      equipmentId();
       untracked(() => {
+        const equipment = this.selected();
         this.week.set(weekRows(equipment?.hours ?? []));
         this.dirty.set(false);
         this.blocks.set([]);
@@ -174,6 +177,16 @@ export class AgendaHoursComponent {
         if (equipment) this.loadBlocks(equipment.id);
       });
     });
+  }
+
+  /** Cambiar de equipo descarta el horario sin guardar: se pregunta antes. */
+  choose(select: Pick<MatSelect, 'value'>): void {
+    const current = this.selected()?.id;
+    if (this.dirty() && !confirm('El horario tiene cambios sin guardar. ¿Cambiar de equipo y descartarlos?')) {
+      select.value = current;
+      return;
+    }
+    this.selectedId.set(select.value);
   }
 
   span(block: AgendaBlock): string {
@@ -208,6 +221,7 @@ export class AgendaHoursComponent {
       next: (hours) => {
         this.saving.set(false);
         this.dirty.set(false);
+        this.week.set(weekRows(hours));
         this.resources.update((list) => list.map((resource) => (resource.id === equipment.id ? { ...resource, hours } : resource)));
         this.snack.open(`Horario de ${equipment.name} guardado.`, 'OK', { duration: 5000 });
       },
@@ -230,12 +244,17 @@ export class AgendaHoursComponent {
       this.blockError.set('El bloqueo debe terminar después de que empieza.');
       return;
     }
+    if (input.endsAt <= new Date().toISOString()) {
+      this.blockError.set('Ese lapso ya pasó. Un bloqueo debe terminar en el futuro.');
+      return;
+    }
     this.saving.set(true);
     this.blockError.set(null);
     this.api.createBlock(equipment.id, input).subscribe({
       next: () => {
         this.saving.set(false);
-        this.blockForm.reset();
+        // `resetForm` y no `reset`: también borra la marca de enviado, que pintaría de rojo los campos vacíos.
+        this.blockFormDirective()?.resetForm();
         this.loadBlocks(equipment.id);
       },
       error: (err: HttpErrorResponse) => {
@@ -246,14 +265,26 @@ export class AgendaHoursComponent {
   }
 
   removeBlock(equipment: AgendaResource, block: AgendaBlock): void {
-    if (!confirm(`¿Quitar el bloqueo «${block.reason}» (${this.span(block)})? El equipo vuelve a poder agendarse en ese lapso.`)) return;
-    this.api.removeBlock(equipment.id, block.id).subscribe({ next: () => this.loadBlocks(equipment.id), error: (err: HttpErrorResponse) => this.blockError.set(apiMessage(err)) });
+    if (this.saving() || !confirm(`¿Quitar el bloqueo «${block.reason}» (${this.span(block)})? El equipo vuelve a poder agendarse en ese lapso.`)) return;
+    this.saving.set(true);
+    this.api.removeBlock(equipment.id, block.id).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.loadBlocks(equipment.id);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.saving.set(false);
+        this.blockError.set(apiMessage(err));
+        // Si ya no existía, la lista en pantalla es vieja.
+        this.loadBlocks(equipment.id);
+      },
+    });
   }
 
   private loadBlocks(equipmentId: string): void {
     this.api.blocks(equipmentId).subscribe({
       next: (blocks) => this.selected()?.id === equipmentId && this.blocks.set(blocks),
-      error: () => this.blockError.set('No pudimos cargar los bloqueos de este equipo.'),
+      error: () => this.selected()?.id === equipmentId && this.blockError.set('No pudimos cargar los bloqueos de este equipo.'),
     });
   }
 }

@@ -125,7 +125,10 @@ describe('AgendaHoursComponent', () => {
     const api = jasmine.createSpyObj<AgendaApiService>('AgendaApiService', {
       resources: of(resources),
       blocks: of([{ id: 'b1', startsAt: '2026-12-07T22:00:00.000Z', endsAt: '2026-12-08T00:00:00.000Z', reason: 'Mantenimiento' }]),
-      replaceHours: of([]),
+      replaceHours: of([
+        { weekday: 1, opensAt: '08:00', closesAt: '14:00' },
+        { weekday: 2, opensAt: '09:00', closesAt: '24:00' },
+      ]),
       createBlock: of({ id: 'b2', startsAt: '', endsAt: '', reason: '' }),
       removeBlock: of(undefined),
     });
@@ -183,21 +186,67 @@ describe('AgendaHoursComponent', () => {
     ]);
     expect(snack.open.calls.mostRecent().args[0]).toBe('Horario de Tomógrafo guardado.');
     expect(component.dirty()).toBeFalse();
+    // Guardar no es «cambiar de equipo»: no vuelve a pedir los bloqueos ni toca lo que hay en pantalla.
+    fixture.detectChanges();
+    expect(api.blocks).toHaveBeenCalledTimes(1);
+    expect(component.week()[1].intervals).toEqual([{ opensAt: '09:00', closesAt: '00:00' }]);
+    expect(component.blocks().length).toBe(1);
+  });
+
+  it('tras bloquear, el formulario queda limpio y sin campos marcados en rojo', () => {
+    const { fixture, component, element } = setup([resource()]);
+    component.blockForm.setValue({ from: '2027-12-07T16:00', to: '2027-12-07T18:00', reason: 'Obra' });
+    fixture.detectChanges();
+
+    element.querySelector<HTMLFormElement>('.block-form')?.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
+    expect(component.blockForm.getRawValue()).toEqual({ from: '', to: '', reason: '' });
+    expect(element.querySelectorAll('.block-form .mat-form-field-invalid').length).toBe(0);
+  });
+
+  it('no manda un bloqueo que ya terminó: no saldría en la lista ni se podría quitar', () => {
+    const { component, api } = setup([resource()]);
+    component.blockForm.setValue({ from: '2020-01-01T10:00', to: '2020-01-01T12:00', reason: 'Viejo' });
+
+    component.addBlock(resource());
+
+    expect(api.createBlock).not.toHaveBeenCalled();
+    expect(component.blockError()).toBe('Ese lapso ya pasó. Un bloqueo debe terminar en el futuro.');
+  });
+
+  it('cambiar de equipo con el horario sin guardar pide confirmación', () => {
+    const { fixture, component } = setup([resource(), resource({ id: 'rx', name: 'Rayos X', hours: [] })]);
+    component.addInterval(component.week()[0]);
+    const confirm = spyOn(window, 'confirm').and.returnValue(false);
+    const source = { value: 'rx' };
+
+    component.choose(source as never);
+    fixture.detectChanges();
+    expect(component.selected()?.id).toBe('ct');
+    expect(source.value).toBe('ct');
+    expect(component.dirty()).toBeTrue();
+
+    confirm.and.returnValue(true);
+    component.choose({ value: 'rx' } as never);
+    fixture.detectChanges();
+    expect(component.selected()?.id).toBe('rx');
+    expect(component.dirty()).toBeFalse();
   });
 
   it('bloquea el equipo con las horas del establecimiento convertidas a instantes', () => {
     const { component, api } = setup([resource()]);
-    component.blockForm.setValue({ from: '2026-12-07T16:00', to: '2026-12-07T18:00', reason: ' Mantenimiento ' });
+    component.blockForm.setValue({ from: '2027-12-07T16:00', to: '2027-12-07T18:00', reason: ' Mantenimiento ' });
 
     component.addBlock(resource());
 
-    expect(api.createBlock).toHaveBeenCalledOnceWith('ct', { startsAt: '2026-12-07T22:00:00.000Z', endsAt: '2026-12-08T00:00:00.000Z', reason: 'Mantenimiento' });
+    expect(api.createBlock).toHaveBeenCalledOnceWith('ct', { startsAt: '2027-12-07T22:00:00.000Z', endsAt: '2027-12-08T00:00:00.000Z', reason: 'Mantenimiento' });
     expect(api.blocks).toHaveBeenCalledTimes(2);
   });
 
   it('no manda un bloqueo que termina antes de empezar', () => {
     const { component, api } = setup([resource()]);
-    component.blockForm.setValue({ from: '2026-12-07T18:00', to: '2026-12-07T16:00', reason: 'Obra' });
+    component.blockForm.setValue({ from: '2027-12-07T18:00', to: '2027-12-07T16:00', reason: 'Obra' });
 
     component.addBlock(resource());
 

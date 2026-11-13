@@ -28,6 +28,9 @@ const WEEK: readonly [number, string][] = [
 const MIDNIGHT_STORED = '24:00';
 const MIDNIGHT_TYPED = '00:00';
 
+/** Tope de jc-core (`RESOURCE_HOURS_MAX_INTERVALS`). */
+const MAX_WEEK_INTERVALS = 28;
+
 const closing = (interval: DayInterval): string => (interval.closesAt === MIDNIGHT_TYPED ? MIDNIGHT_STORED : interval.closesAt);
 
 export function weekRows(hours: readonly AgendaWeekHour[]): WeekRow[] {
@@ -52,6 +55,8 @@ export function copyDayToWeek(rows: readonly WeekRow[], weekday: number): WeekRo
 
 /** Lo primero que impide guardar el horario, dicho con el día; `null` si está bien. Mismas reglas que jc-core. */
 export function weekProblem(rows: readonly WeekRow[]): string | null {
+  const total = rows.reduce((count, row) => count + row.intervals.length, 0);
+  if (total > MAX_WEEK_INTERVALS) return `El horario admite hasta ${MAX_WEEK_INTERVALS} tramos en la semana y tiene ${total}. Quita algunos.`;
   for (const row of rows) {
     if (row.intervals.some((interval) => !interval.opensAt || !interval.closesAt)) return `${row.label}: falta la hora de apertura o de cierre.`;
     const sorted = row.intervals.map((interval) => ({ opensAt: interval.opensAt, closesAt: closing(interval) })).sort((a, b) => a.opensAt.localeCompare(b.opensAt));
