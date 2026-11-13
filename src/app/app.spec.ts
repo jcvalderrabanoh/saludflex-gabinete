@@ -34,7 +34,7 @@ describe('AppComponent', () => {
   it('las pantallas de operación cuelgan de /operacion y requieren sesión', () => {
     const operacion = routes.find((r) => r.path === 'operacion');
     expect(operacion?.canActivate?.length).toBe(1);
-    expect(operacion?.children?.map((c) => c.path)).toEqual(['hoy', 'agenda', 'documentos', 'obligaciones', 'calendario', 'municipal', 'pagos', 'gastos', 'inventario', 'conexiones', 'equipos-y-personal', 'carpeta', 'establecimientos', 'equipo', '']);
+    expect(operacion?.children?.map((c) => c.path)).toEqual(['hoy', 'agenda', 'agenda/configuracion', 'documentos', 'obligaciones', 'calendario', 'municipal', 'pagos', 'gastos', 'inventario', 'conexiones', 'equipos-y-personal', 'carpeta', 'establecimientos', 'equipo', '']);
   });
 
   describe('guards por permiso', () => {
@@ -50,6 +50,12 @@ describe('AppComponent', () => {
       const asked: string[] = [];
       expect(runGuard('agenda', (a) => (asked.push(a), a === 'agenda'))).toBeTrue();
       expect(asked).toEqual(['agenda']);
+    });
+
+    it('«Configurar agenda» pide el permiso de configurar, no el de ver', () => {
+      const asked: string[] = [];
+      expect(runGuard('agenda/configuracion', (a) => (asked.push(a), a === 'agendaConfigure'))).toBeTrue();
+      expect(asked).toEqual(['agendaConfigure']);
     });
 
     it('«Carpeta» sin permiso de inspección regresa a Hoy', () => {

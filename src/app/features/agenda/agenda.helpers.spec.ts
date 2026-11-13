@@ -25,6 +25,7 @@ const appointment = (patch: Partial<AgendaAppointment> = {}): AgendaAppointment 
   equipmentId: 'e1',
   serviceTypeId: 's1',
   serviceTypeName: 'Tomografía contrastada',
+  patientContactId: null,
   startsAt: '2026-12-07T15:00:00.000Z',
   endsAt: '2026-12-07T15:15:00.000Z',
   state: 'scheduled',
@@ -142,6 +143,11 @@ describe('eje del día', () => {
     expect(axis.top(1320)).toBe(756);
     expect(axis.top(1350)).toBe(816);
     expect(axis.marks.filter((mark) => mark.minutes > 840 && mark.minutes < 1320)).toEqual([]);
+    // Y de regreso: de un punto de la parrilla a su minuto.
+    expect(axis.minutesAt(120)).toBe(540);
+    expect(axis.minutesAt(730)).toBe(840);
+    expect(axis.minutesAt(816)).toBe(1350);
+    expect(axis.minutesAt(99999)).toBe(1380);
   });
 
   it('no pliega un tramo corto ni uno en que algún equipo sí trabaja', () => {

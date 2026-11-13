@@ -20,6 +20,7 @@ export const routes: Routes = [
     children: [
       { path: 'hoy', loadComponent: () => import('./features/today/today.component').then((m) => m.TodayComponent) },
       { path: 'agenda', canActivate: [permissionGuard('agenda'), agendaRouteGuard()], loadComponent: () => import('./features/agenda/agenda.component').then((m) => m.AgendaComponent) },
+      { path: 'agenda/configuracion', canActivate: [permissionGuard('agendaConfigure'), agendaRouteGuard()], loadComponent: () => import('./features/agenda/agenda-settings.component').then((m) => m.AgendaSettingsComponent) },
       { path: 'documentos', loadComponent: () => import('./features/documents/documents.component').then((m) => m.DocumentsComponent) },
       { path: 'obligaciones', loadComponent: () => import('./features/obligations/obligations.component').then((m) => m.ObligationsComponent) },
       { path: 'calendario', loadComponent: () => import('./features/calendar/calendar.component').then((m) => m.CalendarComponent) },

@@ -26,6 +26,12 @@ describe('menú del layout', () => {
     expect(labels.slice(0, 2)).toEqual(['Día a día', 'Espacios']);
   });
 
+  it('«Configurar agenda» solo aparece con el permiso de configurar', () => {
+    const labels = (can: (a: FacilityAction) => boolean) => visibleNavGroups(can, undefined, false, true).flatMap((g) => g.items.map((i) => i.label));
+    expect(labels(allow('agenda'))).not.toContain('Configurar agenda');
+    expect(labels(allow('agenda', 'agendaConfigure'))).toContain('Configurar agenda');
+  });
+
   it('la agenda no se ofrece con la cuenta apagada ni sin permiso', () => {
     const groupsOf = (can: (a: FacilityAction) => boolean, agenda: boolean) => visibleNavGroups(can, undefined, false, agenda).map((g) => g.label);
     expect(groupsOf(allow('agenda'), false)).not.toContain('Espacios');

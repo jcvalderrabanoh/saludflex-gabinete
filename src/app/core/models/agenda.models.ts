@@ -10,6 +10,8 @@ export interface AgendaAppointment {
   serviceTypeId: string;
   /** Nombre del servicio, aunque ya no esté en el catálogo. */
   serviceTypeName: string | null;
+  /** Contacto del paciente; `null` en citas anteriores a los contactos. */
+  patientContactId: string | null;
   startsAt: string;
   endsAt: string;
   state: AgendaAppointmentState;
@@ -54,4 +56,104 @@ export interface AgendaDay {
   /** Fecha local `AAAA-MM-DD`. */
   date: string;
   resources: AgendaLane[];
+}
+
+/** Algo que se puede agendar: fija la modalidad del equipo y la duración de la cita. */
+export interface AgendaServiceType {
+  id: string;
+  name: string;
+  modality: string;
+  durationMinutes: number;
+  /** Indicaciones para decirle al paciente. */
+  preparation: string | null;
+}
+
+export interface AgendaContact {
+  id: string;
+  name: string;
+  phone: string | null;
+}
+
+export interface AgendaSlot {
+  startsAt: string;
+  endsAt: string;
+}
+
+export interface AgendaSlots {
+  date: string;
+  timeZone: string;
+  durationMinutes: number;
+  slots: AgendaSlot[];
+}
+
+export interface AgendaSlotsQuery {
+  equipmentId: string;
+  serviceTypeId: string;
+  date: string;
+  durationMinutes?: number;
+}
+
+/** Para agendar va un contacto existente o el nombre (y teléfono) de uno nuevo. */
+export interface AgendaBooking {
+  equipmentId: string;
+  serviceTypeId: string;
+  startsAt: string;
+  durationMinutes?: number;
+  priority?: AgendaPriority;
+  patientContactId?: string;
+  patientName?: string;
+  patientPhone?: string | null;
+  notes?: string | null;
+}
+
+export interface AgendaReschedule {
+  startsAt: string;
+  durationMinutes?: number;
+}
+
+/** El mismo paciente ya tiene otra cita que ocupa ese lapso. Avisa, no bloquea. */
+export interface AgendaPatientOverlap {
+  code: 'PATIENT_OVERLAP';
+  appointment: { id: string; equipmentId: string; startsAt: string; endsAt: string };
+}
+
+/** Lo que devuelven el alta y la reprogramación: la cita, sin el nombre del servicio, y sus avisos. */
+export type AgendaBooked = Omit<AgendaAppointment, 'serviceTypeName'> & { warnings: AgendaPatientOverlap[] };
+
+/** Cuerpo de un 409 al agendar: con qué choca. */
+export interface AgendaConflict {
+  message: string;
+  code: 'APPOINTMENT_OVERLAP' | 'RESOURCE_BLOCKED';
+  conflict?: { id: string; startsAt: string; endsAt: string } | null;
+  block?: { id: string; startsAt: string; endsAt: string; reason: string };
+}
+
+/** Tramo del horario semanal de un equipo: `weekday` 0 es domingo y 6 es sábado. */
+export interface AgendaWeekHour {
+  weekday: number;
+  opensAt: string;
+  closesAt: string;
+}
+
+/** Un equipo de Gabinete como recurso agendable, con su horario semanal. */
+export interface AgendaResource {
+  id: string;
+  establishmentId: string;
+  name: string;
+  modality: string;
+  room: string | null;
+  hours: AgendaWeekHour[];
+}
+
+export interface AgendaServiceTypeInput {
+  name: string;
+  modality: string;
+  durationMinutes: number;
+  preparation: string | null;
+}
+
+export interface AgendaBlockInput {
+  startsAt: string;
+  endsAt: string;
+  reason: string;
 }
