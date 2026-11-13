@@ -14,7 +14,6 @@ import { AuthService } from '../../core/services/auth.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { GoogleSignIn } from '../../core/services/google-sign-in';
-import { PlatformApiService } from '../../core/services/platform-api.service';
 import { FacilityAction, PermissionsService } from '../../core/services/permissions.service';
 import { CanDirective } from '../directives/can.directive';
 
@@ -97,12 +96,6 @@ export function visibleNavGroups(can: (action: FacilityAction) => boolean, group
               </a>
             }
           }
-          @if (platformAdmin()) {
-            <a mat-list-item routerLink="/operacion/plataforma" routerLinkActive="active">
-              <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
-              <span matListItemTitle>Plataforma</span>
-            </a>
-          }
         </mat-nav-list>
         <div class="nav-footer">
           <a *appCan="'inspect'" mat-flat-button color="primary" class="folder-btn" routerLink="/operacion/carpeta"><mat-icon>download</mat-icon> Carpeta en 1 clic</a>
@@ -167,16 +160,12 @@ export class LayoutComponent implements OnInit {
   readonly mobile = toSignal(inject(BreakpointObserver).observe(MOBILE_QUERY).pipe(map((s) => s.matches)), { initialValue: false });
   /** Solo cuenta en móvil: el menú flotante se cierra al navegar. */
   readonly menuOpen = signal(false);
-  private readonly platform = inject(PlatformApiService);
-  /** «Plataforma» solo aparece para los admins de plataforma (lo decide el backend). */
-  readonly platformAdmin = signal(false);
 
   constructor() {
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd), takeUntilDestroyed()).subscribe(() => this.menuOpen.set(false));
   }
 
   ngOnInit(): void {
-    this.platform.isPlatformAdmin().subscribe((ok) => this.platformAdmin.set(ok));
     this.api.expensesEnabled().subscribe((enabled) => this.expensesEnabled.set(enabled));
     this.api.establishments().subscribe({
       next: (list) => {
