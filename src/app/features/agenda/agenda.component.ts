@@ -2,11 +2,17 @@ import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed,
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { catchError, filter, of, switchMap, tap } from 'rxjs';
-import { AgendaAppointment, AgendaAppointmentState, AgendaDay, AgendaLane } from '../../core/models/agenda.models';
+import { AgendaAppointment, AgendaAppointmentState, AgendaBooked, AgendaContact, AgendaDay, AgendaLane, AgendaServiceType } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
+import { PermissionsService } from '../../core/services/permissions.service';
+import { AppointmentDetailData, AppointmentDetailDialogComponent, AppointmentDetailResult } from './appointment-detail.dialog';
+import { BookAppointmentData, BookAppointmentDialogComponent } from './book-appointment.dialog';
+import { overlapWarning, snapMinutes } from './booking.helpers';
 import { AgendaLaneComponent, LaneView, PlacedAppointment } from './agenda-lane.component';
 import {
   DEFAULT_TIME_ZONE,
@@ -36,6 +42,8 @@ const REFRESH_NOW_EVERY_MS = 60_000;
 /** Al abrir un día, la parrilla se desplaza hasta un poco antes de lo que importa. */
 const SCROLL_LEAD_MINUTES = 45;
 const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** 23:55: lo último que un clic en la parrilla puede proponer. */
+const LAST_BOOKABLE_MINUTE = 1435;
 
 const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'attended', 'no_show'];
 
@@ -56,6 +64,9 @@ const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'atte
         <span class="date" aria-live="polite">{{ dateLabel() }}</span>
         <input type="date" [value]="date()" (change)="pick($any($event.target).value)" aria-label="Ir a una fecha" />
       </label>
+      @if (canManage()) {
+        <button mat-flat-button color="primary" class="new" (click)="book()" [disabled]="lanes().length === 0"><mat-icon>add</mat-icon> Agendar cita</button>
+      }
     </header>
 
     @if (error()) {
@@ -94,7 +105,7 @@ const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'atte
             }
           </div>
           @for (view of lanes(); track view.lane.id) {
-            <app-agenda-lane [view]="view" [marks]="axis().marks" [nowTop]="nowTop()" />
+            <app-agenda-lane [view]="view" [marks]="axis().marks" [nowTop]="nowTop()" [bookable]="canManage()" (open)="open($event, view.lane)" (book)="bookAt(view.lane, $event)" />
           }
         </div>
       </div>
@@ -116,6 +127,7 @@ const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'atte
     .pick { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
     .date { font-size: 18px; font-weight: 600; }
     .pick input { height: 40px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font: inherit; font-size: 14px; color: #0f172a; }
+    .new { margin-left: auto; }
     .summary, .muted { margin: 8px 0 16px; font-size: 14px; color: #475569; }
     .notice { margin-top: 16px; padding: 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; }
     .notice p { margin: 0 0 12px; }
@@ -150,6 +162,7 @@ const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'atte
       .days { width: 100%; }
       .days button { flex: 1; min-width: 0; min-height: 44px; }
       .pick input { height: 44px; }
+      .new { width: 100%; min-height: 44px; }
     }
   `],
 })
@@ -157,11 +170,16 @@ export class AgendaComponent {
   private readonly api = inject(AgendaApiService);
   private readonly context = inject(EstablishmentContextService);
   private readonly injector = inject(Injector);
+  private readonly dialog = inject(MatDialog);
+  private readonly snack = inject(MatSnackBar);
+  private readonly permissions = inject(PermissionsService);
   private readonly board = viewChild<ElementRef<HTMLElement>>('board');
 
   readonly views = STATE_VIEWS;
   readonly legend = LEGEND;
 
+  readonly canManage = computed(() => this.permissions.can('agendaManage'));
+  private readonly services = signal<AgendaServiceType[]>([]);
   readonly day = signal<AgendaDay | null>(null);
   readonly loading = signal(true);
   readonly error = signal(false);
@@ -239,6 +257,9 @@ export class AgendaComponent {
       untracked(() => afterNextRender(() => this.scrollToFocus(), { injector: this.injector }));
     });
 
+    // Sin catálogo se puede ver la agenda; agendar pedirá elegir servicio y no habrá ninguno.
+    this.api.serviceTypes().pipe(catchError(() => of<AgendaServiceType[]>([]))).subscribe((services) => this.services.set(services));
+
     const timer = setInterval(() => this.now.set(new Date()), REFRESH_NOW_EVERY_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
   }
@@ -258,6 +279,55 @@ export class AgendaComponent {
 
   reload(): void {
     this.reloads.update((n) => n + 1);
+  }
+
+  /** Abre el diálogo de agendar, vacío o con lo que ya se sabe (hueco, paciente o cita a mover). */
+  book(prefill: Partial<BookAppointmentData> = {}): void {
+    const data: BookAppointmentData = { date: this.date(), timeZone: this.timeZone(), lanes: this.ownLanes(), services: this.services(), ...prefill };
+    this.dialog
+      .open<BookAppointmentDialogComponent, BookAppointmentData, AgendaBooked>(BookAppointmentDialogComponent, { data, width: '640px', maxWidth: '100vw' })
+      .afterClosed()
+      .subscribe((booked) => booked && this.afterBooking(booked, !!prefill.rescheduling));
+  }
+
+  /** Clic en un carril: propone esa hora, ajustada a 5 minutos, en ese equipo. */
+  bookAt(lane: AgendaLane, top: number): void {
+    const minutes = Math.min(snapMinutes(this.axis().minutesAt(top)), LAST_BOOKABLE_MINUTE);
+    this.book({ equipmentId: lane.id, clock: clockOfMinutes(minutes) });
+  }
+
+  open(appointment: AgendaAppointment, lane: AgendaLane): void {
+    const data: AppointmentDetailData = { appointment, lane, lanes: this.ownLanes(), services: this.services(), canManage: this.canManage() };
+    this.dialog
+      .open<AppointmentDetailDialogComponent, AppointmentDetailData, AppointmentDetailResult>(AppointmentDetailDialogComponent, {
+        data,
+        position: { top: '0', right: '0' },
+        height: '100vh',
+        width: '420px',
+        maxWidth: '100vw',
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (result === 'changed') this.reload();
+        if (result === 'reschedule') {
+          this.book({ rescheduling: appointment, date: todayIn(lane.timeZone, new Date(appointment.startsAt)), clock: clockOf(appointment.startsAt, lane.timeZone) });
+        }
+      });
+  }
+
+  private afterBooking(booked: AgendaBooked, moved: boolean): void {
+    // Si quedó en otro día, la agenda va a ese día: ahí es donde se ve.
+    const date = todayIn(this.timeZone(), new Date(booked.startsAt));
+    const elsewhere = date !== this.date();
+    if (elsewhere) this.pick(date);
+    else this.reload();
+    const day = elsewhere ? ` para el ${longDate(date).toLowerCase()}` : '';
+    const when = clockOf(booked.startsAt, this.timeZone());
+    const warning = overlapWarning(booked.warnings ?? [], this.ownLanes(), this.timeZone());
+    const message = `${moved ? 'Cita movida' : 'Cita agendada'}${day}: ${when}, ${booked.patientName}.${warning ? ` ${warning}` : ''}`;
+    const contact: AgendaContact | null = booked.patientContactId ? { id: booked.patientContactId, name: booked.patientName, phone: booked.patientPhone } : null;
+    const again = this.snack.open(message, contact && !moved ? 'Agendar otra para este paciente' : undefined, { duration: warning ? 12_000 : 8_000 });
+    if (contact) again.onAction().subscribe(() => this.book({ contact }));
   }
 
   plural(count: number, one: string, many: string): string {

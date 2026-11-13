@@ -1,9 +1,14 @@
 import { TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { AgendaDay, AgendaLane } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
+import { PermissionsService } from '../../core/services/permissions.service';
+import { AppointmentDetailDialogComponent } from './appointment-detail.dialog';
+import { BookAppointmentDialogComponent } from './book-appointment.dialog';
 import { AgendaComponent } from './agenda.component';
 import { DEFAULT_TIME_ZONE, shiftDate, todayIn } from './agenda.helpers';
 
@@ -24,6 +29,7 @@ const lane = (patch: Partial<AgendaLane> = {}): AgendaLane => ({
       equipmentId: 'ct',
       serviceTypeId: 's1',
       serviceTypeName: 'Tomografía contrastada',
+      patientContactId: 'c1',
       startsAt: '2026-12-07T15:00:00.000Z',
       endsAt: '2026-12-07T15:15:00.000Z',
       state: 'arrived',
@@ -38,21 +44,33 @@ const lane = (patch: Partial<AgendaLane> = {}): AgendaLane => ({
   ...patch,
 });
 
-function setup(day: (date: string) => Observable<AgendaDay>, establishment: { id: string; timeZone: string } | null = { id: 'est-1', timeZone: DEFAULT_TIME_ZONE }) {
-  const api = { day: jasmine.createSpy('day').and.callFake(day) };
+const SERVICES = [{ id: 's1', name: 'Tomografía contrastada', modality: 'ct', durationMinutes: 15, preparation: null }];
+
+function setup(
+  day: (date: string) => Observable<AgendaDay>,
+  establishment: { id: string; timeZone: string } | null = { id: 'est-1', timeZone: DEFAULT_TIME_ZONE },
+  canManage = false,
+  closesWith: unknown = undefined,
+) {
+  const api = { day: jasmine.createSpy('day').and.callFake(day), serviceTypes: () => of(SERVICES) };
+  const dialog = { open: jasmine.createSpy('open').and.returnValue({ afterClosed: () => of(closesWith) }) };
+  const snack = { open: jasmine.createSpy('snack').and.returnValue({ onAction: () => of() }) };
   TestBed.configureTestingModule({
     imports: [AgendaComponent],
     providers: [
       provideRouter([]),
       { provide: AgendaApiService, useValue: api },
       { provide: EstablishmentContextService, useValue: { current: () => establishment } },
+      { provide: PermissionsService, useValue: { can: () => canManage } },
+      { provide: MatDialog, useValue: dialog },
+      { provide: MatSnackBar, useValue: snack },
     ],
   });
   const fixture = TestBed.createComponent(AgendaComponent);
   fixture.detectChanges();
   const element = fixture.nativeElement as HTMLElement;
   const text = () => (fixture.detectChanges(), element.textContent ?? '');
-  return { fixture, api, element, text };
+  return { fixture, api, element, text, dialog, snack };
 }
 
 const dayWith = (...resources: AgendaLane[]) => (date: string) => of({ date, resources });
@@ -161,6 +179,94 @@ describe('AgendaComponent', () => {
     todayButton.click();
     fixture.detectChanges();
     expect(api.day.calls.mostRecent().args).toEqual([today]);
+  });
+
+  it('sin permiso de agendar no ofrece «Agendar cita», pero sí abre el detalle en solo lectura', () => {
+    const { element, dialog } = setup(dayWith(lane()));
+
+    expect(element.querySelector('.new')).toBeNull();
+    element.querySelector<HTMLButtonElement>('.appointment .card')?.click();
+
+    const [component, config] = dialog.open.calls.mostRecent().args;
+    expect(component).toBe(AppointmentDetailDialogComponent);
+    expect(config.data).toEqual(jasmine.objectContaining({ canManage: false, appointment: jasmine.objectContaining({ id: 'a1' }) }));
+    expect(config.position).toEqual({ top: '0', right: '0' });
+  });
+
+  it('«Agendar cita» abre el diálogo con el día, la zona, los equipos y el catálogo', () => {
+    const { element, dialog } = setup(dayWith(lane()), undefined, true);
+
+    element.querySelector<HTMLButtonElement>('.new')?.click();
+
+    const [component, config] = dialog.open.calls.mostRecent().args;
+    expect(component).toBe(BookAppointmentDialogComponent);
+    expect(config.data).toEqual(jasmine.objectContaining({ date: todayIn(DEFAULT_TIME_ZONE), timeZone: DEFAULT_TIME_ZONE, services: SERVICES }));
+    expect(config.data.lanes.map((l: AgendaLane) => l.id)).toEqual(['ct']);
+  });
+
+  it('un clic en el carril propone ese equipo y esa hora, ajustada a 5 minutos', () => {
+    const { fixture, dialog } = setup(dayWith(lane()), undefined, true);
+
+    // La ventana empieza a las 08:00 a 1.6 px por minuto: 84 px son 52.5 min, que se ajustan a las 08:50.
+    fixture.componentInstance.bookAt(lane(), 84);
+
+    expect(dialog.open.calls.mostRecent().args[1].data).toEqual(jasmine.objectContaining({ equipmentId: 'ct', clock: '08:50' }));
+  });
+
+  it('al agendar recarga el día y avisa, con el aviso del mismo paciente si lo hay', () => {
+    // Una cita para el día que se está viendo: hoy a las 09:00 de Ciudad de México.
+    const today = todayIn(DEFAULT_TIME_ZONE);
+    const booked = {
+      ...lane().appointments[0],
+      startsAt: `${today}T15:00:00.000Z`,
+      endsAt: `${today}T15:15:00.000Z`,
+      warnings: [{ code: 'PATIENT_OVERLAP', appointment: { id: 'x', equipmentId: 'ct', startsAt: `${today}T15:00:00.000Z`, endsAt: `${today}T15:30:00.000Z` } }],
+    };
+    const { fixture, element, api, snack } = setup(dayWith(lane()), undefined, true, booked);
+
+    element.querySelector<HTMLButtonElement>('.new')?.click();
+    fixture.detectChanges();
+
+    expect(api.day).toHaveBeenCalledTimes(2);
+    const [message, action] = snack.open.calls.mostRecent().args;
+    expect(message).toBe('Cita agendada: 09:00, María López. Este paciente ya tiene otra cita a esa hora: 09:00 en Tomógrafo.');
+    expect(action).toBe('Agendar otra para este paciente');
+  });
+
+  it('al agendar para otro día salta a ese día y lo dice en el aviso', () => {
+    const booked = { ...lane().appointments[0], startsAt: '2026-12-24T16:30:00.000Z', endsAt: '2026-12-24T16:45:00.000Z', warnings: [] };
+    const { fixture, element, api, snack } = setup(dayWith(lane()), undefined, true, booked);
+
+    element.querySelector<HTMLButtonElement>('.new')?.click();
+    fixture.detectChanges();
+
+    expect(api.day.calls.mostRecent().args).toEqual(['2026-12-24']);
+    expect(snack.open.calls.mostRecent().args[0]).toBe('Cita agendada para el jueves 24 de diciembre de 2026: 10:30, María López.');
+  });
+
+  it('reprogramar propone el día de la cita, no el que se está viendo', () => {
+    const moving = setup(dayWith(lane()), undefined, true);
+    moving.dialog.open.and.returnValues({ afterClosed: () => of('reschedule') }, { afterClosed: () => of(undefined) });
+
+    moving.element.querySelector<HTMLButtonElement>('.appointment .card')?.click();
+
+    expect(moving.dialog.open.calls.mostRecent().args[1].data.date).toBe('2026-12-07');
+  });
+
+  it('si el detalle cambió la cita, recarga; si pidió reprogramar, abre el diálogo para moverla', () => {
+    const changed = setup(dayWith(lane()), undefined, true, 'changed');
+    changed.element.querySelector<HTMLButtonElement>('.appointment .card')?.click();
+    changed.fixture.detectChanges();
+    expect(changed.api.day).toHaveBeenCalledTimes(2);
+
+    TestBed.resetTestingModule();
+    const moving = setup(dayWith(lane()), undefined, true, 'reschedule');
+    moving.dialog.open.and.returnValues({ afterClosed: () => of('reschedule') }, { afterClosed: () => of(undefined) });
+    moving.element.querySelector<HTMLButtonElement>('.appointment .card')?.click();
+
+    const [component, config] = moving.dialog.open.calls.mostRecent().args;
+    expect(component).toBe(BookAppointmentDialogComponent);
+    expect(config.data).toEqual(jasmine.objectContaining({ clock: '09:00', rescheduling: jasmine.objectContaining({ id: 'a1' }) }));
   });
 
   it('si la carga falla lo avisa y deja volver a intentar', () => {

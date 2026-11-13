@@ -24,6 +24,8 @@ export interface DayAxis {
   folds: MinuteRange[];
   /** Distancia en píxeles desde el inicio de la ventana hasta ese minuto. */
   top(minutes: number): number;
+  /** El minuto que cae a esa distancia; dentro de un tramo plegado, su inicio. */
+  minutesAt(top: number): number;
 }
 
 export interface Place {
@@ -186,7 +188,19 @@ export function dayAxis(lanes: readonly AgendaLane[], scale: number): DayAxis {
     if (folds.some((fold) => minutes > fold.from && minutes < fold.to)) continue;
     marks.push({ minutes, label: clockOfMinutes(minutes), onTheHour: minutes % MINUTES_PER_HOUR === 0, top: top(minutes) });
   }
-  return { window, height: top(window.to), marks, folds, top };
+  const minutesAt = (pixels: number): number => {
+    let minutes = window.from;
+    let remaining = Math.max(0, pixels);
+    for (const fold of folds) {
+      const open = (fold.from - minutes) * scale;
+      if (remaining <= open) return minutes + remaining / scale;
+      if (remaining <= open + FOLD_HEIGHT) return fold.from;
+      remaining -= open + FOLD_HEIGHT;
+      minutes = fold.to;
+    }
+    return Math.min(minutes + remaining / scale, window.to);
+  };
+  return { window, height: top(window.to), marks, folds, top, minutesAt };
 }
 
 /** Escala vertical: la cita más corta del día debe poder leerse en una línea. */

@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, ElementRef, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AgendaAppointment, AgendaLane } from '../../core/models/agenda.models';
 import { HourMark, Place, StateView } from './agenda.helpers';
@@ -39,7 +39,7 @@ const BAND_LABEL_HEIGHT = 20;
   selector: 'app-agenda-lane',
   standalone: true,
   imports: [MatIconModule],
-  host: { role: 'group', '[attr.aria-label]': 'view().lane.name' },
+  host: { role: 'group', '[attr.aria-label]': 'view().lane.name', '[class.bookable]': 'bookable()', '(click)': 'pickSpot($event)' },
   template: `
     @for (mark of marks(); track mark.minutes) {
       <div class="rule" [class.half]="!mark.onTheHour" [style.top.px]="mark.top" aria-hidden="true"></div>
@@ -60,6 +60,7 @@ const BAND_LABEL_HEIGHT = 20;
     <ul role="list">
       @for (item of view().appointments; track item.appointment.id) {
         <li class="appointment" [class]="'appointment ' + item.appointment.state" [class.urgent]="item.appointment.priority === 'urgent'" [style.top.px]="item.place.top" [style.height.px]="item.place.height">
+          <button type="button" class="card" (click)="$event.stopPropagation(); open.emit(item.appointment)">
           <span class="visually-hidden">{{ item.label }}</span>
           <div class="line" aria-hidden="true">
             <span class="time">{{ item.start }}<span class="end">–{{ item.end }}</span></span>
@@ -70,6 +71,7 @@ const BAND_LABEL_HEIGHT = 20;
             <span class="state" [attr.title]="item.state.label"><mat-icon>{{ item.state.icon }}</mat-icon><span class="wide">{{ item.state.label }}</span></span>
           </div>
           @if (item.service) { <div class="service" aria-hidden="true">{{ item.service }}</div> }
+          </button>
         </li>
       }
     </ul>
@@ -89,8 +91,12 @@ const BAND_LABEL_HEIGHT = 20;
 
     .appointment {
       position: absolute; left: 4px; right: 4px; z-index: 2; box-sizing: border-box; overflow: clip;
-      padding: 0 8px; border: 1px solid #cbd5e1; border-left: 4px solid #334155; border-radius: 6px; background: #fff; font-size: 13px;
+      border: 1px solid #cbd5e1; border-left: 4px solid #334155; border-radius: 6px; background: #fff; font-size: 13px;
     }
+    .card { display: flex; flex-direction: column; justify-content: flex-start; width: 100%; height: 100%; padding: 0 8px; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+    .card:focus-visible { outline: 2px solid #2563c9; outline-offset: -2px; }
+    .appointment:hover { border-color: #64748b; }
+    :host(.bookable) { cursor: copy; }
     .line { display: flex; align-items: center; gap: 8px; height: 20px; line-height: 20px; }
     .time { flex: none; font-variant-numeric: tabular-nums; color: #334155; }
     .patient { flex: 1; min-width: 3ch; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -115,5 +121,15 @@ export class AgendaLaneComponent {
   readonly view = input.required<LaneView>();
   readonly marks = input.required<HourMark[]>();
   readonly nowTop = input<number | null>(null);
+  /** Con permiso de agendar, un clic en el carril propone una cita a esa altura. */
+  readonly bookable = input(false);
+  readonly open = output<AgendaAppointment>();
+  /** Distancia en píxeles desde el inicio del carril hasta donde se hizo clic. */
+  readonly book = output<number>();
   readonly labelHeight = BAND_LABEL_HEIGHT;
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  pickSpot(event: MouseEvent): void {
+    if (this.bookable()) this.book.emit(event.clientY - this.host.nativeElement.getBoundingClientRect().top);
+  }
 }
