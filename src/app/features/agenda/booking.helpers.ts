@@ -67,12 +67,20 @@ export function bookingOf(form: BookingForm): AgendaBooking {
 
 const span = (range: { startsAt: string; endsAt: string }, timeZone: string): string => `de ${clockOf(range.startsAt, timeZone)} a ${clockOf(range.endsAt, timeZone)}`;
 
-/** El 409 de jc-core, dicho para recepción: con qué choca y a qué hora. */
+const UNAVAILABLE = 'Ese horario no está disponible. Elige otro.';
+
+/**
+ * El 409 de jc-core, dicho para recepción: con qué choca y a qué hora.
+ * `conflict: null` es la carrera (la base rechazó y ya no se sabe con cuál).
+ * Si el detalle no llegó, se usa el mensaje del servidor, que ya dice el motivo.
+ */
 export function conflictMessage(conflict: AgendaConflict, timeZone: string): string {
   if (conflict.code === 'RESOURCE_BLOCKED' && conflict.block) {
     return `El equipo está bloqueado ${span(conflict.block, timeZone)}: ${conflict.block.reason}.`;
   }
-  return conflict.conflict ? `Ese horario ya está ocupado por otra cita ${span(conflict.conflict, timeZone)}. Elige otro.` : 'Ese horario se acaba de ocupar. Elige otro.';
+  if (conflict.conflict) return `Ese horario ya está ocupado por otra cita ${span(conflict.conflict, timeZone)}. Elige otro.`;
+  if (conflict.conflict === null) return 'Ese horario se acaba de ocupar. Elige otro.';
+  return conflict.message?.trim() || UNAVAILABLE;
 }
 
 /** Aviso, no bloqueo: el paciente ya tiene otra cita en ese lapso. */
