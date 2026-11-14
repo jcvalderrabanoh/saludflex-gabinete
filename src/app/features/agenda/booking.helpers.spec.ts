@@ -111,6 +111,20 @@ describe('conflictMessage', () => {
     const conflict: AgendaConflict = { message: 'x', code: 'RESOURCE_BLOCKED', block: { id: 'b', startsAt: '2026-12-07T22:00:00.000Z', endsAt: '2026-12-08T00:00:00.000Z', reason: 'Mantenimiento' } };
     expect(conflictMessage(conflict, MX)).toBe('El equipo está bloqueado de 16:00 a 18:00: Mantenimiento.');
   });
+
+  it('un bloqueo sin detalle usa el mensaje del servidor, no «se acaba de ocupar»', () => {
+    const conflict: AgendaConflict = { message: 'El equipo está bloqueado en ese horario: Mantenimiento (prueba).', code: 'RESOURCE_BLOCKED' };
+    expect(conflictMessage(conflict, MX)).toBe('El equipo está bloqueado en ese horario: Mantenimiento (prueba).');
+  });
+
+  it('un choque sin detalle usa el mensaje del servidor', () => {
+    const conflict: AgendaConflict = { message: 'Ese horario ya está ocupado en este equipo. Elige otro.', code: 'APPOINTMENT_OVERLAP' };
+    expect(conflictMessage(conflict, MX)).toBe('Ese horario ya está ocupado en este equipo. Elige otro.');
+  });
+
+  it('sin detalle ni mensaje, da un texto genérico de horario ocupado', () => {
+    expect(conflictMessage({ message: '  ', code: 'RESOURCE_BLOCKED' }, MX)).toBe('Ese horario no está disponible. Elige otro.');
+  });
 });
 
 describe('avisos del mismo paciente', () => {
