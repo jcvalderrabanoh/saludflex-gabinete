@@ -32,9 +32,12 @@ export function snapMinutes(minutes: number): number {
   return Math.floor(minutes / SNAP_MINUTES) * SNAP_MINUTES;
 }
 
-/** Los equipos donde cabe el servicio: los de su modalidad. */
+/**
+ * Los equipos donde cabe el servicio: los de su modalidad. Sin servicio aún se
+ * ofrecen todos, para poder empezar por el equipo (o ver el del carril donde se hizo clic).
+ */
 export function lanesFor(service: AgendaServiceType | null, lanes: readonly AgendaLane[]): AgendaLane[] {
-  return service ? lanes.filter((lane) => lane.modality === service.modality) : [];
+  return service ? lanes.filter((lane) => lane.modality === service.modality) : [...lanes];
 }
 
 export interface BookingForm {
