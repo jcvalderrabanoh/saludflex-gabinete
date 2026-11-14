@@ -1,6 +1,7 @@
 /** Espejo de los tipos de la API `facility` de jc-core (ADR-005). */
 
-export type ObligationStatus = 'missing' | 'overdue' | 'due-soon' | 'ok';
+/** `expiry-unknown`: documento cuya vigencia marca él mismo, sin fecha de vencimiento ni «no vence». */
+export type ObligationStatus = 'missing' | 'overdue' | 'due-soon' | 'expiry-unknown' | 'ok';
 export type ObligationKind = 'document' | 'periodic';
 export type ObligationSubject = 'establishment' | 'person' | 'equipment';
 export type NormVerification = 'V' | 'NV';
@@ -101,7 +102,12 @@ export interface EvaluatedObligation {
   note: string | null;
   folderOrder: number;
   weight: number;
+  /** En un documento, su vigencia desde la expedición (null = la fecha que traiga). */
   period: Period | null;
+  /** Documento: el establecimiento confirmó que no vence. */
+  noExpiry?: boolean;
+  /** Documento cuya vigencia la marca él mismo: sin fecha queda «sin vigencia». */
+  expiryFromDocument?: boolean;
   alertDays: number[];
   responsibleUserIds: string[];
   /** Nombres resueltos por el backend; `valid=false` si ya no puede capturar o salió de la cuenta. */
@@ -133,6 +139,15 @@ export interface ReadinessScore {
   dueSoon: number;
   overdue: number;
   missing: number;
+  /** Documentos sin fecha de vencimiento (cuentan como listos). */
+  expiryUnknown?: number;
+}
+
+/** Vigencia de un documento: la del establecimiento en meses, o «no vence». */
+export interface DocumentValidityInput {
+  periodUnit?: 'month' | null;
+  periodEvery?: number | null;
+  noExpiry: boolean;
 }
 
 export interface EstablishmentStatus {

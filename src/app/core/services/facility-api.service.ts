@@ -18,6 +18,7 @@ import {
   InventoryTaskInput,
   ExportFormat,
   ActivateObligationInput,
+  DocumentValidityInput,
   CommitmentPlan,
   ConnectedApp,
   Expense,
@@ -105,6 +106,11 @@ export class FacilityApiService {
       windowStartsOn: window?.startsOn ?? null,
       windowEndsOn: window?.endsOn ?? null,
     });
+  }
+
+  /** Vigencia de un documento: meses desde la expedición, la fecha que traiga, o «no vence». */
+  setDocumentValidity(obligationId: string, input: DocumentValidityInput): Observable<unknown> {
+    return this.http.patch(`${this.base}/obligations/${obligationId}`, input);
   }
 
   deactivateObligation(obligationId: string): Observable<void> {

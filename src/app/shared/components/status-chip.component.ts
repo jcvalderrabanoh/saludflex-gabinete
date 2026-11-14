@@ -10,6 +10,7 @@ import { STATUS_LABELS } from '../../core/models/labels';
     .chip { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
     .ok { background: #dcfce7; color: #166534; }
     .due-soon { background: #fef3c7; color: #92400e; }
+    .expiry-unknown { background: #fff3d6; color: #805800; }
     .overdue, .missing { background: #fee2e2; color: #991b1b; }
   `],
 })

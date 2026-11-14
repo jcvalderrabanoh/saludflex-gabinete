@@ -1,6 +1,7 @@
 import { EstablishmentStatus, EvaluatedObligation, ObligationDefinition } from '../core/models/facility.models';
 import { applicableDefinitions } from './obligations/activate-obligation.dialog';
 import { groupSections } from './obligations/obligations.component';
+import { obligationMeta } from '../core/models/labels';
 import { activatedMessage, subjectSavedMessage } from './subjects/subjects.component';
 import { todaySummary } from './today/today.component';
 import { capturedByLabel } from './evidence/evidence-history.dialog';
@@ -30,6 +31,23 @@ describe('helpers de pantallas', () => {
   it('todaySummary resume en una línea', () => {
     const s = { todayItems: [{}, {}, {}], score: { overdue: 1, missing: 2, dueSoon: 0 } } as unknown as EstablishmentStatus;
     expect(todaySummary(s)).toBe('3 cosas necesitan atención: 1 vencida, 2 sin registro.');
+  });
+
+  it('todaySummary cuenta los documentos sin vigencia', () => {
+    const s = { todayItems: [{}, {}], score: { overdue: 0, missing: 0, dueSoon: 1, expiryUnknown: 1 } } as unknown as EstablishmentStatus;
+    expect(todaySummary(s)).toBe('2 cosas necesitan atención: 1 por vencer, 1 sin vigencia.');
+  });
+
+  it('obligationMeta pide la vigencia de un documento sin fecha', () => {
+    const o = {
+      status: 'expiry-unknown',
+      daysLeft: null,
+      dueOn: null,
+      currentRecord: { id: 'r', performedOn: '2025-01-10', validUntil: null, hasFile: true },
+    } as unknown as EvaluatedObligation;
+    expect(obligationMeta(o)).toBe('Sin fecha de vencimiento: captúrala o define la vigencia');
+    expect(obligationMeta({ ...o, currentRecord: null })).toBe('Sin registro');
+    expect(obligationMeta({ ...o, status: 'ok' })).toBe('Sin vencimiento');
   });
 
   it('activatedMessage dice cuántas obligaciones nacieron', () => {

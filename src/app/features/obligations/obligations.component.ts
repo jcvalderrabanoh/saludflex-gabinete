@@ -5,7 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { EstablishmentStatus, EvaluatedObligation } from '../../core/models/facility.models';
-import { FOLDER_SECTIONS, dueLabel } from '../../core/models/labels';
+import { FOLDER_SECTIONS, obligationMeta } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { CanDirective, CanRecordDirective } from '../../shared/directives/can.directive';
@@ -15,6 +15,7 @@ import { EvidenceHistoryDialogComponent } from '../evidence/evidence-history.dia
 import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialog';
 import { ActivateObligationDialogComponent } from './activate-obligation.dialog';
 import { windowState } from '../calendar/payment-window.helpers';
+import { DocumentValidityDialogComponent } from './document-validity.dialog';
 import { PaymentWindowDialogComponent } from './payment-window.dialog';
 import { ResponsiblesDialogComponent } from './responsibles.dialog';
 
@@ -45,7 +46,7 @@ const shortDate = (date: string) => SHORT_FORMAT.format(new Date(`${date}T00:00:
             <app-status-chip [status]="o.status" />
             <div class="text">
               <div class="title">{{ o.title }}{{ o.verification === 'NV' ? ' †' : '' }}@if (o.subjectLabel) { <span class="subject"> · {{ o.subjectLabel }}</span> }</div>
-              <div class="meta">{{ o.currentRecord ? due(o) : 'Sin registro' }} · {{ o.norms.join(' · ') }}</div>
+              <div class="meta">{{ meta(o) }} · {{ o.norms.join(' · ') }}</div>
               @if (o.window) { <div class="window">Plazo de pago: {{ windowText(o) }}</div> }
             </div>
             <div class="responsible">
@@ -63,6 +64,9 @@ const shortDate = (date: string) => SHORT_FORMAT.format(new Date(`${date}T00:00:
             <mat-menu #menu="matMenu">
               <button mat-menu-item (click)="history(o)">Historial</button>
               <button *appCan="'manage'" mat-menu-item (click)="assign(o)">Asignar responsables</button>
+              @if (o.kind === 'document') {
+                <button *appCan="'manage'" mat-menu-item (click)="validity(o)">Vigencia del documento</button>
+              }
               <button *appCan="'manage'" mat-menu-item (click)="paymentWindow(o)">{{ o.window ? 'Cambiar plazo de pago' : 'Poner plazo de pago' }}</button>
               <button *appCan="'manage'" mat-menu-item (click)="deactivate(o)">Desactivar</button>
             </mat-menu>
@@ -110,8 +114,8 @@ export class ObligationsComponent {
     this.api.status(id).subscribe((s) => this.status.set(s));
   }
 
-  due(o: EvaluatedObligation): string {
-    return dueLabel(o.daysLeft, o.dueOn);
+  meta(o: EvaluatedObligation): string {
+    return obligationMeta(o);
   }
 
   activate(): void {
@@ -154,6 +158,13 @@ export class ObligationsComponent {
   paymentWindow(obligation: EvaluatedObligation): void {
     this.dialog
       .open(PaymentWindowDialogComponent, { width: '480px', data: { obligation } })
+      .afterClosed()
+      .subscribe((saved) => saved && this.reload());
+  }
+
+  validity(obligation: EvaluatedObligation): void {
+    this.dialog
+      .open(DocumentValidityDialogComponent, { width: '520px', data: { obligation } })
       .afterClosed()
       .subscribe((saved) => saved && this.reload());
   }
