@@ -8,10 +8,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
-import { Equipment, Personnel, ServiceType, SubjectResult } from '../../core/models/facility.models';
+import { Equipment, Personnel, ServiceType, StaffRole, SubjectResult } from '../../core/models/facility.models';
 import { MODALITY_LABELS, ROLE_LABELS } from '../../core/models/labels';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
+import { LinkOption, linkOptions, prefillFromUser } from './link-user.helpers';
 
 export type SubjectFormData =
   | { kind: 'equipment'; establishmentId: string; current?: Equipment }
@@ -48,6 +49,20 @@ export interface SubjectFormResult {
         <p class="hint">Al registrarlo se activan su mantenimiento y, si emite radiación, su control de calidad.</p>
       } @else {
         <form [formGroup]="person" class="form">
+          @if (!usersFailed()) {
+            <mat-form-field appearance="outline" class="wide">
+              <mat-label>Usuario de lumen-view (opcional)</mat-label>
+              <mat-select formControlName="userId" (selectionChange)="onUserChosen($event.value)">
+                <mat-option [value]="null">Sin usuario</mat-option>
+                @for (o of userOptions(); track o.user.id) {
+                  <mat-option [value]="o.user.id" [disabled]="o.taken">{{ o.label }}{{ o.taken ? ' · ya registrado aquí' : '' }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint>Llenamos su nombre y, si firma informes, su cédula.</mat-hint>
+            </mat-form-field>
+          } @else {
+            <p class="hint wide" role="status">No pudimos cargar los usuarios de la cuenta. Puedes registrar a la persona sin vincularla y hacerlo después.</p>
+          }
           <mat-form-field appearance="outline" class="wide"><mat-label>Nombre completo</mat-label><input matInput formControlName="fullName" /></mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Rol</mat-label>
@@ -68,9 +83,10 @@ export interface SubjectFormResult {
     </mat-dialog-actions>
   `,
   styles: [`
-    .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; min-width: 480px; }
+    .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; min-width: 480px; padding-top: 8px; }
     @media (max-width: 767.98px) { .form { grid-template-columns: 1fr; min-width: 0; } }
     .wide { grid-column: 1 / -1; margin-bottom: 8px; }
+    mat-form-field.wide:has(mat-hint) { margin-bottom: 16px; }
     .hint { font-size: 12px; color: #64748b; margin: 4px 0 0; }
     .error { color: #b91c1c; font-size: 13px; }
   `],
@@ -84,6 +100,8 @@ export class SubjectFormDialogComponent {
   readonly roles = Object.entries(ROLE_LABELS);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
+  readonly userOptions = signal<LinkOption[]>([]);
+  readonly usersFailed = signal(false);
 
   private readonly eq = this.data.kind === 'equipment' ? this.data.current : undefined;
   private readonly pe = this.data.kind === 'person' ? this.data.current : undefined;
@@ -102,7 +120,27 @@ export class SubjectFormDialogComponent {
     role: [this.pe?.role ?? 'tecnico-radiologo', Validators.required],
     professionalLicense: [this.pe?.professionalLicense ?? '', Validators.pattern(/^\d{7,8}$/)],
     occupationallyExposed: [this.pe?.occupationallyExposed ?? false],
+    userId: this.fb.control<string | null>(this.pe?.userId ?? null),
   });
+
+  constructor() {
+    if (this.data.kind === 'person') this.loadLinkableUsers(this.data.establishmentId);
+  }
+
+  private loadLinkableUsers(establishmentId: string): void {
+    this.api.linkableUsers(establishmentId).subscribe({
+      next: (users) => this.userOptions.set(linkOptions(users, this.pe?.id)),
+      error: () => this.usersFailed.set(true),
+    });
+  }
+
+  /** Llena solo lo que está vacío con los datos de su usuario. */
+  onUserChosen(userId: string | null): void {
+    const option = this.userOptions().find((o) => o.user.id === userId);
+    if (!option) return;
+    const { fullName, role, professionalLicense } = this.person.getRawValue();
+    this.person.patchValue(prefillFromUser(option.user, { fullName, role: role as StaffRole, professionalLicense }, !this.pe));
+  }
 
   title(): string {
     const verb = this.data.current ? 'Editar' : 'Registrar';

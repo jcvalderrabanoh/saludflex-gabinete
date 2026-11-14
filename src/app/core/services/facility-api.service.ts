@@ -43,6 +43,7 @@ import {
   Equipment,
   PaymentWindow,
   Personnel,
+  LinkableUser,
   SubjectResult,
   Establishment,
   EstablishmentInput,
@@ -201,8 +202,14 @@ export class FacilityApiService {
     return this.http.post<SubjectResult<Personnel>>(`${this.base}/establishments/${establishmentId}/personnel`, clean(input));
   }
 
+  /** `userId: null` sí viaja: es como se desvincula a la persona de su usuario. */
   updatePerson(id: string, input: Partial<Personnel>): Observable<SubjectResult<Personnel>> {
-    return this.http.patch<SubjectResult<Personnel>>(`${this.base}/personnel/${id}`, clean(input));
+    const body = { ...clean(input), ...(input.userId === null && { userId: null }) };
+    return this.http.patch<SubjectResult<Personnel>>(`${this.base}/personnel/${id}`, body);
+  }
+
+  linkableUsers(establishmentId: string): Observable<LinkableUser[]> {
+    return this.http.get<LinkableUser[]>(`${this.base}/establishments/${establishmentId}/linkable-users`);
   }
 
   retirePerson(id: string): Observable<void> {
