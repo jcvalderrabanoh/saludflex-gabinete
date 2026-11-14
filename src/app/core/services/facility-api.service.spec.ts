@@ -43,6 +43,18 @@ describe('FacilityApiService', () => {
     req.flush({});
   });
 
+  it('los usuarios vinculables se piden por establecimiento', () => {
+    api.linkableUsers('e1').subscribe();
+    http.expectOne('http://localhost:3000/facility/establishments/e1/linkable-users').flush([]);
+  });
+
+  it('al editar a una persona, userId null viaja (desvincula) y lo vacío no', () => {
+    api.updatePerson('p1', { fullName: 'Toño', professionalLicense: '', userId: null }).subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/personnel/p1');
+    expect(req.request.body).toEqual({ fullName: 'Toño', userId: null });
+    req.flush({ subject: {}, activated: [] });
+  });
+
   it('las citas se piden por rango de fechas del establecimiento', () => {
     api.appointments('e1', { from: '2026-11-01', to: '2026-11-30' }).subscribe();
     const req = http.expectOne('http://localhost:3000/facility/establishments/e1/appointments?from=2026-11-01&to=2026-11-30');

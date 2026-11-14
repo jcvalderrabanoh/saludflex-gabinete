@@ -49,7 +49,7 @@ import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from '
       @for (p of personnel(); track p.id) {
         <mat-card class="row">
           <div class="text">
-            <div class="title">{{ p.fullName }} @if (p.occupationallyExposed) { <span class="tag">POE</span> }</div>
+            <div class="title">{{ p.fullName }} @if (p.occupationallyExposed) { <span class="tag">POE</span> } @if (p.userId) { <span class="tag linked">Usuario de lumen-view</span> }</div>
             <div class="meta">{{ role(p) }}{{ p.professionalLicense ? ' · cédula ' + p.professionalLicense : '' }}</div>
           </div>
           <ng-container *appCan="'manage'">
@@ -69,6 +69,7 @@ import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from '
     .row { display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 10px 14px; margin-bottom: 8px; }
     .text { flex: 1; } .title { font-weight: 600; } .meta { font-size: 12px; color: #64748b; }
     .tag { font-size: 11px; background: #fef3c7; color: #92400e; border-radius: 8px; padding: 1px 8px; margin-left: 6px; }
+    .tag.linked { background: #e0ecff; color: #1e3a8a; }
     .empty { color: #64748b; font-size: 14px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
     .tile { padding: 16px; }

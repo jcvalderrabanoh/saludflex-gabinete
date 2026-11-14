@@ -231,6 +231,21 @@ export interface Personnel {
   role: StaffRole;
   professionalLicense?: string | null;
   occupationallyExposed: boolean;
+  /** Su usuario de la cuenta (lumen-view), si está vinculado. */
+  userId?: string | null;
+}
+
+/** Usuario activo de la cuenta que se puede vincular a una persona. */
+export interface LinkableUser {
+  id: string;
+  email: string;
+  fullName: string;
+  /** Rol en lumen-view: admin, staff o interpreter. */
+  role: string;
+  /** Cédula de su perfil de intérprete, si tiene. */
+  professionalLicense: string | null;
+  /** Persona de este establecimiento a la que ya está vinculado. */
+  linkedPersonnelId: string | null;
 }
 
 export interface SubjectResult<T> {
