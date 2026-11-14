@@ -1,20 +1,28 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { RouterLink } from '@angular/router';
+import { map, startWith } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { AgendaServiceType } from '../../core/models/agenda.models';
+import { AgendaResource, AgendaServiceType } from '../../core/models/agenda.models';
 import { EquipmentModality } from '../../core/models/facility.models';
 import { MODALITY_LABELS } from '../../core/models/labels';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
+import { EQUIPMENT_ROUTE, placeOf } from './settings.helpers';
 
 export interface ServiceTypeDialogData {
   /** Si viene, se edita este servicio en vez de crear uno. */
   editing?: AgendaServiceType;
+  /** Equipos del establecimiento, para decir dónde se agendará; sin ellos solo se da la pista general. */
+  equipment?: AgendaResource[];
+  establishmentId?: string;
 }
 
 const MAX_MINUTES = 480;
@@ -23,7 +31,7 @@ const MAX_MINUTES = 480;
 @Component({
   selector: 'app-service-type-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule],
+  imports: [ReactiveFormsModule, RouterLink, MatDialogModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, MatSelectModule],
   template: `
     <h2 mat-dialog-title>{{ data.editing ? 'Editar servicio' : 'Agregar servicio' }}</h2>
     <mat-dialog-content>
@@ -39,7 +47,7 @@ const MAX_MINUTES = 480;
               <mat-option [value]="modality">{{ labels[modality] }}</mat-option>
             }
           </mat-select>
-          <mat-hint>Se agenda en los equipos de esta modalidad</mat-hint>
+          <mat-hint>{{ modalityHint() }}</mat-hint>
         </mat-form-field>
         <mat-form-field appearance="outline" class="hinted">
           <mat-label>Duración (minutos)</mat-label>
@@ -51,6 +59,14 @@ const MAX_MINUTES = 480;
           <textarea matInput rows="3" formControlName="preparation" maxlength="2000"></textarea>
         </mat-form-field>
       </form>
+      @if (place(); as place) {
+        @if (!place.ready) {
+          <p class="no-place" role="status">
+            <mat-icon aria-hidden="true">warning</mat-icon>
+            <span><strong>Sin dónde agendarse.</strong> {{ place.text }} Puedes guardarlo, pero no se podrá agendar hasta que haya uno. <a [routerLink]="equipmentRoute" mat-dialog-close>Dar de alta un equipo</a></span>
+          </p>
+        }
+      }
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -63,6 +79,9 @@ const MAX_MINUTES = 480;
     .wide { grid-column: 1 / -1; }
     .hinted { margin-bottom: 12px; }
     .error { color: #b91c1c; font-size: 14px; }
+    .no-place { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 8px; padding: 12px; border-radius: 8px; background: #fff3d6; color: #5c4000; font-size: 14px; }
+    .no-place mat-icon { flex: none; color: #805800; font-size: 20px; width: 20px; height: 20px; }
+    .no-place a { color: #1d4ed8; font-weight: 600; }
     @media (max-width: 640px) { .form { grid-template-columns: 1fr; } }
   `],
 })
@@ -81,6 +100,17 @@ export class ServiceTypeDialogComponent {
     modality: [this.data.editing?.modality ?? '', Validators.required],
     durationMinutes: [this.data.editing?.durationMinutes ?? 15, [Validators.required, Validators.min(1), Validators.max(MAX_MINUTES), Validators.pattern(/^\d+$/)]],
     preparation: [this.data.editing?.preparation ?? ''],
+  });
+
+  readonly equipmentRoute = EQUIPMENT_ROUTE;
+  private readonly modality = toSignal(this.form.controls.modality.valueChanges.pipe(startWith(this.form.controls.modality.value), map(String)), { requireSync: true });
+  /** Dónde se agendará con la modalidad elegida; `null` si no se conocen los equipos o falta la modalidad. */
+  readonly place = computed(() => placeOf(this.modality(), this.data.equipment ?? null, this.data.establishmentId ?? null));
+  /** Sin equipos el aviso va aparte, más visible; la pista no lo repite. */
+  readonly modalityHint = computed(() => {
+    const place = this.place();
+    if (!place) return 'Se agenda en los equipos de esta modalidad';
+    return place.ready ? place.text : '';
   });
 
   save(): void {

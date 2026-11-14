@@ -1,4 +1,6 @@
-import { AgendaWeekHour } from '../../core/models/agenda.models';
+import { AgendaResource, AgendaWeekHour } from '../../core/models/agenda.models';
+import { EquipmentModality } from '../../core/models/facility.models';
+import { MODALITY_LABELS } from '../../core/models/labels';
 import { clockOf } from './agenda.helpers';
 
 export interface DayInterval {
@@ -82,4 +84,35 @@ export function blockSpan(block: { startsAt: string; endsAt: string }, timeZone:
   const from = `${shortDate(block.startsAt, timeZone)}, ${clockOf(block.startsAt, timeZone)}`;
   const sameDay = shortDate(block.startsAt, timeZone) === shortDate(block.endsAt, timeZone);
   return `${from} a ${sameDay ? '' : `${shortDate(block.endsAt, timeZone)}, `}${clockOf(block.endsAt, timeZone)}`;
+}
+
+/** Dónde se resuelve un servicio sin equipo: dar de alta uno. */
+export const EQUIPMENT_ROUTE = '/operacion/equipos-y-personal';
+
+export interface ServicePlace {
+  /** Si hay al menos un equipo del establecimiento donde cabe. */
+  ready: boolean;
+  text: string;
+}
+
+const modalityLabel = (modality: string): string => MODALITY_LABELS[modality as EquipmentModality] ?? modality;
+
+/** «No hay equipos de Ultrasonido en este establecimiento.» */
+export function noPlaceText(modality: string): string {
+  return `No hay equipos de ${modalityLabel(modality)} en este establecimiento.`;
+}
+
+/** «A», «A y B», «A, B y C». */
+function joinNames(names: readonly string[]): string {
+  return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
+}
+
+/**
+ * En qué equipos del establecimiento se agenda un servicio de esa modalidad.
+ * `null` cuando no se sabe (equipos sin cargar, sin establecimiento o sin modalidad): sin dato no es cero.
+ */
+export function placeOf(modality: string, resources: readonly Pick<AgendaResource, 'establishmentId' | 'name' | 'modality'>[] | null, establishmentId: string | null): ServicePlace | null {
+  if (!resources || !establishmentId || !modality) return null;
+  const names = resources.filter((r) => r.establishmentId === establishmentId && r.modality === modality).map((r) => r.name);
+  return names.length ? { ready: true, text: `Se agenda en ${joinNames(names)}.` } : { ready: false, text: noPlaceText(modality) };
 }

@@ -1,5 +1,5 @@
-import { AgendaWeekHour } from '../../core/models/agenda.models';
-import { blockSpan, copyDayToWeek, flattenWeek, weekProblem, weekRows } from './settings.helpers';
+import { AgendaResource, AgendaWeekHour } from '../../core/models/agenda.models';
+import { blockSpan, copyDayToWeek, flattenWeek, placeOf, weekProblem, weekRows } from './settings.helpers';
 
 const hour = (weekday: number, opensAt: string, closesAt: string): AgendaWeekHour => ({ weekday, opensAt, closesAt });
 
@@ -69,5 +69,37 @@ describe('blockSpan', () => {
 
   it('si cruza días dice las dos fechas', () => {
     expect(blockSpan({ startsAt: '2026-12-07T22:00:00.000Z', endsAt: '2026-12-09T15:00:00.000Z' }, MX)).toBe('lun 7 dic, 16:00 a mié 9 dic, 09:00');
+  });
+});
+
+describe('dónde se agenda un servicio', () => {
+  const equipment = (id: string, name: string, modality: string, establishmentId = 'est-1'): AgendaResource => ({ id, establishmentId, name, modality, room: null, hours: [] });
+  const RESOURCES = [
+    equipment('rx1', 'Rayos X sala 1', 'xray'),
+    equipment('rx2', 'Rayos X sala 2', 'xray'),
+    equipment('us-otro', 'Ecógrafo', 'ultrasound', 'est-2'),
+  ];
+
+  it('dice en qué equipos del establecimiento se agenda', () => {
+    expect(placeOf('xray', RESOURCES, 'est-1')).toEqual({ ready: true, text: 'Se agenda en Rayos X sala 1 y Rayos X sala 2.' });
+  });
+
+  it('con tres o más equipos los enumera con comas', () => {
+    const three = [...RESOURCES, equipment('rx3', 'Portátil', 'xray')];
+    expect(placeOf('xray', three, 'est-1')?.text).toBe('Se agenda en Rayos X sala 1, Rayos X sala 2 y Portátil.');
+  });
+
+  it('sin equipos de esa modalidad en el establecimiento avisa, aunque otro establecimiento sí tenga', () => {
+    expect(placeOf('ultrasound', RESOURCES, 'est-1')).toEqual({ ready: false, text: 'No hay equipos de Ultrasonido en este establecimiento.' });
+  });
+
+  it('una modalidad sin etiqueta conocida se nombra tal cual', () => {
+    expect(placeOf('pet', RESOURCES, 'est-1')?.text).toBe('No hay equipos de pet en este establecimiento.');
+  });
+
+  it('si no se pudieron cargar los equipos o no hay establecimiento no afirma nada', () => {
+    expect(placeOf('ultrasound', null, 'est-1')).toBeNull();
+    expect(placeOf('ultrasound', RESOURCES, null)).toBeNull();
+    expect(placeOf('', RESOURCES, 'est-1')).toBeNull();
   });
 });

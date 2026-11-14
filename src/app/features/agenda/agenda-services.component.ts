@@ -1,20 +1,23 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { AgendaServiceType } from '../../core/models/agenda.models';
+import { RouterLink } from '@angular/router';
+import { AgendaResource, AgendaServiceType } from '../../core/models/agenda.models';
 import { EquipmentModality } from '../../core/models/facility.models';
 import { MODALITY_LABELS } from '../../core/models/labels';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
+import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
+import { EQUIPMENT_ROUTE, ServicePlace, placeOf } from './settings.helpers';
 import { ServiceTypeDialogComponent, ServiceTypeDialogData } from './service-type.dialog';
 
 /** Catálogo de lo que se puede agendar: nombre, modalidad, duración e indicaciones. */
 @Component({
   selector: 'app-agenda-services',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule],
+  imports: [RouterLink, MatButtonModule, MatIconModule],
   template: `
     <div class="top">
       <p>Lo que se puede agendar. La modalidad decide en qué equipos cabe y la duración, cuánto ocupa cada cita.</p>
@@ -31,6 +34,16 @@ import { ServiceTypeDialogComponent, ServiceTypeDialogData } from './service-typ
             <strong>{{ service.name }}</strong>
             <span>{{ modality(service) }} · {{ service.durationMinutes }} min</span>
             <p>{{ service.preparation || 'Sin indicaciones para el paciente' }}</p>
+            @if (place(service); as place) {
+              @if (place.ready) {
+                <p class="ready"><mat-icon aria-hidden="true">check_circle</mat-icon> Listo para agendar</p>
+              } @else {
+                <p class="no-place">
+                  <mat-icon aria-hidden="true">warning</mat-icon>
+                  <span><strong>Sin dónde agendarse.</strong> {{ place.text }} <a [routerLink]="equipmentRoute">Dar de alta un equipo</a></span>
+                </p>
+              }
+            }
           </div>
           <button mat-stroked-button (click)="edit(service)">Editar</button>
           <button mat-button (click)="remove(service)" [attr.aria-label]="'Quitar ' + service.name">Quitar</button>
@@ -49,6 +62,12 @@ import { ServiceTypeDialogComponent, ServiceTypeDialogData } from './service-typ
     .text strong { display: block; font-size: 15px; }
     .text span { font-size: 13px; color: #475569; }
     .text p { margin: 2px 0 0; font-size: 13px; color: #475569; white-space: pre-line; }
+    .text .ready, .text .no-place { display: flex; align-items: flex-start; gap: 6px; margin-top: 6px; white-space: normal; }
+    .text .ready { color: #08764e; }
+    .text .no-place { padding: 8px 12px; border-radius: 8px; background: #fff3d6; color: #5c4000; }
+    .ready mat-icon, .no-place mat-icon { flex: none; font-size: 18px; width: 18px; height: 18px; }
+    .no-place mat-icon { color: #805800; }
+    .no-place a { color: #1d4ed8; font-weight: 600; }
     .empty, .error { font-size: 14px; color: #475569; }
     .error { color: #b91c1c; }
     @media (max-width: 640px) { li { flex-wrap: wrap; } .text { flex-basis: 100%; } }
@@ -60,9 +79,22 @@ export class AgendaServicesComponent {
   readonly services = signal<AgendaServiceType[]>([]);
   readonly loaded = signal(false);
   readonly error = signal<string | null>(null);
+  readonly equipmentRoute = EQUIPMENT_ROUTE;
+
+  private readonly context = inject(EstablishmentContextService);
+  /** `null` mientras no carguen o si fallan: sin dato no se marca ningún servicio. */
+  private readonly resources = signal<AgendaResource[] | null>(null);
+  private readonly establishmentId = computed(() => this.context.current()?.id ?? null);
+  /** Los equipos del establecimiento elegido en la barra superior. */
+  private readonly own = computed(() => this.resources()?.filter((r) => r.establishmentId === this.establishmentId()) ?? null);
 
   constructor() {
     this.load();
+    this.api.resources().subscribe({ next: (resources) => this.resources.set(resources), error: () => this.resources.set(null) });
+  }
+
+  place(service: AgendaServiceType): ServicePlace | null {
+    return placeOf(service.modality, this.resources(), this.establishmentId());
   }
 
   modality(service: AgendaServiceType): string {
@@ -71,9 +103,15 @@ export class AgendaServicesComponent {
 
   edit(editing?: AgendaServiceType): void {
     this.dialog
-      .open<ServiceTypeDialogComponent, ServiceTypeDialogData, AgendaServiceType>(ServiceTypeDialogComponent, { data: { editing }, width: '560px', maxWidth: '100vw' })
+      .open<ServiceTypeDialogComponent, ServiceTypeDialogData, AgendaServiceType>(ServiceTypeDialogComponent, { data: this.dialogData(editing), width: '560px', maxWidth: '100vw' })
       .afterClosed()
       .subscribe((saved) => saved && this.load());
+  }
+
+  private dialogData(editing?: AgendaServiceType): ServiceTypeDialogData {
+    const equipment = this.own();
+    const establishmentId = this.establishmentId();
+    return equipment && establishmentId ? { editing, equipment, establishmentId } : { editing };
   }
 
   remove(service: AgendaServiceType): void {

@@ -9,12 +9,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { RouterLink } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, map, of, startWith, switchMap } from 'rxjs';
 import { AgendaAppointment, AgendaBooked, AgendaConflict, AgendaContact, AgendaLane, AgendaServiceType, AgendaSlot } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { clockOf } from './agenda.helpers';
 import { bookingOf, conflictMessage, instantAt, lanesFor } from './booking.helpers';
+import { EQUIPMENT_ROUTE, noPlaceText } from './settings.helpers';
 
 export interface BookAppointmentData {
   /** Fecha local propuesta: el día que se está viendo. */
@@ -42,7 +44,7 @@ const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
 @Component({
   selector: 'app-book-appointment-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule],
+  imports: [ReactiveFormsModule, RouterLink, MatDialogModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule],
   template: `
     <h2 mat-dialog-title>{{ moving ? 'Reprogramar cita' : 'Agendar cita' }}</h2>
     <mat-dialog-content>
@@ -94,8 +96,15 @@ const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
                 <mat-option [value]="lane.id">{{ lane.name }}</mat-option>
               }
             </mat-select>
-            @if (service() && equipment().length === 0) { <mat-hint>Ningún equipo de este establecimiento hace ese servicio</mat-hint> }
           </mat-form-field>
+          @if (service(); as chosen) {
+            @if (!moving && equipment().length === 0) {
+              <p class="wide no-place" role="status">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>{{ noPlace(chosen) }} Para agendar este servicio, <a [routerLink]="equipmentRoute" mat-dialog-close>da de alta un equipo</a>.</span>
+              </p>
+            }
+          }
           @if (service()?.preparation; as preparation) {
             <div class="wide preparation">
               <strong>Indicaciones para el paciente</strong>
@@ -160,6 +169,9 @@ const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
     .chip:hover { background: #f1f5f9; }
     .chip.on { border-color: #2563c9; background: #2563c9; color: #fff; font-weight: 600; }
     .chip:focus-visible { outline: 2px solid #2563c9; outline-offset: 2px; }
+    .no-place { display: flex; align-items: flex-start; gap: 8px; margin: -4px 0 16px; padding: 12px; border-radius: 8px; background: #fff3d6; color: #5c4000; font-size: 14px; }
+    .no-place mat-icon { flex: none; color: #805800; font-size: 20px; width: 20px; height: 20px; }
+    .no-place a { color: #1d4ed8; font-weight: 600; }
     .error { display: flex; align-items: flex-start; gap: 8px; margin: -4px 0 16px; color: #b91c1c; font-size: 14px; }
     .error mat-icon { flex: none; font-size: 20px; width: 20px; height: 20px; }
     @media (max-width: 640px) { .form { grid-template-columns: 1fr; } .chip { min-height: 44px; } }
@@ -174,6 +186,7 @@ export class BookAppointmentDialogComponent {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly contact = signal<AgendaContact | null>(this.data.contact ?? null);
+  readonly equipmentRoute = EQUIPMENT_ROUTE;
 
   readonly form = inject(FormBuilder).nonNullable.group({
     patientName: [''],
@@ -245,6 +258,10 @@ export class BookAppointmentDialogComponent {
         this.slots.set(slots ?? []);
         this.slotsReady.set(slots !== null);
       });
+  }
+
+  noPlace(service: AgendaServiceType): string {
+    return noPlaceText(service.modality);
   }
 
   laneName(equipmentId: string): string {
