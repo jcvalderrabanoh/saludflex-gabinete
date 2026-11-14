@@ -84,6 +84,28 @@ describe('BookAppointmentDialogComponent', () => {
     expect(component.canSave()).toBeFalse();
   }));
 
+  it('sin servicio elegido ofrece todos los equipos y deja ver el del carril donde se hizo clic', fakeAsync(() => {
+    const { fixture, component, element } = setup({ equipmentId: 'rx2', clock: '10:00' });
+    settle(fixture);
+
+    expect(component.equipment().map((l) => l.id)).toEqual(['ct', 'rx1', 'rx2']);
+    const shown = Array.from(element.querySelectorAll('mat-select')).map((select) => select.textContent?.trim());
+    expect(shown).toContain('Rayos X sala 2');
+  }));
+
+  it('se puede elegir primero el equipo y después un servicio que cabe en él', fakeAsync(() => {
+    const { fixture, component } = setup();
+
+    component.form.controls.equipmentId.setValue('rx1');
+    settle(fixture);
+    expect(component.form.controls.equipmentId.value).toBe('rx1');
+
+    component.form.controls.serviceTypeId.setValue('rx');
+    settle(fixture);
+
+    expect(component.form.controls.equipmentId.value).toBe('rx1');
+  }));
+
   it('conserva el equipo del carril donde se hizo clic cuando el servicio tiene varios posibles', fakeAsync(() => {
     const { fixture, component } = setup({ equipmentId: 'rx2', clock: '10:00' });
     settle(fixture);

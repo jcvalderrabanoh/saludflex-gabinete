@@ -65,7 +65,15 @@ describe('lanesFor', () => {
   it('ofrece solo los equipos de la modalidad del servicio', () => {
     const lanes = [lane(), lane({ id: 'rx', name: 'Rayos X', modality: 'xray' }), lane({ id: 'ct2', name: 'Tomógrafo 2' })];
     expect(lanesFor(service(), lanes).map((l) => l.id)).toEqual(['ct', 'ct2']);
-    expect(lanesFor(null, lanes)).toEqual([]);
+  });
+
+  it('sin servicio elegido ofrece todos los equipos, para poder empezar por el equipo', () => {
+    const lanes = [lane(), lane({ id: 'rx', name: 'Rayos X', modality: 'xray' })];
+    expect(lanesFor(null, lanes).map((l) => l.id)).toEqual(['ct', 'rx']);
+  });
+
+  it('un servicio sin equipos de su modalidad no ofrece ninguno', () => {
+    expect(lanesFor(service({ modality: 'mammography' }), [lane()])).toEqual([]);
   });
 });
 

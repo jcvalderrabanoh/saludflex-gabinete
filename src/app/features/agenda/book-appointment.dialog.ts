@@ -189,7 +189,7 @@ export class BookAppointmentDialogComponent {
 
   readonly clock = computed(() => this.value().clock);
   readonly service = computed<AgendaServiceType | null>(() => this.data.services.find((s) => s.id === this.value().serviceTypeId) ?? null);
-  /** Al reprogramar el equipo no cambia; al agendar, los de la modalidad del servicio. */
+  /** Al reprogramar el equipo no cambia; al agendar, los de la modalidad del servicio (todos mientras no haya servicio). */
   readonly equipment = computed<AgendaLane[]>(() => (this.moving ? this.data.lanes.filter((lane) => lane.id === this.moving?.equipmentId) : lanesFor(this.service(), this.data.lanes)));
 
   /**
