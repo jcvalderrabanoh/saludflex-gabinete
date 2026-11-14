@@ -13,6 +13,7 @@ import { Equipment, EquipmentModality } from '../../core/models/facility.models'
 import { MODALITY_LABELS } from '../../core/models/labels';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { EstablishmentFieldComponent } from '../../shared/components/establishment-field.component';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { flattenWeek, startingWeek, weekProblem, weekRows } from './settings.helpers';
 
@@ -43,11 +44,12 @@ const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
 @Component({
   selector: 'app-agenda-equipment-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule],
+  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, EstablishmentFieldComponent],
   template: `
     <h2 mat-dialog-title>{{ editing ? 'Editar equipo' : 'Agregar equipo' }}</h2>
     <mat-dialog-content>
       <form [formGroup]="form" class="form" (ngSubmit)="save()">
+        <app-establishment-field class="wide" [control]="form.controls.establishmentId" [locked]="!!editing" />
         <mat-form-field appearance="outline" class="wide">
           <mat-label>Nombre</mat-label>
           <input matInput formControlName="name" maxlength="120" placeholder="Ultrasonido 1" />
@@ -125,6 +127,7 @@ export class AgendaEquipmentDialogComponent {
     name: [this.editing?.name ?? '', [Validators.required, Validators.pattern(/\S/)]],
     modality: [this.editing?.modality ?? this.data.modality ?? '', Validators.required],
     room: [this.editing?.room ?? ''],
+    establishmentId: [this.data.establishmentId],
     opensAt: [DEFAULT_OPENS],
     closesAt: [DEFAULT_CLOSES],
   });
@@ -150,9 +153,9 @@ export class AgendaEquipmentDialogComponent {
 
   save(): void {
     if (this.saving() || !this.canSave()) return;
-    const { name, modality, room } = this.form.getRawValue();
+    const { name, modality, room, establishmentId } = this.form.getRawValue();
     const input: Partial<Equipment> = { name: name.trim(), modality: modality as EquipmentModality, room: room.trim() };
-    const request = this.editing ? this.facility.updateEquipment(this.editing.id, input) : this.facility.registerEquipment(this.data.establishmentId, input);
+    const request = this.editing ? this.facility.updateEquipment(this.editing.id, input) : this.facility.registerEquipment(establishmentId, input);
     this.saving.set(true);
     this.error.set(null);
     request.subscribe({
