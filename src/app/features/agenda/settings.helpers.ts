@@ -55,6 +55,11 @@ export function copyDayToWeek(rows: readonly WeekRow[], weekday: number): WeekRo
   return rows.map((row) => ({ ...row, intervals: source.map((interval) => ({ ...interval })) }));
 }
 
+/** Horario de un equipo recién dado de alta: el mismo tramo en los días elegidos (0 es domingo). */
+export function startingWeek(weekdays: readonly number[], opensAt: string, closesAt: string): WeekRow[] {
+  return weekRows([]).map((row) => (weekdays.includes(row.weekday) ? { ...row, intervals: [{ opensAt, closesAt }] } : row));
+}
+
 /** Lo primero que impide guardar el horario, dicho con el día; `null` si está bien. Mismas reglas que jc-core. */
 export function weekProblem(rows: readonly WeekRow[]): string | null {
   const total = rows.reduce((count, row) => count + row.intervals.length, 0);
@@ -85,9 +90,6 @@ export function blockSpan(block: { startsAt: string; endsAt: string }, timeZone:
   const sameDay = shortDate(block.startsAt, timeZone) === shortDate(block.endsAt, timeZone);
   return `${from} a ${sameDay ? '' : `${shortDate(block.endsAt, timeZone)}, `}${clockOf(block.endsAt, timeZone)}`;
 }
-
-/** Dónde se resuelve un servicio sin equipo: dar de alta uno. */
-export const EQUIPMENT_ROUTE = '/operacion/equipos-y-personal';
 
 export interface ServicePlace {
   /** Si hay al menos un equipo del establecimiento donde cabe. */

@@ -1,7 +1,6 @@
 import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormGroupDirective, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,6 +11,7 @@ import { AgendaBlock, AgendaResource } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
+import { AgendaCatalogService } from './agenda-catalog.service';
 import { DEFAULT_TIME_ZONE } from './agenda.helpers';
 import { instantAt } from './booking.helpers';
 import { WeekRow, blockSpan, copyDayToWeek, flattenWeek, weekProblem, weekRows } from './settings.helpers';
@@ -22,24 +22,34 @@ const LOCAL_DATE_TIME = /^(20\d{2}-\d{2}-\d{2})T(\d{2}:\d{2})$/;
 @Component({
   selector: 'app-agenda-hours',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule],
+  imports: [FormsModule, ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule],
   template: `
     @if (loadError()) { <p class="error" role="alert">No pudimos cargar los equipos. Vuelve a cargar la página.</p> }
     @if (loaded() && own().length === 0) {
       <div class="notice">
         <p>Este establecimiento aún no tiene equipos. El horario y los bloqueos son por equipo.</p>
-        <a mat-stroked-button routerLink="/operacion/equipos-y-personal">Ir a Equipos y personal</a>
+        @if (canEditEquipment) {
+          <button mat-flat-button color="primary" (click)="addEquipment()"><mat-icon>add</mat-icon> Agregar equipo</button>
+        } @else {
+          <p>Pide a quien administra la agenda que agregue uno.</p>
+        }
       </div>
     }
     @if (selected(); as equipment) {
-      <mat-form-field appearance="outline" class="equipment">
-        <mat-label>Equipo</mat-label>
-        <mat-select [value]="equipment.id" (selectionChange)="choose($event.source)">
-          @for (resource of own(); track resource.id) {
-            <mat-option [value]="resource.id">{{ resource.name }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <div class="equipment-row">
+        <mat-form-field appearance="outline" class="equipment">
+          <mat-label>Equipo</mat-label>
+          <mat-select [value]="equipment.id" (selectionChange)="choose($event.source)">
+            @for (resource of own(); track resource.id) {
+              <mat-option [value]="resource.id">{{ resource.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        @if (canEditEquipment) {
+          <button mat-stroked-button (click)="editEquipment(equipment)"><mat-icon>edit</mat-icon> Editar equipo</button>
+          <button mat-stroked-button (click)="addEquipment()"><mat-icon>add</mat-icon> Agregar equipo</button>
+        }
+      </div>
 
       <section aria-labelledby="hours-title">
         <h2 id="hours-title">Horario semanal</h2>
@@ -106,7 +116,9 @@ const LOCAL_DATE_TIME = /^(20\d{2}-\d{2}-\d{2})T(\d{2}:\d{2})$/;
     }
   `,
   styles: [`
-    .equipment { margin-top: 16px; width: min(360px, 100%); }
+    .equipment-row { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 0 8px; margin-top: 16px; }
+    .equipment-row button { margin-top: 8px; min-height: 44px; }
+    .equipment { width: min(360px, 100%); }
     h2 { margin: 8px 0 4px; font-size: 18px; }
     section + section { margin-top: 32px; }
     .hint { margin: 0 0 12px; max-width: 70ch; font-size: 14px; color: #475569; }
@@ -131,6 +143,8 @@ export class AgendaHoursComponent {
   private readonly api = inject(AgendaApiService);
   private readonly context = inject(EstablishmentContextService);
   private readonly snack = inject(MatSnackBar);
+  private readonly catalog = inject(AgendaCatalogService);
+  readonly canEditEquipment = this.catalog.canEditEquipment();
 
   private readonly resources = signal<AgendaResource[]>([]);
   readonly loaded = signal(false);
@@ -157,13 +171,7 @@ export class AgendaHoursComponent {
   });
 
   constructor() {
-    this.api.resources().subscribe({
-      next: (resources) => {
-        this.resources.set(resources);
-        this.loaded.set(true);
-      },
-      error: () => this.loadError.set(true),
-    });
+    this.loadResources();
     // Solo al cambiar de equipo (su id, no el objeto: guardar el horario lo reemplaza) se cargan su horario y sus bloqueos.
     const equipmentId = computed(() => this.selected()?.id ?? null);
     effect(() => {
@@ -177,6 +185,33 @@ export class AgendaHoursComponent {
         if (equipment) this.loadBlocks(equipment.id);
       });
     });
+  }
+
+  /** El equipo nuevo llega con su horario y queda elegido para afinarlo o bloquearlo. */
+  addEquipment(): void {
+    const establishmentId = this.context.current()?.id;
+    if (!establishmentId || !this.confirmDiscard()) return;
+    this.catalog.addEquipment(establishmentId).subscribe((result) => this.loadResources(result.equipmentId));
+  }
+
+  editEquipment(equipment: AgendaResource): void {
+    const establishmentId = this.context.current()?.id;
+    if (establishmentId) this.catalog.editEquipment(establishmentId, equipment).subscribe(() => this.loadResources());
+  }
+
+  private loadResources(select?: string): void {
+    this.api.resources().subscribe({
+      next: (resources) => {
+        this.resources.set(resources);
+        this.loaded.set(true);
+        if (select) this.selectedId.set(select);
+      },
+      error: () => this.loadError.set(true),
+    });
+  }
+
+  private confirmDiscard(): boolean {
+    return !this.dirty() || confirm('El horario tiene cambios sin guardar. ¿Seguir y descartarlos?');
   }
 
   /** Cambiar de equipo descarta el horario sin guardar: se pregunta antes. */

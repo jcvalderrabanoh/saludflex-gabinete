@@ -1,12 +1,14 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
-import { Observable, of, throwError } from 'rxjs';
+import { EMPTY, Observable, of, throwError } from 'rxjs';
 import { AgendaDay, AgendaLane } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { PermissionsService } from '../../core/services/permissions.service';
+import { AgendaCatalogService } from './agenda-catalog.service';
 import { AppointmentDetailDialogComponent } from './appointment-detail.dialog';
 import { BookAppointmentDialogComponent } from './book-appointment.dialog';
 import { AgendaComponent } from './agenda.component';
@@ -51,7 +53,10 @@ function setup(
   establishment: { id: string; timeZone: string } | null = { id: 'est-1', timeZone: DEFAULT_TIME_ZONE },
   canManage = false,
   closesWith: unknown = undefined,
+  canEditEquipment = false,
 ) {
+  const saved = signal(0);
+  const catalog = { canEditEquipment: () => canEditEquipment, saved, addEquipment: jasmine.createSpy('addEquipment').and.returnValue(EMPTY as Observable<unknown>) };
   const api = { day: jasmine.createSpy('day').and.callFake(day), serviceTypes: () => of(SERVICES) };
   const dialog = { open: jasmine.createSpy('open').and.returnValue({ afterClosed: () => of(closesWith) }) };
   const snack = { open: jasmine.createSpy('snack').and.returnValue({ onAction: () => of() }) };
@@ -64,13 +69,14 @@ function setup(
       { provide: PermissionsService, useValue: { can: () => canManage } },
       { provide: MatDialog, useValue: dialog },
       { provide: MatSnackBar, useValue: snack },
+      { provide: AgendaCatalogService, useValue: catalog },
     ],
   });
   const fixture = TestBed.createComponent(AgendaComponent);
   fixture.detectChanges();
   const element = fixture.nativeElement as HTMLElement;
   const text = () => (fixture.detectChanges(), element.textContent ?? '');
-  return { fixture, api, element, text, dialog, snack };
+  return { fixture, api, element, text, dialog, snack, catalog };
 }
 
 const dayWith = (...resources: AgendaLane[]) => (date: string) => of({ date, resources });
@@ -155,11 +161,28 @@ describe('AgendaComponent', () => {
     expect(element.querySelector('.board')).not.toBeNull();
   });
 
-  it('sin equipos en el establecimiento manda a darlos de alta', () => {
+  it('sin equipos en el establecimiento, sin permiso, dice a quién pedirlos y no saca de la agenda', () => {
     const { element, text } = setup(dayWith());
 
     expect(text()).toContain('aún no tiene equipos');
-    expect(element.querySelector('a')?.getAttribute('href')).toBe('/operacion/equipos-y-personal');
+    expect(text()).toContain('Pide a quien administra la agenda');
+    expect(element.querySelector('.notice a')).toBeNull();
+  });
+
+  it('sin equipos en el establecimiento, con permiso, los agrega ahí mismo y vuelve a leer el día', () => {
+    const { element, api, catalog, text } = setup(dayWith(), undefined, false, undefined, true);
+    // Como el servicio real: guardar avisa por `saved`.
+    catalog.addEquipment.and.callFake(() => {
+      catalog.saved.update((n) => n + 1);
+      return of({ equipmentId: 'us1', name: 'Ultrasonido 1', created: true, hoursSaved: true, activated: 0 });
+    });
+    const calls = api.day.calls.count();
+
+    element.querySelector<HTMLButtonElement>('.notice button')!.click();
+    text();
+
+    expect(catalog.addEquipment).toHaveBeenCalledOnceWith('est-1');
+    expect(api.day.calls.count()).toBe(calls + 1);
   });
 
   it('«Siguiente» y «Anterior» piden el día contiguo, y «Hoy» regresa', () => {

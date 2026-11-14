@@ -1,5 +1,5 @@
 import { AgendaResource, AgendaWeekHour } from '../../core/models/agenda.models';
-import { blockSpan, copyDayToWeek, flattenWeek, placeOf, weekProblem, weekRows } from './settings.helpers';
+import { blockSpan, copyDayToWeek, flattenWeek, placeOf, startingWeek, weekProblem, weekRows } from './settings.helpers';
 
 const hour = (weekday: number, opensAt: string, closesAt: string): AgendaWeekHour => ({ weekday, opensAt, closesAt });
 
@@ -101,5 +101,28 @@ describe('dónde se agenda un servicio', () => {
     expect(placeOf('ultrasound', null, 'est-1')).toBeNull();
     expect(placeOf('ultrasound', RESOURCES, null)).toBeNull();
     expect(placeOf('', RESOURCES, 'est-1')).toBeNull();
+  });
+});
+
+describe('horario inicial de un equipo nuevo', () => {
+  it('pone el mismo tramo en los días elegidos y deja cerrados los demás', () => {
+    const hours = flattenWeek(startingWeek([1, 2, 3, 4, 5], '08:00', '18:00'));
+
+    expect(hours.length).toBe(5);
+    expect(hours.every((h) => h.opensAt === '08:00' && h.closesAt === '18:00')).toBeTrue();
+    expect(hours.map((h) => h.weekday).sort()).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('un cierre a las 00:00 se guarda como medianoche (24:00)', () => {
+    expect(flattenWeek(startingWeek([6], '08:00', '00:00'))).toEqual([hour(6, '08:00', '24:00')]);
+  });
+
+  it('sin días elegidos el equipo queda sin horario', () => {
+    expect(flattenWeek(startingWeek([], '08:00', '18:00'))).toEqual([]);
+    expect(weekProblem(startingWeek([], '08:00', '18:00'))).toBeNull();
+  });
+
+  it('una apertura que no es anterior al cierre es un problema, dicho con el día', () => {
+    expect(weekProblem(startingWeek([1], '18:00', '08:00'))).toContain('Lunes');
   });
 });

@@ -9,19 +9,23 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { RouterLink } from '@angular/router';
-import { catchError, debounceTime, distinctUntilChanged, map, of, startWith, switchMap } from 'rxjs';
+import { Observable, catchError, debounceTime, distinctUntilChanged, map, of, startWith, switchMap, tap } from 'rxjs';
+import { EquipmentModality } from '../../core/models/facility.models';
+import { MODALITY_LABELS } from '../../core/models/labels';
 import { AgendaAppointment, AgendaBooked, AgendaConflict, AgendaContact, AgendaLane, AgendaServiceType, AgendaSlot } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
+import { AgendaCatalogService } from './agenda-catalog.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { clockOf } from './agenda.helpers';
 import { bookingOf, conflictMessage, instantAt, lanesFor } from './booking.helpers';
-import { EQUIPMENT_ROUTE, noPlaceText } from './settings.helpers';
+import { noPlaceText } from './settings.helpers';
 
 export interface BookAppointmentData {
   /** Fecha local propuesta: el día que se está viendo. */
   date: string;
   timeZone: string;
+  /** El establecimiento elegido: ahí se agregan servicios y equipos desde las listas. */
+  establishmentId: string;
   /** Equipos del establecimiento. */
   lanes: AgendaLane[];
   services: AgendaServiceType[];
@@ -34,6 +38,11 @@ export interface BookAppointmentData {
   rescheduling?: AgendaAppointment;
 }
 
+/** Valor de la opción «Agregar…» al final de una lista: abre el alta en vez de elegir. */
+export const ADD_NEW = '__add__';
+
+const modalityLabel = (modality: string): string => MODALITY_LABELS[modality as EquipmentModality] ?? modality;
+
 const SEARCH_AFTER_MS = 300;
 const SEARCH_MIN_LENGTH = 2;
 const CONFLICT = 409;
@@ -44,12 +53,19 @@ const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
 @Component({
   selector: 'app-book-appointment-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, MatDialogModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule],
+  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule],
   template: `
     <h2 mat-dialog-title>{{ moving ? 'Reprogramar cita' : 'Agendar cita' }}</h2>
     <mat-dialog-content>
-      @if (!moving && data.services.length === 0) {
-        <p class="error" role="alert"><mat-icon aria-hidden="true">error</mat-icon> Aún no hay servicios en el catálogo. Alguien con permiso de configurar la agenda debe darlos de alta antes de agendar.</p>
+      @if (!moving && services().length === 0) {
+        <p class="error" role="alert">
+          <mat-icon aria-hidden="true">error</mat-icon>
+          @if (canEditServices) {
+            <span>Aún no hay servicios en el catálogo. <button mat-stroked-button type="button" (click)="addService()">Agregar servicio</button></span>
+          } @else {
+            <span>Aún no hay servicios en el catálogo. Alguien con permiso de configurar la agenda debe darlos de alta antes de agendar.</span>
+          }
+        </p>
       }
       <form [formGroup]="form" class="form">
         @if (moving; as current) {
@@ -81,27 +97,47 @@ const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
             }
           }
 
-          <mat-form-field appearance="outline">
-            <mat-label>Servicio</mat-label>
-            <mat-select formControlName="serviceTypeId">
-              @for (service of data.services; track service.id) {
-                <mat-option [value]="service.id">{{ service.name }} · {{ service.durationMinutes }} min</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Equipo</mat-label>
-            <mat-select formControlName="equipmentId">
-              @for (lane of equipment(); track lane.id) {
-                <mat-option [value]="lane.id">{{ lane.name }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+          <div class="pick">
+            <mat-form-field appearance="outline">
+              <mat-label>Servicio</mat-label>
+              <mat-select formControlName="serviceTypeId" (selectionChange)="pickService($event.value)">
+                @for (service of services(); track service.id) {
+                  <mat-option [value]="service.id">{{ service.name }} · {{ service.durationMinutes }} min</mat-option>
+                }
+                @if (canEditServices) {
+                  <mat-option [value]="addNew" class="add-new"><mat-icon aria-hidden="true">add</mat-icon>Agregar servicio…</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            @if (canEditServices && service(); as chosen) {
+              <button mat-icon-button type="button" (click)="editService(chosen)" [attr.aria-label]="'Editar servicio ' + chosen.name"><mat-icon>edit</mat-icon></button>
+            }
+          </div>
+          <div class="pick">
+            <mat-form-field appearance="outline">
+              <mat-label>Equipo</mat-label>
+              <mat-select formControlName="equipmentId" (selectionChange)="pickEquipment($event.value)">
+                @for (lane of equipment(); track lane.id) {
+                  <mat-option [value]="lane.id">{{ lane.name }}</mat-option>
+                }
+                @if (canEditEquipment) {
+                  <mat-option [value]="addNew" class="add-new"><mat-icon aria-hidden="true">add</mat-icon>Agregar equipo…</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            @if (canEditEquipment && chosenLane(); as lane) {
+              <button mat-icon-button type="button" (click)="editEquipment(lane)" [attr.aria-label]="'Editar equipo ' + lane.name"><mat-icon>edit</mat-icon></button>
+            }
+          </div>
           @if (service(); as chosen) {
             @if (!moving && equipment().length === 0) {
               <p class="wide no-place" role="status">
                 <mat-icon aria-hidden="true">warning</mat-icon>
-                <span>{{ noPlace(chosen) }} Para agendar este servicio, <a [routerLink]="equipmentRoute" mat-dialog-close>da de alta un equipo</a>.</span>
+                @if (canEditEquipment) {
+                  <span>{{ noPlace(chosen) }} <button mat-stroked-button type="button" (click)="addEquipment()">Agregar equipo de {{ modalityName(chosen) }}</button></span>
+                } @else {
+                  <span>{{ noPlace(chosen) }} Pide a quien administra la agenda que agregue uno para poder agendar este servicio.</span>
+                }
               </p>
             }
           }
@@ -156,6 +192,9 @@ const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
     </mat-dialog-actions>
   `,
   styles: [`
+    .pick { display: flex; align-items: flex-start; gap: 4px; min-width: 0; }
+    .pick mat-form-field { flex: 1; min-width: 0; }
+    .pick button { margin-top: 4px; }
     .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; margin-top: 8px; }
     .wide { grid-column: 1 / -1; }
     .fixed { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; font-size: 15px; }
@@ -171,7 +210,7 @@ const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
     .chip:focus-visible { outline: 2px solid #2563c9; outline-offset: 2px; }
     .no-place { display: flex; align-items: flex-start; gap: 8px; margin: -4px 0 16px; padding: 12px; border-radius: 8px; background: #fff3d6; color: #5c4000; font-size: 14px; }
     .no-place mat-icon { flex: none; color: #805800; font-size: 20px; width: 20px; height: 20px; }
-    .no-place a { color: #1d4ed8; font-weight: 600; }
+    .no-place button, .error button { margin-top: 8px; display: block; }
     .error { display: flex; align-items: flex-start; gap: 8px; margin: -4px 0 16px; color: #b91c1c; font-size: 14px; }
     .error mat-icon { flex: none; font-size: 20px; width: 20px; height: 20px; }
     @media (max-width: 640px) { .form { grid-template-columns: 1fr; } .chip { min-height: 44px; } }
@@ -186,7 +225,13 @@ export class BookAppointmentDialogComponent {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly contact = signal<AgendaContact | null>(this.data.contact ?? null);
-  readonly equipmentRoute = EQUIPMENT_ROUTE;
+  private readonly catalog = inject(AgendaCatalogService);
+  readonly canEditServices = this.catalog.canEditServices();
+  readonly canEditEquipment = this.catalog.canEditEquipment();
+  readonly addNew = ADD_NEW;
+  /** Copias que crecen al agregar o editar desde las listas. */
+  readonly services = signal<AgendaServiceType[]>(this.data.services);
+  private readonly lanes = signal<AgendaLane[]>(this.data.lanes);
 
   readonly form = inject(FormBuilder).nonNullable.group({
     patientName: [''],
@@ -201,9 +246,10 @@ export class BookAppointmentDialogComponent {
   private readonly value = toSignal(this.form.valueChanges.pipe(startWith(null), map(() => this.form.getRawValue())), { initialValue: this.form.getRawValue() });
 
   readonly clock = computed(() => this.value().clock);
-  readonly service = computed<AgendaServiceType | null>(() => this.data.services.find((s) => s.id === this.value().serviceTypeId) ?? null);
+  readonly service = computed<AgendaServiceType | null>(() => this.services().find((s) => s.id === this.value().serviceTypeId) ?? null);
   /** Al reprogramar el equipo no cambia; al agendar, los de la modalidad del servicio (todos mientras no haya servicio). */
-  readonly equipment = computed<AgendaLane[]>(() => (this.moving ? this.data.lanes.filter((lane) => lane.id === this.moving?.equipmentId) : lanesFor(this.service(), this.data.lanes)));
+  readonly equipment = computed<AgendaLane[]>(() => (this.moving ? this.lanes().filter((lane) => lane.id === this.moving?.equipmentId) : lanesFor(this.service(), this.lanes())));
+  readonly chosenLane = computed(() => this.equipment().find((lane) => lane.id === this.value().equipmentId) ?? null);
 
   /**
    * Lo que define qué horas libres pedir, como texto: así escribir el nombre o
@@ -211,7 +257,7 @@ export class BookAppointmentDialogComponent {
    */
   private readonly slotsKey = computed(() => {
     const { equipmentId, serviceTypeId, date } = this.value();
-    return equipmentId && serviceTypeId && LOCAL_DATE.test(date) ? [equipmentId, serviceTypeId, date].join('|') : '';
+    return equipmentId && serviceTypeId && equipmentId !== ADD_NEW && serviceTypeId !== ADD_NEW && LOCAL_DATE.test(date) ? [equipmentId, serviceTypeId, date].join('|') : '';
   });
   private readonly refreshes = signal(0);
   readonly slotsReady = signal(false);
@@ -228,7 +274,14 @@ export class BookAppointmentDialogComponent {
     { initialValue: [] as AgendaContact[] },
   );
 
+  /** Lo último elegido de verdad en cada lista, para volver a ello si se cancela un «Agregar…». */
+  private readonly lastPicked = { service: this.form.controls.serviceTypeId.value, equipment: this.form.controls.equipmentId.value };
+
   constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(({ serviceTypeId, equipmentId }) => {
+      if (serviceTypeId !== undefined && serviceTypeId !== ADD_NEW) this.lastPicked.service = serviceTypeId;
+      if (equipmentId !== undefined && equipmentId !== ADD_NEW) this.lastPicked.equipment = equipmentId;
+    });
     // Si el equipo elegido no hace el servicio, se cambia al único posible o se vacía.
     toObservable(this.equipment)
       .pipe(takeUntilDestroyed())
@@ -264,8 +317,58 @@ export class BookAppointmentDialogComponent {
     return noPlaceText(service.modality);
   }
 
+  modalityName(service: AgendaServiceType): string {
+    return modalityLabel(service.modality);
+  }
+
   laneName(equipmentId: string): string {
-    return this.data.lanes.find((lane) => lane.id === equipmentId)?.name ?? 'Equipo';
+    return this.lanes().find((lane) => lane.id === equipmentId)?.name ?? 'Equipo';
+  }
+
+  /** «Agregar servicio…» no es un servicio: se vuelve al que estaba y se abre el alta. */
+  pickService(value: string): void {
+    if (value !== ADD_NEW) return;
+    this.form.controls.serviceTypeId.setValue(this.lastPicked.service);
+    this.addService();
+  }
+
+  pickEquipment(value: string): void {
+    if (value !== ADD_NEW) return;
+    this.form.controls.equipmentId.setValue(this.lastPicked.equipment);
+    this.addEquipment();
+  }
+
+  addService(): void {
+    this.catalog.addService(this.data.establishmentId, this.lanes()).subscribe((saved) => {
+      this.services.update((list) => [...list, saved]);
+      this.form.controls.serviceTypeId.setValue(saved.id);
+    });
+  }
+
+  editService(service: AgendaServiceType): void {
+    this.catalog.editService(service, this.data.establishmentId, this.lanes()).subscribe((saved) => this.services.update((list) => list.map((s) => (s.id === saved.id ? saved : s))));
+  }
+
+  /** El equipo nuevo llega como carril del día, con su horario: se vuelve a leer el día. */
+  addEquipment(): void {
+    this.catalog
+      .addEquipment(this.data.establishmentId, this.service()?.modality)
+      .pipe(switchMap((result) => this.reloadLanes().pipe(map(() => result))))
+      .subscribe((result) => this.equipment().some((lane) => lane.id === result.equipmentId) && this.form.controls.equipmentId.setValue(result.equipmentId));
+  }
+
+  editEquipment(lane: AgendaLane): void {
+    this.catalog.editEquipment(this.data.establishmentId, lane).pipe(switchMap(() => this.reloadLanes())).subscribe();
+  }
+
+  /** Con la fecha a medio escribir se lee el día que se estaba viendo. */
+  private reloadLanes(): Observable<AgendaLane[]> {
+    const { date } = this.value();
+    return this.api.day(LOCAL_DATE.test(date) ? date : this.data.date).pipe(
+      map((day) => day.resources.filter((lane) => lane.establishmentId === this.data.establishmentId)),
+      tap((lanes) => this.lanes.set(lanes)),
+      catchError(() => of([])),
+    );
   }
 
   clockOfSlot(slot: AgendaSlot): string {
