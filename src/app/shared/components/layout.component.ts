@@ -3,6 +3,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,6 +18,8 @@ import { FacilityApiService } from '../../core/services/facility-api.service';
 import { GoogleSignIn } from '../../core/services/google-sign-in';
 import { FacilityAction, PermissionsService } from '../../core/services/permissions.service';
 import { CanDirective } from '../directives/can.directive';
+import { HelpPanelComponent } from '../../features/help/help-panel.component';
+import { SupportTicketsService } from '../../features/help/support-tickets.service';
 
 interface NavItem {
   path: string;
@@ -89,7 +92,7 @@ export function visibleNavGroups(can: (action: FacilityAction) => boolean, group
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatDividerModule, MatToolbarModule, MatSidenavModule, MatListModule, MatIconModule, MatButtonModule, MatSelectModule, CanDirective],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatDividerModule, MatToolbarModule, MatSidenavModule, MatListModule, MatIconModule, MatButtonModule, MatSelectModule, MatBadgeModule, CanDirective, HelpPanelComponent],
   template: `
     <mat-sidenav-container class="shell">
       <mat-sidenav [mode]="mobile() ? 'over' : 'side'" [opened]="!mobile() || menuOpen()" (closedStart)="menuOpen.set(false)" class="nav">
@@ -127,11 +130,23 @@ export function visibleNavGroups(can: (action: FacilityAction) => boolean, group
             </mat-select>
           }
           <span class="spacer"></span>
+          <button mat-button type="button" class="help-btn" (click)="openHelp()" [attr.aria-label]="helpLabel()">
+            <mat-icon [matBadge]="unread() || null" matBadgeColor="warn" aria-hidden="false">help_outline</mat-icon>
+            <span class="help-text">Ayuda</span>
+          </button>
           <span class="user">{{ auth.getCurrentUser()?.firstName }}</span>
           <button mat-button (click)="logout()">Salir</button>
         </mat-toolbar>
         <main class="content"><router-outlet /></main>
       </mat-sidenav-content>
+      <mat-sidenav position="end" mode="over" class="help" [opened]="helpOpen()" (closedStart)="closeHelp()">
+        <!-- Se descarga al abrir Ayuda: no pesa en la carga inicial. -->
+        @defer (when helpOpen()) {
+          @if (helpOpen()) {
+            <app-help-panel (closed)="closeHelp()" />
+          }
+        }
+      </mat-sidenav>
     </mat-sidenav-container>
   `,
   styles: [`
@@ -152,11 +167,15 @@ export function visibleNavGroups(can: (action: FacilityAction) => boolean, group
     .spacer { flex: 1; }
     .user { font-size: 14px; color: #475569; }
     .content { padding: 24px; max-width: 1180px; }
+    .help { width: 420px; max-width: 100vw; }
+    .help-btn { min-height: 44px; }
     @media (max-width: 767.98px) {
       .content { padding: 16px; }
       .bar { gap: 4px; padding: 0 8px; }
       .selector { max-width: 55vw; }
       .user { display: none; }
+      .help-text { display: none; }
+      .help { width: 100vw; }
     }
   `],
 })
@@ -172,6 +191,11 @@ export class LayoutComponent implements OnInit {
   private readonly agendaEnabled = signal(false);
   readonly nav = computed(() => visibleNavGroups((action) => this.permissions.can(action), NAV_GROUPS, this.expensesEnabled(), this.agendaEnabled()));
   readonly mobile = toSignal(inject(BreakpointObserver).observe(MOBILE_QUERY).pipe(map((s) => s.matches)), { initialValue: false });
+  private readonly tickets = inject(SupportTicketsService);
+  readonly helpOpen = signal(false);
+  /** Reportes míos con novedades de soporte. */
+  readonly unread = signal(0);
+  readonly helpLabel = computed(() => (this.unread() ? `Ayuda: ${this.unread()} reportes con novedades` : 'Ayuda'));
   /** Solo cuenta en móvil: el menú flotante se cierra al navegar. */
   readonly menuOpen = signal(false);
 
@@ -180,6 +204,7 @@ export class LayoutComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.refreshUnread();
     this.api.expensesEnabled().subscribe((enabled) => this.expensesEnabled.set(enabled));
     // Sin permiso de agenda ni se pregunta: el menú no la ofrecería de todos modos.
     if (this.permissions.can('agenda')) this.agendaApi.enabled().subscribe((enabled) => this.agendaEnabled.set(enabled));
@@ -189,6 +214,20 @@ export class LayoutComponent implements OnInit {
         if (list.length === 0) this.router.navigate(['/operacion/establecimientos']);
       },
     });
+  }
+
+  openHelp(): void {
+    this.helpOpen.set(true);
+  }
+
+  /** Al cerrar se recuenta: abrir un reporte lo marca como leído. */
+  closeHelp(): void {
+    this.helpOpen.set(false);
+    this.refreshUnread();
+  }
+
+  private refreshUnread(): void {
+    this.tickets.unreadCount().subscribe((count) => this.unread.set(count));
   }
 
   logout(): void {
