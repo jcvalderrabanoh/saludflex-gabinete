@@ -5,7 +5,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { EstablishmentStatus, EvaluatedObligation } from '../../core/models/facility.models';
-import { dueLabel } from '../../core/models/labels';
+import { obligationMeta } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { PermissionsService } from '../../core/services/permissions.service';
@@ -50,6 +50,9 @@ import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialo
             <div class="counter overdue"><span>Vencida</span><b>{{ s.score.overdue }}</b></div>
             <div class="counter missing"><span>Faltan</span><b>{{ s.score.missing }}</b></div>
             <div class="counter due-soon"><span>Por vencer</span><b>{{ s.score.dueSoon }}</b></div>
+            @if (s.score.expiryUnknown) {
+              <div class="counter expiry-unknown"><span>Sin vigencia</span><b>{{ s.score.expiryUnknown }}</b></div>
+            }
             <div class="counter ok"><span>Vigente</span><b>{{ s.score.ok }}</b></div>
           </div>
         </section>
@@ -105,19 +108,20 @@ import { RecordEvidenceDialogComponent } from '../evidence/record-evidence.dialo
     .counter span { display: block; font-size: 12px; } .counter b { font-size: 20px; }
     .counter.overdue, .counter.missing { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
     .counter.due-soon { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .counter.expiry-unknown { background: #fff3d6; border-color: #f5d58a; color: #805800; }
     .counter.ok { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
     h2 { font-size: 18px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
     .count { font-size: 12px; background: #e2e8f0; border-radius: 10px; padding: 1px 8px; }
     .items { display: grid; gap: 12px; }
     .item { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid #cbd5e1; border-radius: 14px; padding: 16px 20px; }
     .item.overdue, .item.missing { border-left-color: #b91c1c; }
-    .item.due-soon { border-left-color: #b45309; }
+    .item.due-soon, .item.expiry-unknown { border-left-color: #b45309; }
     .item.ok { border-left-color: #15803d; }
     .text { flex: 1; min-width: 260px; }
     .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
     .norm { font-size: 12px; background: #f1f5f9; color: #475569; border-radius: 6px; padding: 2px 8px; }
     .due { font-size: 13px; font-weight: 600; }
-    .due.overdue, .due.missing { color: #b91c1c; } .due.due-soon { color: #92400e; } .due.ok { color: #166534; }
+    .due.overdue, .due.missing { color: #b91c1c; } .due.due-soon { color: #92400e; } .due.expiry-unknown { color: #805800; } .due.ok { color: #166534; }
     .title { font-weight: 700; font-size: 17px; }
     .subject { font-size: 13px; color: #475569; margin-top: 4px; }
     .evidence { font-size: 12px; color: #64748b; margin-top: 2px; }
@@ -166,7 +170,7 @@ export class TodayComponent {
   }
 
   due(o: EvaluatedObligation): string {
-    return dueLabel(o.daysLeft, o.dueOn);
+    return obligationMeta(o);
   }
 
   summary(s: EstablishmentStatus): string {
@@ -218,6 +222,7 @@ export function todaySummary(s: EstablishmentStatus): string {
     s.score.overdue && `${s.score.overdue} ${s.score.overdue === 1 ? 'vencida' : 'vencidas'}`,
     s.score.missing && `${s.score.missing} sin registro`,
     s.score.dueSoon && `${s.score.dueSoon} por vencer`,
+    s.score.expiryUnknown && `${s.score.expiryUnknown} sin vigencia`,
   ].filter(Boolean);
   return `${n} ${n === 1 ? 'cosa necesita' : 'cosas necesitan'} atención: ${parts.join(', ')}.`;
 }

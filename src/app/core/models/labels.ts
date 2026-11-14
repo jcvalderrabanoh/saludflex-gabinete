@@ -1,10 +1,11 @@
-import { AppointmentKind, EstablishmentType, ObligationStatus, ServiceType } from './facility.models';
+import { AppointmentKind, EstablishmentType, EvaluatedObligation, ObligationStatus, ServiceType } from './facility.models';
 
 export const STATUS_LABELS: Record<ObligationStatus, string> = {
   ok: 'Vigente',
   'due-soon': 'Por vencer',
   overdue: 'Vencido',
   missing: 'Falta',
+  'expiry-unknown': 'Sin vigencia',
 };
 
 export const SERVICE_LABELS: Record<ServiceType, string> = {
@@ -47,6 +48,13 @@ export function dueLabel(daysLeft: number | null, dueOn: string | null): string 
   }
   if (daysLeft === 0) return `Vence hoy (${dueOn})`;
   return `Faltan ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} (${dueOn})`;
+}
+
+/** La línea bajo el título: sin registro, sin fecha de vencimiento o cuánto falta. */
+export function obligationMeta(o: EvaluatedObligation): string {
+  if (!o.currentRecord) return 'Sin registro';
+  if (o.status === 'expiry-unknown') return 'Sin fecha de vencimiento: captúrala o define la vigencia';
+  return dueLabel(o.daysLeft, o.dueOn);
 }
 
 export const MODALITY_LABELS: Record<import('./facility.models').EquipmentModality, string> = {
