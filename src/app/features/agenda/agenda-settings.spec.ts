@@ -24,10 +24,22 @@ const resource = (patch: Partial<AgendaResource> = {}): AgendaResource => ({
 });
 
 describe('AgendaServicesComponent', () => {
-  function setup(services: AgendaServiceType[], closesWith: unknown = undefined) {
-    const api = jasmine.createSpyObj<AgendaApiService>('AgendaApiService', { serviceTypes: of(services), removeServiceType: of(undefined) });
+  function setup(services: AgendaServiceType[], closesWith: unknown = undefined, resources: AgendaResource[] | Error = [resource()]) {
+    const api = jasmine.createSpyObj<AgendaApiService>('AgendaApiService', {
+      serviceTypes: of(services),
+      removeServiceType: of(undefined),
+      resources: resources instanceof Error ? throwError(() => resources) : of(resources),
+    });
     const dialog = { open: jasmine.createSpy('open').and.returnValue({ afterClosed: () => of(closesWith) }) };
-    TestBed.configureTestingModule({ imports: [AgendaServicesComponent], providers: [{ provide: AgendaApiService, useValue: api }, { provide: MatDialog, useValue: dialog }] });
+    TestBed.configureTestingModule({
+      imports: [AgendaServicesComponent],
+      providers: [
+        provideRouter([]),
+        { provide: AgendaApiService, useValue: api },
+        { provide: MatDialog, useValue: dialog },
+        { provide: EstablishmentContextService, useValue: { current: () => ({ id: 'est-1', timeZone: 'America/Mexico_City' }) } },
+      ],
+    });
     const fixture = TestBed.createComponent(AgendaServicesComponent);
     fixture.detectChanges();
     return { fixture, api, dialog, element: fixture.nativeElement as HTMLElement };
@@ -52,8 +64,27 @@ describe('AgendaServicesComponent', () => {
 
     const [component, config] = dialog.open.calls.mostRecent().args;
     expect(component).toBe(ServiceTypeDialogComponent);
-    expect(config.data).toEqual({ editing: SERVICE });
+    expect(config.data).toEqual({ editing: SERVICE, equipment: [resource()], establishmentId: 'est-1' });
     expect(api.serviceTypes).toHaveBeenCalledTimes(2);
+  });
+
+  it('un servicio sin equipo de su modalidad en el establecimiento dice «Sin dónde agendarse», el motivo y cómo resolverlo', () => {
+    const ultrasound: AgendaServiceType = { id: 's2', name: 'Ultrasonido abdominal', modality: 'ultrasound', durationMinutes: 20, preparation: null };
+    const { element } = setup([SERVICE, ultrasound], undefined, [resource(), resource({ id: 'us', modality: 'ultrasound', establishmentId: 'est-2' })]);
+    const [ct, us] = Array.from(element.querySelectorAll('li'));
+
+    expect(ct.textContent).toContain('Listo para agendar');
+    expect(ct.textContent).not.toContain('Sin dónde agendarse');
+    expect(us.textContent).toContain('Sin dónde agendarse');
+    expect(us.textContent).toContain('No hay equipos de Ultrasonido en este establecimiento.');
+    expect(us.querySelector('a')?.getAttribute('href')).toBe('/operacion/equipos-y-personal');
+  });
+
+  it('si no se pudieron cargar los equipos no marca ningún servicio, ni listo ni sin dónde', () => {
+    const { element } = setup([SERVICE], undefined, new Error('red'));
+
+    expect(element.textContent).not.toContain('Sin dónde agendarse');
+    expect(element.textContent).not.toContain('Listo para agendar');
   });
 
   it('quitar pide confirmación; si se niega no borra nada', () => {
@@ -71,12 +102,13 @@ describe('AgendaServicesComponent', () => {
 });
 
 describe('ServiceTypeDialogComponent', () => {
-  function setup(editing?: AgendaServiceType) {
+  function setup(editing?: AgendaServiceType, equipment?: AgendaResource[]) {
     const api = jasmine.createSpyObj<AgendaApiService>('AgendaApiService', { createServiceType: of(SERVICE), updateServiceType: of(SERVICE) });
     const ref = { close: jasmine.createSpy('close') };
+    const data = equipment ? { editing, equipment, establishmentId: 'est-1' } : { editing };
     TestBed.configureTestingModule({
       imports: [ServiceTypeDialogComponent],
-      providers: [provideNoopAnimations(), { provide: AgendaApiService, useValue: api }, { provide: MatDialogRef, useValue: ref }, { provide: MAT_DIALOG_DATA, useValue: { editing } }],
+      providers: [provideNoopAnimations(), provideRouter([]), { provide: AgendaApiService, useValue: api }, { provide: MatDialogRef, useValue: ref }, { provide: MAT_DIALOG_DATA, useValue: data }],
     });
     const fixture = TestBed.createComponent(ServiceTypeDialogComponent);
     fixture.detectChanges();
@@ -104,6 +136,37 @@ describe('ServiceTypeDialogComponent', () => {
 
     expect(api.createServiceType).toHaveBeenCalledOnceWith({ name: 'Rayos X simple', modality: 'xray', durationMinutes: 30, preparation: null });
     expect(ref.close).toHaveBeenCalledOnceWith(SERVICE);
+  });
+
+  it('al elegir la modalidad dice en qué equipos del establecimiento se agendará', () => {
+    const { fixture, component, element } = setup(undefined, [resource()]);
+    component.form.patchValue({ modality: 'ct' });
+    fixture.detectChanges();
+
+    expect(element.querySelector('.mat-mdc-form-field-hint-wrapper mat-hint')?.textContent).toContain('Se agenda en Tomógrafo.');
+    expect(element.textContent).not.toContain('Sin dónde agendarse');
+  });
+
+  it('si no hay equipos de esa modalidad avisa antes de guardar, pero deja guardar', () => {
+    const { fixture, component, api, element } = setup(undefined, [resource()]);
+    component.form.patchValue({ name: 'Ultrasonido abdominal', modality: 'ultrasound', durationMinutes: 20 });
+    fixture.detectChanges();
+
+    const note = element.querySelector('.no-place');
+    expect(note?.textContent).toContain('No hay equipos de Ultrasonido en este establecimiento.');
+    expect(note?.textContent).toContain('Puedes guardarlo, pero no se podrá agendar');
+    expect(note?.querySelector('a')?.getAttribute('href')).toBe('/operacion/equipos-y-personal');
+    component.save();
+    expect(api.createServiceType).toHaveBeenCalled();
+  });
+
+  it('sin la lista de equipos conserva la pista general de la modalidad', () => {
+    const { fixture, component, element } = setup();
+    component.form.patchValue({ modality: 'ultrasound' });
+    fixture.detectChanges();
+
+    expect(element.querySelector('.mat-mdc-form-field-hint-wrapper mat-hint')?.textContent).toContain('Se agenda en los equipos de esta modalidad');
+    expect(element.querySelector('.no-place')).toBeNull();
   });
 
   it('al editar actualiza ese servicio, y un nombre repetido muestra el mensaje del servidor', () => {

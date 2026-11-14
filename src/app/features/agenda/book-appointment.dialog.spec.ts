@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { provideRouter } from '@angular/router';
 import { NEVER, of, throwError } from 'rxjs';
 import { AgendaAppointment, AgendaLane, AgendaServiceType } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
@@ -44,6 +45,7 @@ function setup(data: Partial<BookAppointmentData> = {}) {
     imports: [BookAppointmentDialogComponent],
     providers: [
       provideNoopAnimations(),
+      provideRouter([]),
       { provide: AgendaApiService, useValue: api },
       { provide: MatDialogRef, useValue: ref },
       { provide: MAT_DIALOG_DATA, useValue: { date: '2026-12-07', timeZone: MX, lanes: LANES, services: SERVICES, ...data } },
@@ -82,6 +84,29 @@ describe('BookAppointmentDialogComponent', () => {
     expect(component.equipment().map((l) => l.id)).toEqual(['rx1', 'rx2']);
     expect(component.form.controls.equipmentId.value).toBe('');
     expect(component.canSave()).toBeFalse();
+  }));
+
+  it('un servicio sin equipo de su modalidad dice por qué no se puede agendar y dónde resolverlo', fakeAsync(() => {
+    const ultrasound: AgendaServiceType = { id: 'us', name: 'Ultrasonido abdominal', modality: 'ultrasound', durationMinutes: 20, preparation: null };
+    const { fixture, component, api, element } = setup({ services: [...SERVICES, ultrasound] });
+
+    component.form.controls.serviceTypeId.setValue('us');
+    settle(fixture);
+
+    const note = element.querySelector('.no-place');
+    expect(note?.textContent).toContain('No hay equipos de Ultrasonido en este establecimiento.');
+    expect(note?.querySelector('a')?.getAttribute('href')).toBe('/operacion/equipos-y-personal');
+    expect(api.slots).not.toHaveBeenCalled();
+    expect(component.canSave()).toBeFalse();
+  }));
+
+  it('un servicio con equipo no muestra el aviso', fakeAsync(() => {
+    const { fixture, component, element } = setup();
+
+    component.form.controls.serviceTypeId.setValue('rx');
+    settle(fixture);
+
+    expect(element.querySelector('.no-place')).toBeNull();
   }));
 
   it('sin servicio elegido ofrece todos los equipos y deja ver el del carril donde se hizo clic', fakeAsync(() => {
