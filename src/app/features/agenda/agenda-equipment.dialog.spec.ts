@@ -3,14 +3,16 @@ import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
+import { Establishment } from '../../core/models/facility.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
+import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { AgendaEquipmentData, AgendaEquipmentDialogComponent } from './agenda-equipment.dialog';
 
 const EQUIPMENT = { id: 'us1', establishmentId: 'est', name: 'Ultrasonido 1', modality: 'ultrasound', room: 'Sala 2' };
 const WEEKDAY_HOURS = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, opensAt: '08:00', closesAt: '18:00' }));
 
-function setup(data: Partial<AgendaEquipmentData> = {}) {
+function setup(data: Partial<AgendaEquipmentData> = {}, establishments: Establishment[] = [{ id: 'est', name: 'Matriz' } as Establishment]) {
   const facility = {
     registerEquipment: jasmine.createSpy('registerEquipment').and.returnValue(of({ subject: EQUIPMENT, activated: [{ id: 'o1', catalogKey: 'k' }] })),
     updateEquipment: jasmine.createSpy('updateEquipment').and.returnValue(of({ subject: EQUIPMENT, activated: [] })),
@@ -27,6 +29,7 @@ function setup(data: Partial<AgendaEquipmentData> = {}) {
       { provide: MAT_DIALOG_DATA, useValue: { establishmentId: 'est', ...data } },
     ],
   });
+  TestBed.inject(EstablishmentContextService).setEstablishments(establishments);
   const fixture = TestBed.createComponent(AgendaEquipmentDialogComponent);
   fixture.detectChanges();
   return { fixture, component: fixture.componentInstance, facility, agenda, ref, element: fixture.nativeElement as HTMLElement };
@@ -109,5 +112,21 @@ describe('AgendaEquipmentDialogComponent', () => {
     expect(facility.updateEquipment).toHaveBeenCalledWith('us1', { name: 'Ultrasonido A', modality: 'ultrasound', room: 'Sala 2' });
     expect(agenda.replaceHours).not.toHaveBeenCalled();
     expect(ref.close).toHaveBeenCalledWith(jasmine.objectContaining({ equipmentId: 'us1', created: false }));
+  });
+
+  it('muestra en qué establecimiento queda el equipo', () => {
+    const { element } = setup();
+
+    expect(element.textContent).toContain('Establecimiento');
+    expect(element.textContent).toContain('Matriz');
+  });
+
+  it('con varios establecimientos lo registra en el que se elija', () => {
+    const { component, facility } = setup({ modality: 'ultrasound' }, [{ id: 'est', name: 'Matriz' } as Establishment, { id: 'est-2', name: 'Norte' } as Establishment]);
+    component.form.patchValue({ name: 'Ultrasonido 1', establishmentId: 'est-2' });
+
+    component.save();
+
+    expect(facility.registerEquipment).toHaveBeenCalledWith('est-2', jasmine.objectContaining({ name: 'Ultrasonido 1' }));
   });
 });

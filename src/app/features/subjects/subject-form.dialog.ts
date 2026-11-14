@@ -11,6 +11,7 @@ import { Observable } from 'rxjs';
 import { Equipment, Personnel, ServiceType, StaffRole, SubjectResult } from '../../core/models/facility.models';
 import { MODALITY_LABELS, ROLE_LABELS } from '../../core/models/labels';
 import { FacilityApiService } from '../../core/services/facility-api.service';
+import { EstablishmentFieldComponent } from '../../shared/components/establishment-field.component';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { LinkOption, linkOptions, prefillFromUser } from './link-user.helpers';
 
@@ -28,12 +29,13 @@ export interface SubjectFormResult {
 @Component({
   selector: 'app-subject-form-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, MatSelectModule],
+  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, MatSelectModule, EstablishmentFieldComponent],
   template: `
     <h2 mat-dialog-title>{{ title() }}</h2>
     <mat-dialog-content>
       @if (data.kind === 'equipment') {
         <form [formGroup]="equipment" class="form">
+          <app-establishment-field class="wide" [control]="equipment.controls.establishmentId" [locked]="!!data.current" />
           <mat-form-field appearance="outline" class="wide"><mat-label>Nombre</mat-label><input matInput formControlName="name" placeholder="Sala 1 · Rayos X" /></mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Modalidad</mat-label>
@@ -113,6 +115,7 @@ export class SubjectFormDialogComponent {
     manufacturer: [this.eq?.manufacturer ?? ''],
     model: [this.eq?.model ?? ''],
     room: [this.eq?.room ?? ''],
+    establishmentId: [this.eq?.establishmentId ?? this.data.establishmentId],
   });
 
   readonly person = this.fb.group({
@@ -155,8 +158,8 @@ export class SubjectFormDialogComponent {
     const d = this.data;
     let request: Observable<SubjectResult<unknown>>;
     if (d.kind === 'equipment') {
-      const v = this.equipment.getRawValue() as Partial<Equipment>;
-      request = d.current ? this.api.updateEquipment(d.current.id, v) : this.api.registerEquipment(d.establishmentId, v);
+      const { establishmentId, ...v } = this.equipment.getRawValue();
+      request = d.current ? this.api.updateEquipment(d.current.id, v) : this.api.registerEquipment(establishmentId, v);
     } else {
       const v = this.person.getRawValue() as Partial<Personnel>;
       request = d.current ? this.api.updatePerson(d.current.id, v) : this.api.registerPerson(d.establishmentId, v);
