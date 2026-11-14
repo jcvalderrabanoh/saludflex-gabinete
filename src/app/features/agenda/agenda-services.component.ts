@@ -3,21 +3,21 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterLink } from '@angular/router';
 import { AgendaResource, AgendaServiceType } from '../../core/models/agenda.models';
 import { EquipmentModality } from '../../core/models/facility.models';
 import { MODALITY_LABELS } from '../../core/models/labels';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { apiMessage } from '../evidence/record-evidence.dialog';
-import { EQUIPMENT_ROUTE, ServicePlace, placeOf } from './settings.helpers';
+import { ServicePlace, placeOf } from './settings.helpers';
+import { AgendaCatalogService } from './agenda-catalog.service';
 import { ServiceTypeDialogComponent, ServiceTypeDialogData } from './service-type.dialog';
 
 /** Catálogo de lo que se puede agendar: nombre, modalidad, duración e indicaciones. */
 @Component({
   selector: 'app-agenda-services',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatIconModule],
+  imports: [MatButtonModule, MatIconModule],
   template: `
     <div class="top">
       <p>Lo que se puede agendar. La modalidad decide en qué equipos cabe y la duración, cuánto ocupa cada cita.</p>
@@ -40,7 +40,14 @@ import { ServiceTypeDialogComponent, ServiceTypeDialogData } from './service-typ
               } @else {
                 <p class="no-place">
                   <mat-icon aria-hidden="true">warning</mat-icon>
-                  <span><strong>Sin dónde agendarse.</strong> {{ place.text }} <a [routerLink]="equipmentRoute">Dar de alta un equipo</a></span>
+                  <span>
+                    <strong>Sin dónde agendarse.</strong> {{ place.text }}
+                    @if (canEditEquipment) {
+                      <button mat-stroked-button type="button" (click)="addEquipment(service)">Agregar equipo de {{ modality(service) }}</button>
+                    } @else {
+                      Pide a quien administra la agenda que agregue uno.
+                    }
+                  </span>
                 </p>
               }
             }
@@ -67,7 +74,7 @@ import { ServiceTypeDialogComponent, ServiceTypeDialogData } from './service-typ
     .text .no-place { padding: 8px 12px; border-radius: 8px; background: #fff3d6; color: #5c4000; }
     .ready mat-icon, .no-place mat-icon { flex: none; font-size: 18px; width: 18px; height: 18px; }
     .no-place mat-icon { color: #805800; }
-    .no-place a { color: #1d4ed8; font-weight: 600; }
+    .no-place button { display: block; margin-top: 8px; }
     .empty, .error { font-size: 14px; color: #475569; }
     .error { color: #b91c1c; }
     @media (max-width: 640px) { li { flex-wrap: wrap; } .text { flex-basis: 100%; } }
@@ -79,7 +86,8 @@ export class AgendaServicesComponent {
   readonly services = signal<AgendaServiceType[]>([]);
   readonly loaded = signal(false);
   readonly error = signal<string | null>(null);
-  readonly equipmentRoute = EQUIPMENT_ROUTE;
+  private readonly catalog = inject(AgendaCatalogService);
+  readonly canEditEquipment = this.catalog.canEditEquipment();
 
   private readonly context = inject(EstablishmentContextService);
   /** `null` mientras no carguen o si fallan: sin dato no se marca ningún servicio. */
@@ -90,6 +98,16 @@ export class AgendaServicesComponent {
 
   constructor() {
     this.load();
+    this.loadResources();
+  }
+
+  /** El equipo nuevo trae la modalidad del servicio; al guardarse, el servicio queda listo para agendar. */
+  addEquipment(service: AgendaServiceType): void {
+    const establishmentId = this.establishmentId();
+    if (establishmentId) this.catalog.addEquipment(establishmentId, service.modality).subscribe(() => this.loadResources());
+  }
+
+  private loadResources(): void {
     this.api.resources().subscribe({ next: (resources) => this.resources.set(resources), error: () => this.resources.set(null) });
   }
 

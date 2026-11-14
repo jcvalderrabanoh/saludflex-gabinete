@@ -5,11 +5,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { catchError, filter, of, switchMap, tap } from 'rxjs';
+import { catchError, filter, of, skip, switchMap, tap } from 'rxjs';
 import { AgendaAppointment, AgendaAppointmentState, AgendaBooked, AgendaContact, AgendaDay, AgendaLane, AgendaServiceType } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { PermissionsService } from '../../core/services/permissions.service';
+import { AgendaCatalogService } from './agenda-catalog.service';
 import { AppointmentDetailData, AppointmentDetailDialogComponent, AppointmentDetailResult } from './appointment-detail.dialog';
 import { BookAppointmentData, BookAppointmentDialogComponent } from './book-appointment.dialog';
 import { overlapWarning, snapMinutes } from './booking.helpers';
@@ -79,7 +80,11 @@ const LEGEND: readonly AgendaAppointmentState[] = ['scheduled', 'arrived', 'atte
     } @else if (lanes().length === 0) {
       <div class="notice">
         <p>Este establecimiento aún no tiene equipos. La agenda muestra un carril por cada equipo.</p>
-        <a mat-stroked-button routerLink="/operacion/equipos-y-personal">Ir a Equipos y personal</a>
+        @if (canEditEquipment) {
+          <button mat-flat-button color="primary" (click)="addEquipment()"><mat-icon>add</mat-icon> Agregar equipo</button>
+        } @else {
+          <p>Pide a quien administra la agenda que agregue uno.</p>
+        }
       </div>
     } @else {
       <p class="summary">{{ summaryText() }}</p>
@@ -179,6 +184,8 @@ export class AgendaComponent {
   readonly legend = LEGEND;
 
   readonly canManage = computed(() => this.permissions.can('agendaManage'));
+  private readonly catalog = inject(AgendaCatalogService);
+  readonly canEditEquipment = this.catalog.canEditEquipment();
   private readonly services = signal<AgendaServiceType[]>([]);
   readonly day = signal<AgendaDay | null>(null);
   readonly loading = signal(true);
@@ -258,10 +265,26 @@ export class AgendaComponent {
     });
 
     // Sin catálogo se puede ver la agenda; agendar pedirá elegir servicio y no habrá ninguno.
-    this.api.serviceTypes().pipe(catchError(() => of<AgendaServiceType[]>([]))).subscribe((services) => this.services.set(services));
+    this.loadServices();
+    // Un servicio o equipo guardado desde la agenda (o desde «Agendar cita») cambia catálogo y carriles.
+    toObservable(this.catalog.saved)
+      .pipe(skip(1), takeUntilDestroyed())
+      .subscribe(() => {
+        this.loadServices();
+        this.reload();
+      });
 
     const timer = setInterval(() => this.now.set(new Date()), REFRESH_NOW_EVERY_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
+  }
+
+  addEquipment(): void {
+    const establishmentId = this.context.current()?.id;
+    if (establishmentId) this.catalog.addEquipment(establishmentId).subscribe();
+  }
+
+  private loadServices(): void {
+    this.api.serviceTypes().pipe(catchError(() => of<AgendaServiceType[]>([]))).subscribe((services) => this.services.set(services));
   }
 
   move(days: number): void {
@@ -283,7 +306,9 @@ export class AgendaComponent {
 
   /** Abre el diálogo de agendar, vacío o con lo que ya se sabe (hueco, paciente o cita a mover). */
   book(prefill: Partial<BookAppointmentData> = {}): void {
-    const data: BookAppointmentData = { date: this.date(), timeZone: this.timeZone(), lanes: this.ownLanes(), services: this.services(), ...prefill };
+    const establishmentId = this.context.current()?.id;
+    if (!establishmentId) return;
+    const data: BookAppointmentData = { date: this.date(), timeZone: this.timeZone(), establishmentId, lanes: this.ownLanes(), services: this.services(), ...prefill };
     this.dialog
       .open<BookAppointmentDialogComponent, BookAppointmentData, AgendaBooked>(BookAppointmentDialogComponent, { data, width: '640px', maxWidth: '100vw' })
       .afterClosed()

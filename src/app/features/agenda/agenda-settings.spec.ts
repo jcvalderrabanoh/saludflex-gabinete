@@ -4,15 +4,23 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { EMPTY, Observable, of, throwError } from 'rxjs';
 import { AgendaResource, AgendaServiceType } from '../../core/models/agenda.models';
 import { AgendaApiService } from '../../core/services/agenda-api.service';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
+import { AgendaCatalogService } from './agenda-catalog.service';
 import { AgendaHoursComponent } from './agenda-hours.component';
 import { AgendaServicesComponent } from './agenda-services.component';
 import { ServiceTypeDialogComponent } from './service-type.dialog';
 
 const SERVICE: AgendaServiceType = { id: 's1', name: 'Tomografía contrastada', modality: 'ct', durationMinutes: 15, preparation: null };
+const ADDED = { equipmentId: 'us', name: 'Ultrasonido 1', created: true, hoursSaved: true, activated: 0 };
+const catalogMock = (canEditEquipment: boolean) => ({
+  canEditEquipment: () => canEditEquipment,
+  addEquipment: jasmine.createSpy('addEquipment').and.returnValue(EMPTY as Observable<unknown>),
+  editEquipment: jasmine.createSpy('editEquipment').and.returnValue(EMPTY as Observable<unknown>),
+});
+
 const resource = (patch: Partial<AgendaResource> = {}): AgendaResource => ({
   id: 'ct',
   establishmentId: 'est-1',
@@ -24,7 +32,8 @@ const resource = (patch: Partial<AgendaResource> = {}): AgendaResource => ({
 });
 
 describe('AgendaServicesComponent', () => {
-  function setup(services: AgendaServiceType[], closesWith: unknown = undefined, resources: AgendaResource[] | Error = [resource()]) {
+  function setup(services: AgendaServiceType[], closesWith: unknown = undefined, resources: AgendaResource[] | Error = [resource()], canEditEquipment = false) {
+    const catalog = catalogMock(canEditEquipment);
     const api = jasmine.createSpyObj<AgendaApiService>('AgendaApiService', {
       serviceTypes: of(services),
       removeServiceType: of(undefined),
@@ -37,12 +46,13 @@ describe('AgendaServicesComponent', () => {
         provideRouter([]),
         { provide: AgendaApiService, useValue: api },
         { provide: MatDialog, useValue: dialog },
+        { provide: AgendaCatalogService, useValue: catalog },
         { provide: EstablishmentContextService, useValue: { current: () => ({ id: 'est-1', timeZone: 'America/Mexico_City' }) } },
       ],
     });
     const fixture = TestBed.createComponent(AgendaServicesComponent);
     fixture.detectChanges();
-    return { fixture, api, dialog, element: fixture.nativeElement as HTMLElement };
+    return { fixture, api, dialog, catalog, element: fixture.nativeElement as HTMLElement };
   }
 
   it('lista cada servicio con su modalidad, duración e indicaciones, o dice que no tiene', () => {
@@ -68,7 +78,7 @@ describe('AgendaServicesComponent', () => {
     expect(api.serviceTypes).toHaveBeenCalledTimes(2);
   });
 
-  it('un servicio sin equipo de su modalidad en el establecimiento dice «Sin dónde agendarse», el motivo y cómo resolverlo', () => {
+  it('un servicio sin equipo de su modalidad en el establecimiento dice «Sin dónde agendarse», el motivo y a quién pedirlo', () => {
     const ultrasound: AgendaServiceType = { id: 's2', name: 'Ultrasonido abdominal', modality: 'ultrasound', durationMinutes: 20, preparation: null };
     const { element } = setup([SERVICE, ultrasound], undefined, [resource(), resource({ id: 'us', modality: 'ultrasound', establishmentId: 'est-2' })]);
     const [ct, us] = Array.from(element.querySelectorAll('li'));
@@ -77,7 +87,19 @@ describe('AgendaServicesComponent', () => {
     expect(ct.textContent).not.toContain('Sin dónde agendarse');
     expect(us.textContent).toContain('Sin dónde agendarse');
     expect(us.textContent).toContain('No hay equipos de Ultrasonido en este establecimiento.');
-    expect(us.querySelector('a')?.getAttribute('href')).toBe('/operacion/equipos-y-personal');
+    expect(us.textContent).toContain('Pide a quien administra la agenda');
+    expect(us.querySelector('a')).toBeNull();
+  });
+
+  it('con permiso, «Sin dónde agendarse» agrega el equipo de esa modalidad ahí mismo y vuelve a revisar', () => {
+    const ultrasound: AgendaServiceType = { id: 's2', name: 'Ultrasonido abdominal', modality: 'ultrasound', durationMinutes: 20, preparation: null };
+    const { api, catalog, element } = setup([ultrasound], undefined, [resource()], true);
+    catalog.addEquipment.and.returnValue(of(ADDED));
+
+    element.querySelector<HTMLButtonElement>('.no-place button')!.click();
+
+    expect(catalog.addEquipment).toHaveBeenCalledOnceWith('est-1', 'ultrasound');
+    expect(api.resources).toHaveBeenCalledTimes(2);
   });
 
   it('si no se pudieron cargar los equipos no marca ningún servicio, ni listo ni sin dónde', () => {
@@ -155,7 +177,8 @@ describe('ServiceTypeDialogComponent', () => {
     const note = element.querySelector('.no-place');
     expect(note?.textContent).toContain('No hay equipos de Ultrasonido en este establecimiento.');
     expect(note?.textContent).toContain('Puedes guardarlo, pero no se podrá agendar');
-    expect(note?.querySelector('a')?.getAttribute('href')).toBe('/operacion/equipos-y-personal');
+    expect(note?.textContent).toContain('agrega el equipo desde la lista de servicios');
+    expect(note?.querySelector('a')).toBeNull();
     component.save();
     expect(api.createServiceType).toHaveBeenCalled();
   });
@@ -184,7 +207,8 @@ describe('ServiceTypeDialogComponent', () => {
 });
 
 describe('AgendaHoursComponent', () => {
-  function setup(resources: AgendaResource[]) {
+  function setup(resources: AgendaResource[], canEditEquipment = false) {
+    const catalog = catalogMock(canEditEquipment);
     const api = jasmine.createSpyObj<AgendaApiService>('AgendaApiService', {
       resources: of(resources),
       blocks: of([{ id: 'b1', startsAt: '2026-12-07T22:00:00.000Z', endsAt: '2026-12-08T00:00:00.000Z', reason: 'Mantenimiento' }]),
@@ -203,14 +227,17 @@ describe('AgendaHoursComponent', () => {
         provideRouter([]),
         { provide: AgendaApiService, useValue: api },
         { provide: MatSnackBar, useValue: snack },
+        { provide: AgendaCatalogService, useValue: catalog },
         { provide: EstablishmentContextService, useValue: { current: () => ({ id: 'est-1', timeZone: 'America/Mexico_City' }) } },
       ],
     });
     const fixture = TestBed.createComponent(AgendaHoursComponent);
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
-    const button = (label: string) => Array.from(element.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.trim() === label)!;
-    return { fixture, component: fixture.componentInstance, api, snack, element, button };
+    // La etiqueta del botón, sin el texto de su ícono.
+    const label = (b: HTMLButtonElement) => Array.from(b.querySelectorAll('.mdc-button__label')).map((l) => Array.from(l.childNodes).filter((n) => n.nodeName !== 'MAT-ICON').map((n) => n.textContent).join('')).join('').trim() || b.textContent?.trim();
+    const button = (text: string) => Array.from(element.querySelectorAll<HTMLButtonElement>('button')).find((b) => label(b) === text)!;
+    return { fixture, component: fixture.componentInstance, api, snack, catalog, element, button };
   }
 
   it('muestra el horario del primer equipo del establecimiento y sus bloqueos próximos', () => {
@@ -222,11 +249,44 @@ describe('AgendaHoursComponent', () => {
     expect(element.querySelector('.blocks')?.textContent).toContain('lun 7 dic, 16:00 a 18:00 · Mantenimiento');
   });
 
-  it('sin equipos en el establecimiento manda a darlos de alta', () => {
+  it('sin equipos en el establecimiento, sin permiso, dice a quién pedirlos', () => {
     const { element } = setup([]);
 
     expect(element.textContent).toContain('aún no tiene equipos');
-    expect(element.querySelector('a')?.getAttribute('href')).toBe('/operacion/equipos-y-personal');
+    expect(element.textContent).toContain('Pide a quien administra la agenda');
+    expect(element.querySelector('a')).toBeNull();
+  });
+
+  it('con permiso, agrega un equipo desde la lista y queda elegido con su horario', () => {
+    const { fixture, component, api, catalog, button } = setup([resource()], true);
+    const added = resource({ id: 'us', name: 'Ultrasonido 1', modality: 'ultrasound' });
+    api.resources.and.returnValue(of([resource(), added]));
+    catalog.addEquipment.and.returnValue(of(ADDED));
+
+    button('Agregar equipo').click();
+    fixture.detectChanges();
+
+    expect(catalog.addEquipment).toHaveBeenCalledOnceWith('est-1');
+    expect(component.selected()?.id).toBe('us');
+  });
+
+  it('con permiso, edita el equipo elegido desde la lista', () => {
+    const { fixture, api, catalog, button } = setup([resource()], true);
+    catalog.editEquipment.and.returnValue(of({ ...ADDED, equipmentId: 'ct', name: 'Tomógrafo A', created: false }));
+    api.resources.and.returnValue(of([resource({ name: 'Tomógrafo A' })]));
+
+    button('Editar equipo').click();
+    fixture.detectChanges();
+
+    expect(catalog.editEquipment).toHaveBeenCalledOnceWith('est-1', jasmine.objectContaining({ id: 'ct' }));
+    expect(api.resources).toHaveBeenCalledTimes(2);
+  });
+
+  it('sin permiso no ofrece agregar ni editar equipos', () => {
+    const { element } = setup([resource()]);
+
+    expect(element.textContent).not.toContain('Agregar equipo');
+    expect(element.textContent).not.toContain('Editar equipo');
   });
 
   it('«Guardar horario» solo se activa con cambios válidos y manda la semana completa', () => {
