@@ -6,6 +6,12 @@ Front de la app `facility` de jc-core (ADR-005 en `jc-core/docs/arquitectura/`).
 
 **Menú.** Agrupado por lo que la persona viene a hacer: «Día a día» (Hoy, Calendario, Documentos), «Espacios» (Agenda y, con permiso de configurar, Configurar agenda; solo con la agenda encendida para la cuenta), «En regla» (Obligaciones, Municipal, Carpeta de inspección), «Mi gabinete» (Pagos recurrentes o, con Gastos encendido, Gastos; Inventario, Establecimientos, Equipos y personal, Accesos) y «Conexiones» al pie. La fuente es `NAV_GROUPS` en `shared/components/layout.component.ts`.
 
+**Ayuda.** Botón «Ayuda» en la barra superior (con el número de reportes que tienen novedades de soporte) que abre un panel a la derecha (pantalla completa en móvil; se descarga al abrirlo). Dos pestañas:
+- **Configurar** (solo con `facility.manage`): configuración guiada en el chat. jc-core decide los pasos (establecimiento, invitar al equipo, equipos y personal), revisa los permisos del JWT en cada petición y solo escribe tras «Confirmar», con el mismo DTO y servicio que la pantalla correspondiente. Al invitar solo se ofrecen Coordinador, Responsable y Consulta. API: `GET/POST /facility/setup-assistant/session` y `…/session/{answer,confirm,skip,back,restart}`. Componente `features/help/setup-conversation.component.ts`.
+- **Mis reportes** (cualquier persona con sesión de Gabinete): reportar un problema o una duda (la ruta de la pantalla viaja como contexto, sin parámetros), ver mis reportes con su estado, el hilo con soporte, añadir información y cerrar. Solo ve reportes de Gabinete: jc-core los separa de los de lumen-view por la sesión. API: `GET /facility/support/tickets/mine`, `…/unread-count`, `…/:id`, `POST /facility/support/tickets`, `…/:id/messages`, `…/:id/close`. Componente `features/help/support-reports.component.ts`.
+
+Panel: `features/help/help-panel.component.ts`.
+
 **Móvil.** Debajo de 768 px la barra lateral flota (`mode="over"`) y se abre con el botón de menú; los formularios de captura pasan a 1 columna.
 
 | Ruta | Nombre en la UI | Para qué sirve | Permiso | Componente |
