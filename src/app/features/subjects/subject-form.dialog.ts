@@ -230,7 +230,7 @@ export class SubjectFormDialogComponent {
     if (d.kind === 'equipment') {
       const { establishmentId, modality, ...rest } = this.equipment.getRawValue();
       const v: Partial<Equipment> = rest.equipmentTypeKey ? rest : { ...rest, modality };
-      request = d.current ? this.api.updateEquipment(d.current.id, v) : this.api.registerEquipment(establishmentId, v);
+      request = d.current ? this.api.updateEquipment(d.current.id, emptyAsNull(v)) : this.api.registerEquipment(establishmentId, v);
     } else {
       const v = this.person.getRawValue() as Partial<Personnel>;
       request = d.current ? this.api.updatePerson(d.current.id, v) : this.api.registerPerson(d.establishmentId, v);
@@ -252,4 +252,12 @@ export class SubjectFormDialogComponent {
 function warrantyAfterInstall(group: AbstractControl): ValidationErrors | null {
   const { installedOn, warrantyUntil } = group.value as { installedOn?: string; warrantyUntil?: string };
   return warrantyBeforeInstall(installedOn, warrantyUntil) ? { warrantyBeforeInstall: true } : null;
+}
+
+/** Al editar, la ficha vacía se manda como `null` para que el backend borre el dato. */
+function emptyAsNull(input: Partial<Equipment>): Partial<Equipment> {
+  const profile = ['sanitaryRegistration', 'serviceProvider', 'installedOn', 'warrantyUntil'] as const;
+  const out: Partial<Equipment> = { ...input };
+  for (const key of profile) if (out[key] === '') out[key] = null;
+  return out;
 }

@@ -103,7 +103,15 @@ describe('EquipmentDetailDialogComponent', () => {
     for (const banned of ['cumples', 'mínimo por ley', 'clausura']) expect(text).not.toContain(banned);
   });
 
-  it('sin tipo pide elegirlo para ver sus mantenimientos', () => {
+  it('sin tipo muestra los del tipo que le toca por su modalidad y lo dice', () => {
+    const conventional = { ...RX, key: 'rx-convencional', name: 'Rayos X convencional' };
+    const { element } = setup({ equipment: { ...EQUIPMENT, equipmentTypeKey: null }, types: [conventional] });
+
+    expect(element.querySelectorAll('[data-testid="maintenance"]').length).toBe(3);
+    expect(element.textContent).toContain('Sin tipo elegido: se muestran los de «Rayos X convencional» por su modalidad');
+  });
+
+  it('sin tipo y sin equivalente en el catálogo pide elegirlo', () => {
     const { element } = setup({ equipment: { ...EQUIPMENT, equipmentTypeKey: null }, types: [RX] });
 
     expect(element.querySelectorAll('[data-testid="maintenance"]').length).toBe(0);

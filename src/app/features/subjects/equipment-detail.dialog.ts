@@ -3,7 +3,7 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { Equipment, EquipmentType } from '../../core/models/facility.models';
 import { MODALITY_LABELS, OPERATIONAL_STATUS_LABELS } from '../../core/models/labels';
-import { maintenanceRows } from './equipment-catalog.helpers';
+import { maintenanceRows, typeOfEquipment } from './equipment-catalog.helpers';
 
 export interface EquipmentDetailData {
   equipment: Equipment;
@@ -20,7 +20,7 @@ export interface EquipmentDetailData {
     <h2 mat-dialog-title>{{ e.name }}</h2>
     <mat-dialog-content>
       <dl class="sheet">
-        <dt>Tipo</dt><dd>{{ type()?.name ?? 'Sin tipo' }}</dd>
+        <dt>Tipo</dt><dd>{{ resolved()?.byModality === false ? resolved()?.type?.name : 'Sin tipo' }}</dd>
         <dt>Modalidad</dt><dd>{{ modality }}</dd>
         <dt>Estado</dt><dd><span class="status" [class]="'status ' + status">{{ statusLabel }}</span></dd>
         <dt>Registro sanitario</dt><dd>{{ e.sanitaryRegistration || '—' }}</dd>
@@ -32,9 +32,12 @@ export interface EquipmentDetailData {
       <h3>Mantenimientos</h3>
       @if (data.types === null) {
         <p class="hint" role="status">No pudimos cargar los mantenimientos de su tipo. Vuelve a abrir la ficha en un momento.</p>
-      } @else if (!type()) {
+      } @else if (!resolved()) {
         <p class="hint">Elige su tipo de equipo (en «Editar») para ver los mantenimientos que le corresponden.</p>
       } @else {
+        @if (resolved()?.byModality) {
+          <p class="hint" role="status">Sin tipo elegido: se muestran los de «{{ resolved()?.type?.name }}» por su modalidad. Elige su tipo en «Editar» si es otro.</p>
+        }
         <ul class="list">
           @for (m of rows(); track $index) {
             <li data-testid="maintenance">
@@ -81,9 +84,9 @@ export class EquipmentDetailDialogComponent {
   readonly modality = MODALITY_LABELS[this.e.modality] ?? this.e.modality;
   readonly status = this.e.operationalStatus ?? 'operating';
   readonly statusLabel = OPERATIONAL_STATUS_LABELS[this.status];
-  readonly type = computed(() => this.data.types?.find((t) => t.key === this.e.equipmentTypeKey) ?? null);
+  readonly resolved = computed(() => (this.data.types ? typeOfEquipment(this.e, this.data.types) : null));
   readonly rows = computed(() => {
-    const type = this.type();
-    return type ? maintenanceRows(type) : [];
+    const resolved = this.resolved();
+    return resolved ? maintenanceRows(resolved.type) : [];
   });
 }

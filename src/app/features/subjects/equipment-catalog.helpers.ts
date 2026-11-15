@@ -1,4 +1,4 @@
-import { EquipmentMaintenance, EquipmentType, MaintenanceKind, MaintenancePerformer } from '../../core/models/facility.models';
+import { Equipment, EquipmentMaintenance, EquipmentModality, EquipmentType, MaintenanceKind, MaintenancePerformer } from '../../core/models/facility.models';
 
 /** Grupo del selector de tipo (imagen / apoyo). */
 export interface CatalogGroup {
@@ -39,6 +39,18 @@ const PERFORMER_LABELS: Record<MaintenancePerformer, string> = {
   provider: 'Proveedor de servicio o fabricante',
   specialist: 'Asesor especializado o físico médico',
   staff: 'Personal del establecimiento',
+};
+
+/**
+ * Tipo con que jc-core decide las obligaciones de un equipo sin tipo
+ * (`DEFAULT_EQUIPMENT_TYPE_BY_MODALITY` de jc-core#922). Si cambia allá, cambia aquí.
+ */
+const DEFAULT_TYPE_BY_MODALITY: Record<EquipmentModality, string> = {
+  xray: 'rx-convencional',
+  mammography: 'mastografo',
+  ct: 'tomografo',
+  ultrasound: 'ultrasonido',
+  other: 'otro',
 };
 
 const MONTHS_PER_YEAR = 12;
@@ -90,4 +102,15 @@ export function maintenanceRows(type: EquipmentType): MaintenanceRow[] {
 /** Fechas AAAA-MM-DD: se comparan como texto. */
 export function warrantyBeforeInstall(installedOn: string | null | undefined, warrantyUntil: string | null | undefined): boolean {
   return !!installedOn && !!warrantyUntil && warrantyUntil < installedOn;
+}
+
+/** Su tipo, o el de su modalidad (como el backend) marcado `byModality`; `null` si el catálogo no lo tiene. */
+export function typeOfEquipment(
+  equipment: Pick<Equipment, 'modality' | 'equipmentTypeKey'>,
+  types: EquipmentType[],
+): { type: EquipmentType; byModality: boolean } | null {
+  const own = equipment.equipmentTypeKey ? types.find((t) => t.key === equipment.equipmentTypeKey) : undefined;
+  if (own) return { type: own, byModality: false };
+  const fallback = types.find((t) => t.key === DEFAULT_TYPE_BY_MODALITY[equipment.modality]);
+  return fallback ? { type: fallback, byModality: true } : null;
 }

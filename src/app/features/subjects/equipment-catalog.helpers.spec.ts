@@ -4,6 +4,7 @@ import {
   maintenanceBasis,
   maintenancePeriod,
   maintenanceRows,
+  typeOfEquipment,
   warrantyBeforeInstall,
 } from './equipment-catalog.helpers';
 
@@ -150,5 +151,26 @@ describe('warrantyBeforeInstall', () => {
   it('sin alguna de las dos fechas no hay nada que comparar', () => {
     expect(warrantyBeforeInstall('', '2026-01-01')).toBeFalse();
     expect(warrantyBeforeInstall('2026-01-01', null)).toBeFalse();
+  });
+});
+
+describe('typeOfEquipment', () => {
+  const types = [type('ultrasonido', 'imaging'), type('rx-convencional', 'imaging'), type('sala-rx', 'imaging')];
+
+  it('con tipo devuelve ese tipo', () => {
+    expect(typeOfEquipment({ modality: 'xray', equipmentTypeKey: 'sala-rx' }, types)).toEqual({ type: types[2], byModality: false });
+  });
+
+  it('sin tipo devuelve el que el backend usa para su modalidad', () => {
+    expect(typeOfEquipment({ modality: 'xray', equipmentTypeKey: null }, types)).toEqual({ type: types[1], byModality: true });
+    expect(typeOfEquipment({ modality: 'ultrasound' }, types)).toEqual({ type: types[0], byModality: true });
+  });
+
+  it('un tipo que ya no existe cae al de su modalidad', () => {
+    expect(typeOfEquipment({ modality: 'ultrasound', equipmentTypeKey: 'borrado' }, types)?.type.key).toBe('ultrasonido');
+  });
+
+  it('sin equivalente en el catálogo no hay tipo', () => {
+    expect(typeOfEquipment({ modality: 'ct' }, types)).toBeNull();
   });
 });

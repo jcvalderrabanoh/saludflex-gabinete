@@ -59,6 +59,15 @@ describe('FacilityApiService', () => {
     req.flush({ subject: {}, activated: [] });
   });
 
+  it('editar equipo: null en la ficha viaja para borrar el dato; lo demás se limpia', () => {
+    api
+      .updateEquipment('eq1', { name: 'Sala 1', manufacturer: '', warrantyUntil: null, serviceProvider: null, equipmentTypeKey: null, modality: 'xray' })
+      .subscribe();
+    const req = http.expectOne({ method: 'PATCH', url: 'http://localhost:3000/facility/equipment/eq1' });
+    expect(req.request.body).toEqual({ name: 'Sala 1', modality: 'xray', warrantyUntil: null, serviceProvider: null, equipmentTypeKey: null });
+    req.flush({ subject: {}, activated: [] });
+  });
+
   it('los usuarios vinculables se piden por establecimiento', () => {
     api.linkableUsers('e1').subscribe();
     http.expectOne('http://localhost:3000/facility/establishments/e1/linkable-users').flush([]);

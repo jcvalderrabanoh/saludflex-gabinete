@@ -170,4 +170,29 @@ describe('SubjectFormDialogComponent · tipo y ficha del equipo', () => {
     component.save();
     expect(api.registerEquipment).toHaveBeenCalledWith('est', jasmine.objectContaining({ modality: 'ultrasound' }));
   });
+
+  it('al editar, vaciar un dato de la ficha lo manda como null para borrarlo', () => {
+    const current = { ...EQUIPMENT, serviceProvider: 'Servicios del Norte', warrantyUntil: '2028-01-15' } as Equipment;
+    const { component, api } = setup({ kind: 'equipment', establishmentId: 'est', current });
+    component.equipment.patchValue({ serviceProvider: '', warrantyUntil: '' });
+
+    component.save();
+
+    const sent = api.updateEquipment.calls.mostRecent().args[1];
+    expect(sent.serviceProvider).toBeNull();
+    expect(sent.warrantyUntil).toBeNull();
+  });
+
+  it('al quitar el tipo se manda la modalidad elegida y el tipo en null', () => {
+    const current = { ...EQUIPMENT, equipmentTypeKey: 'ultrasonido' } as Equipment;
+    const { component, api } = setup({ kind: 'equipment', establishmentId: 'est', current });
+    component.equipment.controls.equipmentTypeKey.setValue(null);
+
+    expect(component.equipment.controls.modality.enabled).toBeTrue();
+    component.save();
+
+    const sent = api.updateEquipment.calls.mostRecent().args[1];
+    expect(sent.equipmentTypeKey).toBeNull();
+    expect(sent.modality).toBe('ultrasound');
+  });
 });
