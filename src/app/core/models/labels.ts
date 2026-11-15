@@ -52,6 +52,7 @@ export function dueLabel(daysLeft: number | null, dueOn: string | null): string 
 
 /** La línea bajo el título: sin registro, sin fecha de vencimiento o cuánto falta. */
 export function obligationMeta(o: EvaluatedObligation): string {
+  if (o.requiredSince) return `Requiere control de calidad desde ${o.requiredSince} (tras reparación)`;
   if (!o.currentRecord) return 'Sin registro';
   if (o.status === 'expiry-unknown') return 'Sin fecha de vencimiento: captúrala o define la vigencia';
   return dueLabel(o.daysLeft, o.dueOn);

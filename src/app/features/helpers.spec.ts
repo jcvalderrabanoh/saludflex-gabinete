@@ -28,6 +28,22 @@ describe('helpers de pantallas', () => {
     expect(result.map((d) => d.key)).toEqual(['dosimetria', 'aviso']);
   });
 
+  it('applicableDefinitions no ofrece las que lleva el sistema (bitácora de correctivos)', () => {
+    const bitacora = { ...def('equipo.bitacora-correctivo', [], 'equipment', 6), managedBySystem: true } as ObligationDefinition;
+    const result = applicableDefinitions([def('aviso', [], 'establishment', 2), bitacora], ['xray']);
+    expect(result.map((d) => d.key)).toEqual(['aviso']);
+  });
+
+  it('obligationMeta avisa del control de calidad que pide una reparación', () => {
+    const o = { currentRecord: { id: 'r1' }, status: 'overdue', daysLeft: -1, dueOn: '2026-11-14', requiredSince: '2026-11-14' } as unknown as EvaluatedObligation;
+    expect(obligationMeta(o)).toBe('Requiere control de calidad desde 2026-11-14 (tras reparación)');
+  });
+
+  it('obligationMeta lo avisa aunque nunca se haya registrado', () => {
+    const o = { currentRecord: null, status: 'overdue', requiredSince: '2026-11-14' } as unknown as EvaluatedObligation;
+    expect(obligationMeta(o)).toBe('Requiere control de calidad desde 2026-11-14 (tras reparación)');
+  });
+
   it('todaySummary resume en una línea', () => {
     const s = { todayItems: [{}, {}, {}], score: { overdue: 1, missing: 2, dueSoon: 0 } } as unknown as EstablishmentStatus;
     expect(todaySummary(s)).toBe('3 cosas necesitan atención: 1 vencida, 2 sin registro.');

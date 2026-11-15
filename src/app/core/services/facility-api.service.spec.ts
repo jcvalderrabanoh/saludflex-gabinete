@@ -68,6 +68,27 @@ describe('FacilityApiService', () => {
     req.flush({ subject: {}, activated: [] });
   });
 
+  it('los correctivos de un equipo se piden por equipo', () => {
+    api.equipmentIncidents('eq1').subscribe();
+    http.expectOne({ method: 'GET', url: 'http://localhost:3000/facility/equipment/eq1/incidents' }).flush([]);
+  });
+
+  it('reportar una falla manda la llave de idempotencia en la cabecera', () => {
+    api.reportIncident('eq1', { reportedOn: '2026-11-14', description: 'No enciende', impact: 'down' }, 'k-1').subscribe();
+    const req = http.expectOne({ method: 'POST', url: 'http://localhost:3000/facility/equipment/eq1/incidents' });
+    expect(req.request.headers.get('Idempotency-Key')).toBe('k-1');
+    expect(req.request.body).toEqual({ reportedOn: '2026-11-14', description: 'No enciende', impact: 'down' });
+    req.flush({});
+  });
+
+  it('cerrar la reparación omite quién la hizo si viene vacío', () => {
+    api.closeIncident('inc1', { closedOn: '2026-11-15', resolution: 'Cambio de tubo', performedBy: '' }, 'k-2').subscribe();
+    const req = http.expectOne({ method: 'POST', url: 'http://localhost:3000/facility/equipment-incidents/inc1/close' });
+    expect(req.request.headers.get('Idempotency-Key')).toBe('k-2');
+    expect(req.request.body).toEqual({ closedOn: '2026-11-15', resolution: 'Cambio de tubo' });
+    req.flush({});
+  });
+
   it('los usuarios vinculables se piden por establecimiento', () => {
     api.linkableUsers('e1').subscribe();
     http.expectOne('http://localhost:3000/facility/establishments/e1/linkable-users').flush([]);
