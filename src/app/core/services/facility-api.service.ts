@@ -41,6 +41,7 @@ import {
   Catalog,
   ChainVerification,
   Equipment,
+  EquipmentCatalog,
   PaymentWindow,
   Personnel,
   LinkableUser,
@@ -61,6 +62,9 @@ import {
 } from '../models/facility.models';
 
 /** Cliente de la API `facility` de jc-core. */
+/** Datos del equipo que se borran mandando `null` (jc-core#922). */
+const CLEARABLE_EQUIPMENT_FIELDS = ['equipmentTypeKey', 'sanitaryRegistration', 'serviceProvider', 'installedOn', 'warrantyUntil'] as const;
+
 @Injectable({ providedIn: 'root' })
 export class FacilityApiService {
   private readonly http = inject(HttpClient);
@@ -178,6 +182,11 @@ export class FacilityApiService {
     });
   }
 
+  /** Tipos de equipo y sus mantenimientos (periodicidad y base: norma, fabricante o planeación). */
+  equipmentCatalog(): Observable<EquipmentCatalog> {
+    return this.http.get<EquipmentCatalog>(`${this.base}/equipment-catalog`);
+  }
+
   equipment(establishmentId: string): Observable<Equipment[]> {
     return this.http.get<Equipment[]>(`${this.base}/establishments/${establishmentId}/equipment`);
   }
@@ -186,8 +195,10 @@ export class FacilityApiService {
     return this.http.post<SubjectResult<Equipment>>(`${this.base}/establishments/${establishmentId}/equipment`, clean(input));
   }
 
+  /** En la ficha y el tipo, `null` sí viaja: es como se borra el dato (o se quita el tipo). */
   updateEquipment(id: string, input: Partial<Equipment>): Observable<SubjectResult<Equipment>> {
-    return this.http.patch<SubjectResult<Equipment>>(`${this.base}/equipment/${id}`, clean(input));
+    const cleared = Object.fromEntries(CLEARABLE_EQUIPMENT_FIELDS.filter((key) => input[key] === null).map((key) => [key, null]));
+    return this.http.patch<SubjectResult<Equipment>>(`${this.base}/equipment/${id}`, { ...clean(input), ...cleared });
   }
 
   retireEquipment(id: string): Observable<void> {

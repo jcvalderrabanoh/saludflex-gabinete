@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, computed, inject, signal } from '@angular/core';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,12 +8,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
-import { Equipment, Personnel, ServiceType, StaffRole, SubjectResult } from '../../core/models/facility.models';
-import { MODALITY_LABELS, ROLE_LABELS } from '../../core/models/labels';
+import { Equipment, EquipmentModality, EquipmentOperationalStatus, EquipmentType, Personnel, ServiceType, StaffRole, SubjectResult } from '../../core/models/facility.models';
+import { MODALITY_LABELS, OPERATIONAL_STATUS_LABELS, ROLE_LABELS } from '../../core/models/labels';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { EstablishmentFieldComponent } from '../../shared/components/establishment-field.component';
 import { apiMessage } from '../evidence/record-evidence.dialog';
 import { LinkOption, linkOptions, prefillFromUser } from './link-user.helpers';
+import { CatalogGroup, catalogGroups, warrantyBeforeInstall } from './equipment-catalog.helpers';
 
 export type SubjectFormData =
   | { kind: 'equipment'; establishmentId: string; current?: Equipment }
@@ -37,6 +38,22 @@ export interface SubjectFormResult {
         <form [formGroup]="equipment" class="form">
           <app-establishment-field class="wide" [control]="equipment.controls.establishmentId" [locked]="!!data.current" />
           <mat-form-field appearance="outline" class="wide"><mat-label>Nombre</mat-label><input matInput formControlName="name" placeholder="Sala 1 · Rayos X" /></mat-form-field>
+          @if (!catalogFailed()) {
+            <mat-form-field appearance="outline" class="wide">
+              <mat-label>Tipo de equipo</mat-label>
+              <mat-select formControlName="equipmentTypeKey">
+                <mat-option [value]="null">Sin tipo (elegir modalidad)</mat-option>
+                @for (g of typeGroups(); track g.label) {
+                  <mat-optgroup [label]="g.label">
+                    @for (t of g.types; track t.key) { <mat-option [value]="t.key">{{ t.name }}</mat-option> }
+                  </mat-optgroup>
+                }
+              </mat-select>
+              <mat-hint>El tipo fija la modalidad y los mantenimientos que se le sugieren.</mat-hint>
+            </mat-form-field>
+          } @else {
+            <p class="hint wide" role="status">No pudimos cargar los tipos de equipo. Puedes registrarlo con su modalidad y elegir el tipo después.</p>
+          }
           <mat-form-field appearance="outline">
             <mat-label>Modalidad</mat-label>
             <mat-select formControlName="modality">
@@ -47,8 +64,21 @@ export interface SubjectFormResult {
           <mat-form-field appearance="outline"><mat-label>Marca</mat-label><input matInput formControlName="manufacturer" /></mat-form-field>
           <mat-form-field appearance="outline"><mat-label>Modelo</mat-label><input matInput formControlName="model" /></mat-form-field>
           <mat-form-field appearance="outline" class="wide"><mat-label>Sala</mat-label><input matInput formControlName="room" /></mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Estado</mat-label>
+            <mat-select formControlName="operationalStatus">
+              @for (s of operationalStatuses; track s[0]) { <mat-option [value]="s[0]">{{ s[1] }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Registro sanitario (COFEPRIS)</mat-label><input matInput formControlName="sanitaryRegistration" /></mat-form-field>
+          <mat-form-field appearance="outline" class="wide"><mat-label>Proveedor de servicio</mat-label><input matInput formControlName="serviceProvider" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Instalado el</mat-label><input matInput type="date" formControlName="installedOn" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Garantía hasta</mat-label><input matInput type="date" formControlName="warrantyUntil" /></mat-form-field>
+          @if (equipment.hasError('warrantyBeforeInstall')) {
+            <p class="error wide" role="alert">La garantía no puede terminar antes de la instalación. Revisa las dos fechas.</p>
+          }
         </form>
-        <p class="hint">Al registrarlo se activan su mantenimiento y, si emite radiación, su control de calidad.</p>
+        <p class="hint">Al registrarlo se activan los avisos de mantenimiento que le tocan según su tipo o su modalidad.</p>
       } @else {
         <form [formGroup]="person" class="form">
           @if (!usersFailed()) {
@@ -99,6 +129,10 @@ export class SubjectFormDialogComponent {
   private readonly api = inject(FacilityApiService);
   private readonly fb = inject(FormBuilder).nonNullable;
   readonly modalities = Object.entries(MODALITY_LABELS);
+  readonly operationalStatuses = Object.entries(OPERATIONAL_STATUS_LABELS);
+  readonly types = signal<EquipmentType[]>([]);
+  readonly typeGroups = computed<CatalogGroup[]>(() => catalogGroups(this.types()));
+  readonly catalogFailed = signal(false);
   readonly roles = Object.entries(ROLE_LABELS);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
@@ -108,15 +142,24 @@ export class SubjectFormDialogComponent {
   private readonly eq = this.data.kind === 'equipment' ? this.data.current : undefined;
   private readonly pe = this.data.kind === 'person' ? this.data.current : undefined;
 
-  readonly equipment = this.fb.group({
-    name: [this.eq?.name ?? '', Validators.required],
-    modality: [this.eq?.modality ?? 'xray', Validators.required],
-    serialNumber: [this.eq?.serialNumber ?? ''],
-    manufacturer: [this.eq?.manufacturer ?? ''],
-    model: [this.eq?.model ?? ''],
-    room: [this.eq?.room ?? ''],
-    establishmentId: [this.eq?.establishmentId ?? this.data.establishmentId],
-  });
+  readonly equipment = this.fb.group(
+    {
+      name: [this.eq?.name ?? '', Validators.required],
+      equipmentTypeKey: this.fb.control<string | null>(this.eq?.equipmentTypeKey ?? null),
+      modality: this.fb.control<EquipmentModality>(this.eq?.modality ?? 'xray', Validators.required),
+      serialNumber: [this.eq?.serialNumber ?? ''],
+      manufacturer: [this.eq?.manufacturer ?? ''],
+      model: [this.eq?.model ?? ''],
+      room: [this.eq?.room ?? ''],
+      operationalStatus: this.fb.control<EquipmentOperationalStatus>(this.eq?.operationalStatus ?? 'operating'),
+      sanitaryRegistration: [this.eq?.sanitaryRegistration ?? ''],
+      serviceProvider: [this.eq?.serviceProvider ?? ''],
+      installedOn: [this.eq?.installedOn ?? ''],
+      warrantyUntil: [this.eq?.warrantyUntil ?? ''],
+      establishmentId: [this.eq?.establishmentId ?? this.data.establishmentId],
+    },
+    { validators: warrantyAfterInstall },
+  );
 
   readonly person = this.fb.group({
     fullName: [this.pe?.fullName ?? '', Validators.required],
@@ -128,6 +171,32 @@ export class SubjectFormDialogComponent {
 
   constructor() {
     if (this.data.kind === 'person') this.loadLinkableUsers(this.data.establishmentId);
+    if (this.data.kind === 'equipment') this.loadCatalog();
+  }
+
+  private loadCatalog(): void {
+    const typeKey = this.equipment.controls.equipmentTypeKey;
+    typeKey.valueChanges.subscribe((key) => this.applyType(key));
+    if (typeKey.value) this.equipment.controls.modality.disable();
+    this.api.equipmentCatalog().subscribe({
+      next: (catalog) => {
+        this.types.set(catalog.types);
+        this.applyType(typeKey.value);
+      },
+      error: () => this.catalogFailed.set(true),
+    });
+  }
+
+  /** Con tipo, la modalidad es la del tipo y no se edita (el backend rechaza las que no coinciden). */
+  private applyType(key: string | null): void {
+    const modality = this.equipment.controls.modality;
+    if (!key) {
+      modality.enable({ emitEvent: false });
+      return;
+    }
+    const type = this.types().find((t) => t.key === key);
+    if (type) modality.setValue(type.modality, { emitEvent: false });
+    modality.disable({ emitEvent: false });
   }
 
   private loadLinkableUsers(establishmentId: string): void {
@@ -155,11 +224,13 @@ export class SubjectFormDialogComponent {
   }
 
   save(): void {
+    if (this.invalid()) return;
     const d = this.data;
     let request: Observable<SubjectResult<unknown>>;
     if (d.kind === 'equipment') {
-      const { establishmentId, ...v } = this.equipment.getRawValue();
-      request = d.current ? this.api.updateEquipment(d.current.id, v) : this.api.registerEquipment(establishmentId, v);
+      const { establishmentId, modality, ...rest } = this.equipment.getRawValue();
+      const v: Partial<Equipment> = rest.equipmentTypeKey ? rest : { ...rest, modality };
+      request = d.current ? this.api.updateEquipment(d.current.id, emptyAsNull(v)) : this.api.registerEquipment(establishmentId, v);
     } else {
       const v = this.person.getRawValue() as Partial<Personnel>;
       request = d.current ? this.api.updatePerson(d.current.id, v) : this.api.registerPerson(d.establishmentId, v);
@@ -175,4 +246,18 @@ export class SubjectFormDialogComponent {
       },
     });
   }
+}
+
+/** La garantía no termina antes de la instalación (fechas AAAA-MM-DD). */
+function warrantyAfterInstall(group: AbstractControl): ValidationErrors | null {
+  const { installedOn, warrantyUntil } = group.value as { installedOn?: string; warrantyUntil?: string };
+  return warrantyBeforeInstall(installedOn, warrantyUntil) ? { warrantyBeforeInstall: true } : null;
+}
+
+/** Al editar, la ficha vacía se manda como `null` para que el backend borre el dato. */
+function emptyAsNull(input: Partial<Equipment>): Partial<Equipment> {
+  const profile = ['sanitaryRegistration', 'serviceProvider', 'installedOn', 'warrantyUntil'] as const;
+  const out: Partial<Equipment> = { ...input };
+  for (const key of profile) if (out[key] === '') out[key] = null;
+  return out;
 }
