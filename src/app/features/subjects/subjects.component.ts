@@ -4,13 +4,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Equipment, Personnel } from '../../core/models/facility.models';
-import { MODALITY_LABELS, ROLE_LABELS, SERVICE_LABELS } from '../../core/models/labels';
+import { Equipment, EquipmentType, Personnel } from '../../core/models/facility.models';
+import { MODALITY_LABELS, OPERATIONAL_STATUS_LABELS, ROLE_LABELS, SERVICE_LABELS } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { CanDirective } from '../../shared/directives/can.directive';
 import { ExportListsButtonComponent } from '../../shared/components/export-lists-button.component';
 import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from './subject-form.dialog';
+import { EquipmentDetailData, EquipmentDetailDialogComponent } from './equipment-detail.dialog';
 
 /** Equipos y personal: registrarlos activa solas sus obligaciones. */
 @Component({
@@ -29,14 +30,20 @@ import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from '
           <mat-card class="tile">
             @if (e.room) { <span class="room">{{ e.room }}</span> }
             <div class="title">{{ e.name }}</div>
-            <div class="meta">{{ modality(e) }}</div>
+            <div class="meta">{{ typeName(e) }}</div>
+            @if (e.operationalStatus && e.operationalStatus !== 'operating') {
+              <span class="status" [class.down]="e.operationalStatus === 'down'">{{ statusLabel(e) }}</span>
+            }
             <dl>
               @if (e.manufacturer) { <dt>Marca</dt><dd>{{ e.manufacturer }}{{ e.model ? ' ' + e.model : '' }}</dd> }
               <dt>Número de serie</dt><dd class="mono">{{ e.serialNumber || '—' }}</dd>
             </dl>
-            <div *appCan="'manage'" class="tile-actions">
-              <button mat-button (click)="open({ kind: 'equipment', current: e })">Editar</button>
-              <button mat-button color="warn" (click)="retireEquipment(e)">Dar de baja</button>
+            <div class="tile-actions">
+              <button mat-button (click)="openDetail(e)">Ver ficha</button>
+              <ng-container *appCan="'manage'">
+                <button mat-button (click)="open({ kind: 'equipment', current: e })">Editar</button>
+                <button mat-button color="warn" (click)="retireEquipment(e)">Dar de baja</button>
+              </ng-container>
             </div>
           </mat-card>
         }
@@ -76,6 +83,8 @@ import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from '
     .room { align-self: flex-start; font-size: 11px; font-weight: 600; background: #eff6ff; color: #1d4ed8; border-radius: 6px; padding: 2px 8px; margin-bottom: 8px; }
     dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; margin: 12px 0 4px; }
     dt { color: #64748b; } dd { margin: 0; text-align: right; } .mono { font-family: monospace; }
+    .status { align-self: flex-start; font-size: 11px; font-weight: 600; background: #fef3c7; color: #92400e; border-radius: 6px; padding: 2px 8px; margin-top: 6px; }
+    .status.down { background: #fee2e2; color: #991b1b; }
     .tile-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 8px; }
   `],
 })
@@ -87,8 +96,11 @@ export class SubjectsComponent {
   private readonly router = inject(Router);
   readonly equipment = signal<Equipment[]>([]);
   readonly personnel = signal<Personnel[]>([]);
+  /** Tipos del catálogo; `null` si no cargó (el tile cae a la modalidad). */
+  readonly types = signal<EquipmentType[] | null>(null);
 
   constructor() {
+    this.api.equipmentCatalog().subscribe({ next: (c) => this.types.set(c.types), error: () => this.types.set(null) });
     effect(() => {
       const e = this.context.current();
       if (e) this.load(e.id);
@@ -102,6 +114,20 @@ export class SubjectsComponent {
 
   modality(e: Equipment): string {
     return MODALITY_LABELS[e.modality] ?? e.modality;
+  }
+
+  /** Nombre del tipo si lo tiene; si no, la modalidad. */
+  typeName(e: Equipment): string {
+    return this.types()?.find((t) => t.key === e.equipmentTypeKey)?.name ?? this.modality(e);
+  }
+
+  statusLabel(e: Equipment): string {
+    return OPERATIONAL_STATUS_LABELS[e.operationalStatus ?? 'operating'];
+  }
+
+  openDetail(equipment: Equipment): void {
+    const data: EquipmentDetailData = { equipment, types: this.types() };
+    this.dialog.open(EquipmentDetailDialogComponent, { width: '640px', data });
   }
 
   role(p: Personnel): string {

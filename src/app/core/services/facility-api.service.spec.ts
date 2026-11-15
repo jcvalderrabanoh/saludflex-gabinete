@@ -43,6 +43,22 @@ describe('FacilityApiService', () => {
     req.flush({});
   });
 
+  it('el catálogo de tipos de equipo se pide una vez, sin establecimiento', () => {
+    let version = '';
+    api.equipmentCatalog().subscribe((c) => (version = c.version));
+    http.expectOne({ method: 'GET', url: 'http://localhost:3000/facility/equipment-catalog' }).flush({ version: '2026-11-14', types: [] });
+    expect(version).toBe('2026-11-14');
+  });
+
+  it('registrar equipo manda la ficha y omite lo vacío', () => {
+    api
+      .registerEquipment('e1', { name: 'Sala 1', equipmentTypeKey: 'ultrasonido', operationalStatus: 'operating', installedOn: '2026-01-15', warrantyUntil: '', serviceProvider: null })
+      .subscribe();
+    const req = http.expectOne('http://localhost:3000/facility/establishments/e1/equipment');
+    expect(req.request.body).toEqual({ name: 'Sala 1', equipmentTypeKey: 'ultrasonido', operationalStatus: 'operating', installedOn: '2026-01-15' });
+    req.flush({ subject: {}, activated: [] });
+  });
+
   it('los usuarios vinculables se piden por establecimiento', () => {
     api.linkableUsers('e1').subscribe();
     http.expectOne('http://localhost:3000/facility/establishments/e1/linkable-users').flush([]);

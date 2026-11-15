@@ -41,6 +41,7 @@ import {
   Catalog,
   ChainVerification,
   Equipment,
+  EquipmentCatalog,
   PaymentWindow,
   Personnel,
   LinkableUser,
@@ -176,6 +177,11 @@ export class FacilityApiService {
     return this.http.get(`${this.base}/establishments/${establishmentId}/inspection-folder`, {
       responseType: 'blob',
     });
+  }
+
+  /** Tipos de equipo y sus mantenimientos (periodicidad y base: norma, fabricante o planeación). */
+  equipmentCatalog(): Observable<EquipmentCatalog> {
+    return this.http.get<EquipmentCatalog>(`${this.base}/equipment-catalog`);
   }
 
   equipment(establishmentId: string): Observable<Equipment[]> {

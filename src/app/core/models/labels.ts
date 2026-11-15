@@ -65,6 +65,12 @@ export const MODALITY_LABELS: Record<import('./facility.models').EquipmentModali
   other: 'Otro',
 };
 
+export const OPERATIONAL_STATUS_LABELS: Record<import('./facility.models').EquipmentOperationalStatus, string> = {
+  operating: 'Operando',
+  restricted: 'Con restricciones',
+  down: 'Fuera de servicio',
+};
+
 export const ROLE_LABELS: Record<import('./facility.models').StaffRole, string> = {
   'medico-radiologo': 'Médico radiólogo',
   medico: 'Médico',

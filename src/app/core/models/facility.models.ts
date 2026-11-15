@@ -222,6 +222,56 @@ export interface Equipment {
   model?: string | null;
   serialNumber?: string | null;
   room?: string | null;
+  /** Tipo del catálogo (`GET facility/equipment-catalog`); fija la modalidad. */
+  equipmentTypeKey?: string | null;
+  operationalStatus?: EquipmentOperationalStatus;
+  /** Registro sanitario COFEPRIS. */
+  sanitaryRegistration?: string | null;
+  serviceProvider?: string | null;
+  /** AAAA-MM-DD. */
+  installedOn?: string | null;
+  /** AAAA-MM-DD; no antes de la instalación. */
+  warrantyUntil?: string | null;
+}
+
+/** Estado operativo del equipo (la baja es aparte). */
+export type EquipmentOperationalStatus = 'operating' | 'restricted' | 'down';
+
+export type MaintenanceKind = 'preventive' | 'quality-control' | 'acceptance' | 'electrical-safety' | 'user-check';
+/** De dónde sale la periodicidad: solo `norm` con verificación `V` es lo que fija la norma. */
+export type MaintenanceBasis = 'norm' | 'manufacturer' | 'planning';
+export type MaintenancePerformer = 'provider' | 'specialist' | 'staff';
+
+/** Un mantenimiento o prueba característico de un tipo de equipo. */
+export interface EquipmentMaintenance {
+  kind: MaintenanceKind;
+  title: string;
+  /** Obligación que lo vigila; `null` = práctica recomendada que no se vigila. */
+  obligationKey: string | null;
+  /** `null` si va por evento (al instalar, en cada uso). */
+  period: { unit: 'day' | 'month'; every: number } | null;
+  afterRepair: boolean;
+  basis: MaintenanceBasis;
+  norms: string[];
+  verification: 'V' | 'NV';
+  performer: MaintenancePerformer;
+  note: string;
+}
+
+export interface EquipmentType {
+  key: string;
+  name: string;
+  category: 'imaging' | 'support';
+  modality: EquipmentModality;
+  ionizing: boolean;
+  maintenance: EquipmentMaintenance[];
+  note?: string;
+}
+
+/** GET facility/equipment-catalog. */
+export interface EquipmentCatalog {
+  version: string;
+  types: EquipmentType[];
 }
 
 export interface Personnel {
