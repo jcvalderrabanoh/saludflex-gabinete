@@ -12,6 +12,7 @@ import { CanDirective } from '../../shared/directives/can.directive';
 import { ExportListsButtonComponent } from '../../shared/components/export-lists-button.component';
 import { SubjectFormData, SubjectFormDialogComponent, SubjectFormResult } from './subject-form.dialog';
 import { EquipmentDetailData, EquipmentDetailDialogComponent } from './equipment-detail.dialog';
+import { DEFAULT_TIME_ZONE, todayIn } from '../agenda/agenda.helpers';
 
 /** Equipos y personal: registrarlos activa solas sus obligaciones. */
 @Component({
@@ -125,9 +126,16 @@ export class SubjectsComponent {
     return OPERATIONAL_STATUS_LABELS[e.operationalStatus ?? 'operating'];
   }
 
+  /** Si en la ficha se reportó o cerró un correctivo, el estado del equipo cambió: se recarga la lista. */
   openDetail(equipment: Equipment): void {
-    const data: EquipmentDetailData = { equipment, types: this.types() };
-    this.dialog.open(EquipmentDetailDialogComponent, { width: '640px', data });
+    const timeZone = this.context.current()?.timeZone;
+    const data: EquipmentDetailData = { equipment, types: this.types(), today: todayIn(timeZone ?? DEFAULT_TIME_ZONE) };
+    this.dialog
+      .open(EquipmentDetailDialogComponent, { width: '640px', data })
+      .afterClosed()
+      .subscribe((changed?: boolean) => {
+        if (changed) this.load(equipment.establishmentId);
+      });
   }
 
   role(p: Personnel): string {

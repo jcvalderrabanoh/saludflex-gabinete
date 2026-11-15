@@ -42,6 +42,10 @@ import {
   ChainVerification,
   Equipment,
   EquipmentCatalog,
+  EquipmentIncident,
+  IncidentResult,
+  ReportIncidentInput,
+  CloseIncidentInput,
   PaymentWindow,
   Personnel,
   LinkableUser,
@@ -185,6 +189,25 @@ export class FacilityApiService {
   /** Tipos de equipo y sus mantenimientos (periodicidad y base: norma, fabricante o planeación). */
   equipmentCatalog(): Observable<EquipmentCatalog> {
     return this.http.get<EquipmentCatalog>(`${this.base}/equipment-catalog`);
+  }
+
+  /** Correctivos del equipo, el más reciente primero. */
+  equipmentIncidents(equipmentId: string): Observable<EquipmentIncident[]> {
+    return this.http.get<EquipmentIncident[]>(`${this.base}/equipment/${equipmentId}/incidents`);
+  }
+
+  /** Reportar una falla; `idempotencyKey` es uno por envío del formulario (un reintento no duplica). */
+  reportIncident(equipmentId: string, input: ReportIncidentInput, idempotencyKey: string): Observable<IncidentResult> {
+    return this.http.post<IncidentResult>(`${this.base}/equipment/${equipmentId}/incidents`, input, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+  }
+
+  /** Cerrar la reparación: 409 si ya estaba cerrada; 400 si la fecha es futura o anterior al reporte. */
+  closeIncident(incidentId: string, input: CloseIncidentInput, idempotencyKey: string): Observable<IncidentResult> {
+    return this.http.post<IncidentResult>(`${this.base}/equipment-incidents/${incidentId}/close`, clean(input), {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
   }
 
   equipment(establishmentId: string): Observable<Equipment[]> {

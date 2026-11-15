@@ -71,6 +71,8 @@ export interface ObligationDefinition {
   folderOrder: number;
   verification: NormVerification;
   note?: string;
+  /** La crea y la alimenta el sistema (bitácora de correctivos): no se activa a mano. */
+  managedBySystem?: true;
 }
 
 export interface Catalog {
@@ -118,6 +120,8 @@ export interface EvaluatedObligation {
   alertLevel: number | null;
   /** Plazo de pago, si tiene; sin pagar, `dueOn` es la fecha B. */
   window?: EvaluatedPaymentWindow | null;
+  /** Una reparación volvió a exigir el registro (control de calidad) desde esta fecha y aún no se hace. */
+  requiredSince?: string | null;
   currentRecord: {
     id: string;
     performedOn: string;
@@ -266,6 +270,50 @@ export interface EquipmentType {
   ionizing: boolean;
   maintenance: EquipmentMaintenance[];
   note?: string;
+}
+
+/** Cómo deja al equipo un correctivo abierto. */
+export type IncidentImpact = 'restricted' | 'down';
+
+/** Un correctivo del equipo: la falla y, al cerrar, su reparación (cerrado no se edita). */
+export interface EquipmentIncident {
+  id: string;
+  equipmentId: string;
+  /** AAAA-MM-DD. */
+  reportedOn: string;
+  description: string;
+  impact: IncidentImpact;
+  state: 'open' | 'closed';
+  closedOn: string | null;
+  resolution: string | null;
+  performedBy: string | null;
+  qualityCheckObligationIds: string[];
+  sealRecordId: string | null;
+  createdAt: string;
+}
+
+export interface ReportIncidentInput {
+  reportedOn: string;
+  description: string;
+  impact: IncidentImpact;
+}
+
+export interface CloseIncidentInput {
+  closedOn: string;
+  resolution: string;
+  performedBy?: string;
+}
+
+/** POST …/incidents y …/close: el correctivo y el estado operativo que le deja al equipo. */
+export interface IncidentResult {
+  incident: EquipmentIncident;
+  operationalStatus: EquipmentOperationalStatus;
+  /** Claves de las obligaciones que la reparación volvió a exigir (p. ej. `rx.control-calidad-equipo`). */
+  qualityChecks: string[];
+  /** Solo al cerrar: si ya quedó sellado en la bitácora. */
+  sealed?: boolean;
+  /** La misma `Idempotency-Key` ya se había procesado. */
+  replayed: boolean;
 }
 
 /** GET facility/equipment-catalog. */

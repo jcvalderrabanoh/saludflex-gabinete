@@ -29,7 +29,7 @@ describe('SubjectsComponent · equipos', () => {
         provideRouter([]),
         { provide: FacilityApiService, useValue: api },
         { provide: MatDialog, useValue: dialog },
-        { provide: EstablishmentContextService, useValue: { current: signal({ id: 'e1' } as Establishment) } },
+        { provide: EstablishmentContextService, useValue: { current: signal({ id: 'e1', timeZone: 'America/Mexico_City' } as Establishment) } },
         { provide: PermissionsService, useValue: { can: (a: string) => perms.includes(`facility.${a}`) } },
       ],
     });
@@ -41,6 +41,7 @@ describe('SubjectsComponent · equipos', () => {
   beforeEach(() => {
     perms = ['facility.read'];
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
+    dialog.open.and.returnValue({ afterClosed: () => of(false) } as never);
   });
 
   it('cada equipo muestra su tipo, o su modalidad si no tiene, y el estado si no está operando', () => {
@@ -62,12 +63,31 @@ describe('SubjectsComponent · equipos', () => {
   it('«Ver ficha» abre el detalle con los tipos del catálogo', () => {
     create().cmp.openDetail(TYPED);
 
-    expect(dialog.open).toHaveBeenCalledWith(EquipmentDetailDialogComponent, jasmine.objectContaining({ data: { equipment: TYPED, types: [US] } }));
+    expect(dialog.open).toHaveBeenCalledWith(EquipmentDetailDialogComponent, jasmine.objectContaining({ data: jasmine.objectContaining({ equipment: TYPED, types: [US], today: jasmine.stringMatching(/^\d{4}-\d{2}-\d{2}$/) }) }));
   });
 
   it('si el catálogo no cargó, el detalle lo recibe como null', () => {
     create(throwError(() => new Error('500'))).cmp.openDetail(TYPED);
 
-    expect(dialog.open).toHaveBeenCalledWith(EquipmentDetailDialogComponent, jasmine.objectContaining({ data: { equipment: TYPED, types: null } }));
+    expect(dialog.open).toHaveBeenCalledWith(EquipmentDetailDialogComponent, jasmine.objectContaining({ data: jasmine.objectContaining({ equipment: TYPED, types: null }) }));
+  });
+
+  it('si la ficha cambió algo (un correctivo), vuelve a cargar los equipos', () => {
+    dialog.open.and.returnValue({ afterClosed: () => of(true) } as never);
+    const { cmp } = create();
+    const api = TestBed.inject(FacilityApiService) as unknown as { equipment: jasmine.Spy };
+
+    cmp.openDetail(TYPED);
+
+    expect(api.equipment).toHaveBeenCalledTimes(2);
+  });
+
+  it('si la ficha se cerró sin cambios, no recarga', () => {
+    const { cmp } = create();
+    const api = TestBed.inject(FacilityApiService) as unknown as { equipment: jasmine.Spy };
+
+    cmp.openDetail(TYPED);
+
+    expect(api.equipment).toHaveBeenCalledTimes(1);
   });
 });

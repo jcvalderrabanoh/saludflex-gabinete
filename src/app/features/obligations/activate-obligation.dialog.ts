@@ -85,7 +85,7 @@ export class ActivateObligationDialogComponent {
     periodUnit: ['month' as 'day' | 'month'],
   });
 
-  /** Las que aplican a los servicios del establecimiento, primero las de persona y equipo. */
+  /** Las que aplican a los servicios del establecimiento (sin las que lleva el sistema), primero las de persona y equipo. */
   readonly options = computed(() =>
     applicableDefinitions(this.data.catalog, this.data.establishment.services),
   );
@@ -121,6 +121,7 @@ export class ActivateObligationDialogComponent {
 
 export function applicableDefinitions(catalog: ObligationDefinition[], services: string[]): ObligationDefinition[] {
   return catalog
+    .filter((d) => !d.managedBySystem)
     .filter((d) => d.appliesTo.length === 0 || d.appliesTo.some((s) => services.includes(s)))
     .sort((a, b) => Number(a.subject === 'establishment') - Number(b.subject === 'establishment') || a.folderOrder - b.folderOrder);
 }
