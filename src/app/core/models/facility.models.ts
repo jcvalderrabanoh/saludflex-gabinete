@@ -104,6 +104,8 @@ export interface EvaluatedObligation {
   note: string | null;
   folderOrder: number;
   weight: number;
+  /** Propia del establecimiento: no está en el catálogo ni cuenta en «listo para inspección». */
+  custom?: boolean;
   /** En un documento, su vigencia desde la expedición (null = la fecha que traiga). */
   period: Period | null;
   /** Documento: el establecimiento confirmó que no vence. */
@@ -363,6 +365,12 @@ export interface EvidenceAnalysis {
   /** Porcentajes enteros 0..100. */
   confidence: { overall: number; obligation: number; performedOn: number; validUntil: number };
   warnings: string[];
+  /** Del catálogo, aún no activa: al ligar con `catalogKey` se activa. */
+  catalogMatch?: { catalogKey: string; title: string; subject: ObligationSubject } | null;
+  /** No está ni en el catálogo: la IA propone registrarlo como obligación propia. */
+  customProposal?: { title: string; kind: ObligationKind } | null;
+  /** Sección de la carpeta donde cuadra lo reconocido o propuesto. */
+  section?: { folderOrder: number; title: string } | null;
   ocr: { source: 'text-layer' | 'vision'; chars: number };
   model: string;
   promptVersion: string;
@@ -391,8 +399,24 @@ export interface FacilityDocument {
   createdAt: string;
 }
 
+/** Obligación propia: un documento importante que no está en el catálogo. */
+export interface CustomObligationInput {
+  title: string;
+  /** Sección de la carpeta. */
+  folderOrder: number;
+  kind: ObligationKind;
+  /** Obligatorio si es periódica: cada cuánto se repite. */
+  periodUnit?: 'day' | 'month';
+  periodEvery?: number;
+}
+
+/** Una sola de: `obligationId`, `catalogKey` (se activa al ligar) o `custom`. */
 export interface LinkDocumentInput {
-  obligationId: string;
+  obligationId?: string;
+  catalogKey?: string;
+  /** Con `catalogKey` de persona o equipo: de quién o de cuál. */
+  subjectLabel?: string;
+  custom?: CustomObligationInput;
   performedOn: string;
   validUntil?: string;
   notes?: string;

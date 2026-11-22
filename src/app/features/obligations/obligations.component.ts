@@ -45,8 +45,8 @@ const shortDate = (date: string) => SHORT_FORMAT.format(new Date(`${date}T00:00:
           <div class="row">
             <app-status-chip [status]="o.status" />
             <div class="text">
-              <div class="title">{{ o.title }}{{ o.verification === 'NV' ? ' †' : '' }}@if (o.subjectLabel) { <span class="subject"> · {{ o.subjectLabel }}</span> }</div>
-              <div class="meta">{{ meta(o) }} · {{ o.norms.join(' · ') }}</div>
+              <div class="title">{{ o.title }}{{ o.verification === 'NV' && !o.custom ? ' †' : '' }}@if (o.custom) { <span class="own">Propia</span> }@if (o.subjectLabel) { <span class="subject"> · {{ o.subjectLabel }}</span> }</div>
+              <div class="meta">{{ meta(o) }} · {{ o.custom ? 'Propia: no cuenta en «listo para inspección»' : o.norms.join(' · ') }}</div>
               @if (o.window) { <div class="window">Plazo de pago: {{ windowText(o) }}</div> }
             </div>
             <div class="responsible">
@@ -76,6 +76,7 @@ const shortDate = (date: string) => SHORT_FORMAT.format(new Date(`${date}T00:00:
     }
   `,
   styles: [`
+    .own { display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 600; background: #e4f0ff; color: #0b1b36; border-radius: 8px; padding: 0 8px; }
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
     h1 { margin: 0; } .sub { margin: 4px 0 16px; color: #64748b; font-size: 13px; }
