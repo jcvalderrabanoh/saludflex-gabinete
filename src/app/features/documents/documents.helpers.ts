@@ -1,4 +1,11 @@
-import { DocumentState, EvaluatedObligation, FacilityDocument, ObligationDefinition } from '../../core/models/facility.models';
+import {
+  CustomObligationInput,
+  DocumentState,
+  EvaluatedObligation,
+  FacilityDocument,
+  LinkDocumentInput,
+  ObligationDefinition,
+} from '../../core/models/facility.models';
 
 export type StateTone = 'neutral' | 'progress' | 'good' | 'warn' | 'bad';
 
@@ -51,14 +58,19 @@ export interface ObligationGroup {
 /** Prefijo de las opciones del catálogo que aún no están activas. */
 export const CATALOG_PREFIX = 'catalog:';
 
+/** Opción para registrar el documento como obligación propia (no está en el catálogo). */
+export const CUSTOM_VALUE = 'custom';
+
 /**
  * Primero lo que falta o venció (lo más probable y lo más urgente), luego lo
- * activo y al final lo del catálogo que no está activo. Del catálogo solo las
- * de establecimiento: las de persona o equipo se activan al registrarlos.
+ * activo, después lo del catálogo que no está activo y al final «Registrar como
+ * obligación propia». Del catálogo solo las de establecimiento (las de persona
+ * o equipo se activan al registrarlos), salvo la que reconoció la IA.
  */
 export function obligationGroups(
   obligations: readonly EvaluatedObligation[],
   catalog: readonly ObligationDefinition[],
+  matchedKey: string | null = null,
 ): ObligationGroup[] {
   const option = (o: EvaluatedObligation): ObligationOption => ({
     value: o.id,
@@ -68,13 +80,59 @@ export function obligationGroups(
   const rest = obligations.filter((o) => !urgent.includes(o));
   const active = new Set(obligations.map((o) => o.catalogKey));
   const inactive = catalog
-    .filter((d) => d.subject === 'establishment' && !active.has(d.key))
+    .filter((d) => !d.managedBySystem && (d.subject === 'establishment' || d.key === matchedKey))
+    .filter((d) => !active.has(d.key) || d.key === matchedKey)
     .map((d) => ({ value: `${CATALOG_PREFIX}${d.key}`, label: d.title }));
   return [
     { label: 'Vencidas o sin registro', options: urgent.map(option) },
     { label: 'Activas', options: rest.map(option) },
     { label: 'Del catálogo (no activas)', options: inactive },
+    { label: 'Fuera del catálogo', options: [{ value: CUSTOM_VALUE, label: 'Registrar como obligación propia' }] },
   ].filter((g) => g.options.length > 0);
+}
+
+/** Lo que la IA propuso: una activa, una del catálogo para activarla o una propia. */
+export function initialObligation(document: FacilityDocument): string {
+  if (document.suggestedObligationId) return document.suggestedObligationId;
+  const match = document.suggestion?.catalogMatch;
+  if (match) return `${CATALOG_PREFIX}${match.catalogKey}`;
+  return document.suggestion?.customProposal ? CUSTOM_VALUE : '';
+}
+
+export interface LinkFields {
+  performedOn: string;
+  validUntil: string;
+  notes: string;
+}
+
+/** Arma lo que se manda al ligar según la opción elegida (una sola de las tres). */
+export function buildLinkInput(
+  choice: string,
+  fields: LinkFields,
+  extras: { subjectLabel?: string; custom?: CustomObligationInput } = {},
+): LinkDocumentInput {
+  const base: LinkDocumentInput = {
+    performedOn: fields.performedOn,
+    ...(fields.validUntil && { validUntil: fields.validUntil }),
+    ...(fields.notes.trim() && { notes: fields.notes.trim() }),
+  };
+  if (choice === CUSTOM_VALUE && extras.custom) {
+    const { title, folderOrder, kind, periodUnit, periodEvery } = extras.custom;
+    return {
+      custom: {
+        title: title.trim(),
+        folderOrder,
+        kind,
+        ...(kind === 'periodic' && { periodUnit, periodEvery }),
+      },
+      ...base,
+    };
+  }
+  if (choice.startsWith(CATALOG_PREFIX)) {
+    const subjectLabel = extras.subjectLabel?.trim();
+    return { catalogKey: choice.slice(CATALOG_PREFIX.length), ...(subjectLabel && { subjectLabel }), ...base };
+  }
+  return { obligationId: choice, ...base };
 }
 
 /** Corre `work` sobre cada elemento con a lo más `limit` en paralelo. */

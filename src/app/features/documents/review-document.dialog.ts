@@ -7,14 +7,19 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { Observable, map, of, switchMap } from 'rxjs';
-import { EstablishmentStatus, FacilityDocument, ObligationDefinition } from '../../core/models/facility.models';
+import { EstablishmentStatus, FacilityDocument, ObligationDefinition, ObligationKind } from '../../core/models/facility.models';
+import { FOLDER_SECTIONS } from '../../core/models/labels';
 import { AuthService } from '../../core/services/auth.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { PermissionsService } from '../../core/services/permissions.service';
 import { confidenceLevel } from '../evidence/analyze-document.helpers';
 import { apiMessage } from '../evidence/record-evidence.dialog';
-import { CATALOG_PREFIX, obligationGroups } from './documents.helpers';
+import { CATALOG_PREFIX, CUSTOM_VALUE, buildLinkInput, initialObligation, obligationGroups } from './documents.helpers';
+
+/** Secciones de la carpeta, en orden, para elegir dónde va una obligación propia. */
+const SECTION_OPTIONS = Object.entries(FOLDER_SECTIONS)
+  .map(([order, title]) => ({ order: Number(order), title }))
+  .sort((a, b) => a.order - b.order);
 
 export interface ReviewDocumentData {
   documents: FacilityDocument[];
@@ -43,7 +48,11 @@ export interface ReviewDocumentData {
             }
           } @else { <span class="muted">Cargando vista previa…</span> }
         </div>
-        @if (d.state === 'unknown') {
+        @if (d.suggestion?.catalogMatch; as match) {
+          <p class="found"><strong>No está en tu listado, pero sí en el catálogo.</strong> Es «{{ d.detectedType || match.title }}» y corresponde a «{{ match.title }}»@if (d.suggestion?.section; as sec) {, en la sección «{{ sec.title }}»}.</p>
+        } @else if (d.suggestion?.customProposal) {
+          <p class="unknown"><strong>No está en el catálogo.</strong> La IA lo describe como «{{ d.detectedType || 'sin descripción' }}»@if (d.suggestion?.section; as sec) { y propone la sección «{{ sec.title }}»}. Si es importante para tu gabinete, regístralo como obligación propia.</p>
+        } @else if (d.state === 'unknown') {
           <p class="unknown"><strong>Tipo desconocido.</strong> La IA lo describe como: «{{ d.detectedType || 'sin descripción' }}». No coincide con ninguna obligación activa: elige a cuál corresponde.</p>
         } @else if (d.suggestion?.obligation) {
           <p class="badge" [class]="'badge ' + level(d.confidence ?? 0).tone">{{ level(d.confidence ?? 0).label }} · {{ d.confidence }} %</p>
@@ -56,15 +65,54 @@ export interface ReviewDocumentData {
               @for (g of groups(); track g.label) {
                 <mat-optgroup [label]="g.label">
                   @for (o of g.options; track o.value) {
-                    <mat-option [value]="o.value" [disabled]="isCatalog(o.value) && !canManage">{{ o.label }}</mat-option>
+                    <mat-option [value]="o.value" [disabled]="needsManage(o.value) && !canManage">{{ o.label }}</mat-option>
                   }
                 </mat-optgroup>
               }
             </mat-select>
-            @if (!canManage) { <mat-hint>Para ligar a una obligación del catálogo que no está activa, pídelo al responsable sanitario.</mat-hint> }
+            @if (!canManage) { <mat-hint>Para activar una del catálogo o registrar una obligación propia, pídelo al responsable sanitario.</mat-hint> }
           </mat-form-field>
           @if (activating(); as def) {
             <p class="activate wide" role="status">Al ligarlo se activa «{{ def.title }}»: empieza a contar en el semáforo y a mandar avisos de vencimiento.</p>
+            @if (def.subject !== 'establishment') {
+              <mat-form-field appearance="outline" class="wide">
+                <mat-label>{{ def.subject === 'person' ? '¿De qué persona es?' : '¿De qué equipo es? (sala y número de serie)' }}</mat-label>
+                <input matInput formControlName="subjectLabel" maxlength="255" />
+              </mat-form-field>
+            }
+          }
+          @if (isCustom()) {
+            <p class="activate wide" role="status">Se registra como obligación propia: aparece en su sección y avisa antes de vencer, pero no cuenta en «listo para inspección» porque no la exige el catálogo.</p>
+            <mat-form-field appearance="outline" class="wide">
+              <mat-label>¿Qué documento es?</mat-label>
+              <input matInput formControlName="customTitle" maxlength="255" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Sección de la carpeta</mat-label>
+              <mat-select formControlName="customFolderOrder">
+                @for (sec of sections; track sec.order) { <mat-option [value]="sec.order">{{ sec.title }}</mat-option> }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Tipo</mat-label>
+              <mat-select formControlName="customKind">
+                <mat-option value="document">Documento (con o sin vigencia)</mat-option>
+                <mat-option value="periodic">Registro que se repite</mat-option>
+              </mat-select>
+            </mat-form-field>
+            @if (form.controls.customKind.value === 'periodic') {
+              <mat-form-field appearance="outline">
+                <mat-label>Se repite cada</mat-label>
+                <input matInput type="number" min="1" max="120" formControlName="periodEvery" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Unidad</mat-label>
+                <mat-select formControlName="periodUnit">
+                  <mat-option value="month">Meses</mat-option>
+                  <mat-option value="day">Días</mat-option>
+                </mat-select>
+              </mat-form-field>
+            }
           }
           <mat-form-field appearance="outline">
             <mat-label>Fecha del documento</mat-label>
@@ -90,8 +138,8 @@ export interface ReviewDocumentData {
       @if (current()) {
         <button mat-button (click)="skip()" [disabled]="busy()">Después</button>
         <button mat-stroked-button color="warn" (click)="discard()" [disabled]="busy()">Descartar</button>
-        <button mat-flat-button color="primary" (click)="link()" [disabled]="form.invalid || busy()">
-          {{ busy() ? 'Guardando…' : 'Ligar a esta obligación' }}
+        <button mat-flat-button color="primary" (click)="link()" [disabled]="form.invalid || !choiceComplete() || busy()">
+          {{ busy() ? 'Guardando…' : linkLabel() }}
         </button>
       }
     </mat-dialog-actions>
@@ -101,6 +149,7 @@ export interface ReviewDocumentData {
     .preview { display: flex; justify-content: center; align-items: center; min-height: 120px; max-height: 280px; overflow: hidden; background: #f4f5f7; border-radius: 12px; margin-bottom: 12px; }
     .preview img { max-width: 100%; max-height: 280px; object-fit: contain; }
     .unknown { font-size: 14px; background: #fff3d6; color: #805800; border-radius: 8px; padding: 8px 12px; }
+    .found { font-size: 14px; background: #e4f0ff; color: #0b1b36; border-radius: 8px; padding: 8px 12px; }
     .badge { display: inline-block; font-size: 13px; font-weight: 600; border-radius: 8px; padding: 2px 10px; margin: 0 0 8px; }
     .badge.high { background: #e7f6ef; color: #08764e; } .badge.medium { background: #fff3d6; color: #805800; } .badge.low { background: #fdecee; color: #b4232c; }
     .warn { margin: 0 0 8px; font-size: 13px; background: #fff3d6; color: #805800; border-radius: 8px; padding: 6px 10px; }
@@ -130,8 +179,10 @@ export class ReviewDocumentDialogComponent implements OnDestroy {
     obligationGroups(
       this.data.status.obligations.filter((o) => this.permissions.canRecord(o)),
       this.data.catalog,
+      this.current()?.suggestion?.catalogMatch?.catalogKey ?? null,
     ),
   );
+  readonly sections = SECTION_OPTIONS;
   readonly level = confidenceLevel;
 
   readonly form = inject(FormBuilder).nonNullable.group({
@@ -139,13 +190,35 @@ export class ReviewDocumentDialogComponent implements OnDestroy {
     performedOn: ['', Validators.required],
     validUntil: [''],
     notes: [''],
+    subjectLabel: [''],
+    customTitle: [''],
+    customFolderOrder: [null as number | null],
+    customKind: ['document' as ObligationKind],
+    periodEvery: [null as number | null],
+    periodUnit: ['month' as 'day' | 'month'],
   });
   private readonly chosen = toSignal(this.form.controls.obligation.valueChanges, { initialValue: '' });
+  /** Cambia con cada tecla: la validez de lo extra (persona, propia) depende de todo el formulario. */
+  private readonly formValue = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
+  readonly isCustom = computed(() => this.chosen() === CUSTOM_VALUE);
   readonly activating = computed(() => {
     const value = this.chosen();
     if (!this.isCatalog(value)) return null;
     return this.data.catalog.find((d) => `${CATALOG_PREFIX}${d.key}` === value) ?? null;
   });
+
+  /** Lo que pide cada opción además de la fecha: persona o equipo, o los datos de la propia. */
+  readonly choiceComplete = computed(() => {
+    const v = { ...this.form.getRawValue(), ...this.formValue() };
+    const def = this.activating();
+    if (def && def.subject !== 'establishment') return !!v.subjectLabel?.trim();
+    if (!this.isCustom()) return true;
+    if (!v.customTitle?.trim() || v.customFolderOrder == null) return false;
+    return v.customKind !== 'periodic' || (!!v.periodEvery && v.periodEvery >= 1);
+  });
+  readonly linkLabel = computed(() =>
+    this.isCustom() ? 'Registrar y ligar' : this.activating() ? 'Activar y ligar' : 'Ligar a esta obligación',
+  );
 
   constructor() {
     this.show();
@@ -155,14 +228,33 @@ export class ReviewDocumentDialogComponent implements OnDestroy {
     return value.startsWith(CATALOG_PREFIX);
   }
 
+  /** Activar una del catálogo o registrar una propia es de quien administra. */
+  needsManage(value: string): boolean {
+    return this.isCatalog(value) || value === CUSTOM_VALUE;
+  }
+
+  /** Una sola llamada: el backend activa o registra la obligación y liga el documento. */
   link(): void {
     const d = this.current();
     if (!d) return;
-    const { obligation, ...value } = this.form.getRawValue();
+    const v = this.form.getRawValue();
+    const input = buildLinkInput(v.obligation, v, {
+      subjectLabel: v.subjectLabel,
+      custom:
+        v.customFolderOrder == null
+          ? undefined
+          : {
+              title: v.customTitle,
+              folderOrder: v.customFolderOrder,
+              kind: v.customKind,
+              periodUnit: v.periodUnit,
+              periodEvery: v.periodEvery ?? undefined,
+            },
+    });
     this.busy.set(true);
     this.error.set(null);
-    this.resolveObligation(obligation)
-      .pipe(switchMap((obligationId) => this.api.linkDocument(d.id, { obligationId, ...value })))
+    this.api
+      .linkDocument(d.id, input)
       .subscribe({ next: () => this.advance(), error: (err: HttpErrorResponse) => this.fail(err) });
   }
 
@@ -183,14 +275,6 @@ export class ReviewDocumentDialogComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.revoke();
-  }
-
-  /** Una obligación del catálogo se activa primero (dos pasos explícitos). */
-  private resolveObligation(value: string): Observable<string> {
-    if (!this.isCatalog(value)) return of(value);
-    return this.api
-      .activateObligation(this.data.status.establishmentId, { catalogKey: value.slice(CATALOG_PREFIX.length) })
-      .pipe(map((o) => o.id));
   }
 
   private advance(): void {
@@ -216,11 +300,18 @@ export class ReviewDocumentDialogComponent implements OnDestroy {
     const d = this.current();
     if (!d) return;
     const fields = d.suggestion?.fields;
+    const proposal = d.suggestion?.customProposal;
     this.form.reset({
-      obligation: d.suggestedObligationId ?? '',
+      obligation: initialObligation(d),
       performedOn: fields?.performedOn ?? '',
       validUntil: fields?.validUntil ?? '',
       notes: fields?.notes ?? '',
+      subjectLabel: '',
+      customTitle: proposal?.title ?? d.detectedType ?? '',
+      customFolderOrder: proposal ? (d.suggestion?.section?.folderOrder ?? null) : null,
+      customKind: proposal?.kind ?? 'document',
+      periodEvery: null,
+      periodUnit: 'month',
     });
     this.api.documentFile(d.id).subscribe((blob) => this.previewUrl.set(URL.createObjectURL(blob)));
   }
