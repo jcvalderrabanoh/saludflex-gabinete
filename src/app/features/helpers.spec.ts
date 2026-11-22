@@ -1,7 +1,7 @@
 import { EstablishmentStatus, EvaluatedObligation, ObligationDefinition } from '../core/models/facility.models';
 import { applicableDefinitions } from './obligations/activate-obligation.dialog';
 import { groupSections } from './obligations/obligations.component';
-import { obligationMeta } from '../core/models/labels';
+import { dueLabel, dueVerb, obligationMeta } from '../core/models/labels';
 import { activatedMessage, subjectSavedMessage } from './subjects/subjects.component';
 import { todaySummary } from './today/today.component';
 import { capturedByLabel } from './evidence/evidence-history.dialog';
@@ -64,6 +64,30 @@ describe('helpers de pantallas', () => {
     expect(obligationMeta(o)).toBe('Sin fecha de vencimiento: captúrala o define la vigencia');
     expect(obligationMeta({ ...o, currentRecord: null })).toBe('Sin registro');
     expect(obligationMeta({ ...o, status: 'ok' })).toBe('Sin vencimiento');
+  });
+
+  it('obligationMeta marca la fecha estimada y pide la del documento', () => {
+    const o = {
+      status: 'due-soon',
+      daysLeft: 20,
+      dueOn: '2026-12-31',
+      dueOnEstimated: true,
+      currentRecord: { id: 'r', performedOn: '2026-03-15', validUntil: null, hasFile: true },
+    } as unknown as EvaluatedObligation;
+    expect(obligationMeta(o)).toBe('Faltan 20 días (2026-12-31) · fecha estimada: captura la del documento');
+    expect(obligationMeta({ ...o, dueOnEstimated: false })).toBe('Faltan 20 días (2026-12-31)');
+  });
+
+  it('dueLabel marca la fecha estimada y sin marca la deja como siempre', () => {
+    expect(dueLabel(-1, '2025-12-31', true)).toBe('Venció hace 1 día (2025-12-31) · fecha estimada: captura la del documento');
+    expect(dueLabel(-1, '2025-12-31')).toBe('Venció hace 1 día (2025-12-31)');
+  });
+
+  it('dueVerb dice si el vencimiento es estimado', () => {
+    const o = { status: 'overdue', dueOnEstimated: true } as unknown as EvaluatedObligation;
+    expect(dueVerb(o)).toBe('Vencido (estimado)');
+    expect(dueVerb({ ...o, status: 'due-soon' })).toBe('Vence (estimado)');
+    expect(dueVerb({ ...o, dueOnEstimated: false })).toBe('Vencido');
   });
 
   it('activatedMessage dice cuántas obligaciones nacieron', () => {
