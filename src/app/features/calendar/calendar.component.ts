@@ -4,6 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Appointment, AppointmentKind, EstablishmentStatus, EvaluatedObligation } from '../../core/models/facility.models';
+import { dueVerb } from '../../core/models/labels';
 import { EstablishmentContextService } from '../../core/services/establishment-context.service';
 import { FacilityApiService } from '../../core/services/facility-api.service';
 import { PermissionsService } from '../../core/services/permissions.service';
@@ -285,7 +286,7 @@ export class CalendarComponent {
       const { startsOn, endsOn } = entry.obligation.window!;
       return `${entry.title} · plazo del ${shortDate(startsOn)} al ${shortDate(endsOn)} · ${this.windowOf(entry).label}`;
     }
-    if (entry.type === 'due') return `${entry.obligation.status === 'overdue' ? 'Vencido' : 'Vence'} · ${entry.title}`;
+    if (entry.type === 'due') return `${dueVerb(entry.obligation)} · ${entry.title}`;
     const time = entry.appointment.startTime ? `${entry.appointment.startTime} · ` : '';
     return `${time}${entry.title}`;
   }

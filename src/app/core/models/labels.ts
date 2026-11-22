@@ -39,9 +39,16 @@ export const FOLDER_SECTIONS: Record<number, string> = {
   12: 'Protección civil y STPS',
 };
 
-/** «faltan 3 días», «vence hoy», «venció hace 2 días». */
-export function dueLabel(daysLeft: number | null, dueOn: string | null): string {
+/** Una fecha que no sale del documento sino del catálogo (permiso anual, contrato…). */
+const ESTIMATED_DUE_NOTE = ' · fecha estimada: captura la del documento';
+
+/** «faltan 3 días», «vence hoy», «venció hace 2 días»; `estimated` lo aclara. */
+export function dueLabel(daysLeft: number | null, dueOn: string | null, estimated = false): string {
   if (daysLeft === null || dueOn === null) return dueOn ? `Vence ${dueOn}` : 'Sin vencimiento';
+  return baseDueLabel(daysLeft, dueOn) + (estimated ? ESTIMATED_DUE_NOTE : '');
+}
+
+function baseDueLabel(daysLeft: number, dueOn: string): string {
   if (daysLeft < 0) {
     const days = -daysLeft;
     return `Venció hace ${days} ${days === 1 ? 'día' : 'días'} (${dueOn})`;
@@ -50,12 +57,18 @@ export function dueLabel(daysLeft: number | null, dueOn: string | null): string 
   return `Faltan ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} (${dueOn})`;
 }
 
+/** «Vence» o «Vencido» para el calendario, con «(estimado)» si la fecha es estimada. */
+export function dueVerb(o: EvaluatedObligation): string {
+  const verb = o.status === 'overdue' ? 'Vencido' : 'Vence';
+  return o.dueOnEstimated ? `${verb} (estimado)` : verb;
+}
+
 /** La línea bajo el título: sin registro, sin fecha de vencimiento o cuánto falta. */
 export function obligationMeta(o: EvaluatedObligation): string {
   if (o.requiredSince) return `Requiere control de calidad desde ${o.requiredSince} (tras reparación)`;
   if (!o.currentRecord) return 'Sin registro';
   if (o.status === 'expiry-unknown') return 'Sin fecha de vencimiento: captúrala o define la vigencia';
-  return dueLabel(o.daysLeft, o.dueOn);
+  return dueLabel(o.daysLeft, o.dueOn, o.dueOnEstimated);
 }
 
 export const MODALITY_LABELS: Record<import('./facility.models').EquipmentModality, string> = {

@@ -187,7 +187,7 @@ export class MunicipalComponent {
   }
 
   due(o: EvaluatedObligation): string {
-    return dueLabel(o.daysLeft, o.dueOn);
+    return dueLabel(o.daysLeft, o.dueOn, o.dueOnEstimated);
   }
 
   dateParts(date: string): { month: string; day: number; year: string } {

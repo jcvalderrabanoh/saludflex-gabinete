@@ -116,6 +116,8 @@ export interface EvaluatedObligation {
   responsibles?: ObligationResponsible[];
   status: ObligationStatus;
   dueOn: string | null;
+  /** `dueOn` es la fecha estimada del catálogo: el documento no trae vencimiento capturado. */
+  dueOnEstimated?: boolean;
   daysLeft: number | null;
   alertLevel: number | null;
   /** Plazo de pago, si tiene; sin pagar, `dueOn` es la fecha B. */
